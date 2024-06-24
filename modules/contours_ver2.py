@@ -216,6 +216,9 @@ def get_super_contour(
             t_params, s_params, td, I_arr, what_template
         )
 
+    results["td_arr"] = td_arr
+    results["I_arr"] = I_arr
+    results["source_params"] = s_params
     return results
 
 
