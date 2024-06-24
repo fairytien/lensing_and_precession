@@ -1,20 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2023-11-11: changed order of args in cos_i_JN to phi_S, theta_S, phi_J, theta_J
-# 2. 2023-11-11: changed find_FaceOn_coords, find_EdgeOn_coords, plot_special_coords to be more general
-# 3. 2023-11-11: added cos_i_JN_contour
-# 4. 2023-11-11: moved cmd argument to the first position in functions
-# 5. 2023-11-11: renamed mismatch_epsilon_min_max function to optimize_mismatch_gamma_P and changed its output to dict
-# 6. 2023-11-13: added docstrings to functions
-# 7. 2023-11-19: added SNR function
-# 8. 2024-03-17: in Shortcuts section, added default_plot_fontsizes, get_gw, get_MLz_from_time_delay, get_fcut_from_mcz, get_mcz_from_fcut functions
-# 9. 2024-03-17: edited SNR function to accept f_min, delta_f, lens_Class, and prec_Class as argument
-# 10. 2024-03-17: in Inclination & Special Coords section, added cos_i_JN_params function and updated docstrings for cos_i_JN
-# 11. 2024-03-17: added f_min=20 as default argument for Sn function
-# 16. 2024-04-15: added pycbc.catalog import
-
-
 #############################
 # Section 1: Import Modules #
 #############################

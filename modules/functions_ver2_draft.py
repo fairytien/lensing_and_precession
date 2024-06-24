@@ -1,8 +1,3 @@
-###########
-# UPDATES #
-###########
-
-
 #############################
 # Section 1: Import Modules #
 #############################
@@ -277,7 +272,9 @@ def plot_waveform_comparison_careful(
 ####################
 
 
-def get_MLz_limits_for_RP_L_draft(params: dict, lower="min", upper="max", y=0.25, f_min=20) -> dict:
+def get_MLz_limits_for_RP_L_draft(
+    params: dict, lower="min", upper="max", y=0.25, f_min=20
+) -> dict:
     """
     Calculate the lower and upper limits of the lens mass [solar mass] such that the number of modulation cycles in the lensed waveform is comparable to the number of precession cycles.
 

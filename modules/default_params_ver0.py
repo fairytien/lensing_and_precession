@@ -3,6 +3,7 @@
 #############################
 
 import numpy as np
+
 error_handler = np.seterr(invalid="raise")
 
 #################################
@@ -71,9 +72,11 @@ NP_params_0 = {
 
 # (omega_tilde, theta_tilde) pairs in order of distribution percentiles 1%, 50%, and 95% for equal-mass, maximally spinning BBHs
 
-omega_theta_tilde_pairs = {'05%': {'omega_tilde': 1, 'theta_tilde': 1},
-                           '50%': {'omega_tilde': 2, 'theta_tilde': 4},
-                           '95%': {'omega_tilde': 3, 'theta_tilde': 8}}
+omega_theta_tilde_pairs = {
+    "05%": {"omega_tilde": 1, "theta_tilde": 1},
+    "50%": {"omega_tilde": 2, "theta_tilde": 4},
+    "95%": {"omega_tilde": 3, "theta_tilde": 8},
+}
 
 ############################
 # Section 4: Sky Locations #
@@ -107,10 +110,44 @@ sky_locs_S_E = [
 
 loc_params = {}
 
-loc_params['sys1'] = {'faceon': {'phi_S': np.pi / 4, 'theta_S': np.pi / 6, 'phi_J': np.pi / 4, 'theta_J': np.pi / 6},
-                      'edgeon': {'phi_S': np.pi / 3, 'theta_S': np.pi / 6, 'phi_J': np.pi / 3, 'theta_J': 2 * np.pi / 3},
-                      'random': {'phi_S': np.pi / 4, 'theta_S': 000000000, 'phi_J': np.pi / 4, 'theta_J': np.pi / 3}}
+loc_params["sys1"] = {
+    "faceon": {
+        "phi_S": np.pi / 4,
+        "theta_S": np.pi / 6,
+        "phi_J": np.pi / 4,
+        "theta_J": np.pi / 6,
+    },
+    "edgeon": {
+        "phi_S": np.pi / 3,
+        "theta_S": np.pi / 6,
+        "phi_J": np.pi / 3,
+        "theta_J": 2 * np.pi / 3,
+    },
+    "random": {
+        "phi_S": np.pi / 4,
+        "theta_S": 000000000,
+        "phi_J": np.pi / 4,
+        "theta_J": np.pi / 3,
+    },
+}
 
-loc_params['sys2'] = {'faceon': {'phi_S': 0, 'theta_S': np.pi / 4, 'phi_J': 000000000, 'theta_J': np.pi / 4},
-                      'edgeon': {'phi_S': 0, 'theta_S': np.pi / 4, 'phi_J': np.pi / 2, 'theta_J': np.pi / 2},
-                      'random': {'phi_S': 0, 'theta_S': np.pi / 4, 'phi_J': np.pi / 4, 'theta_J': 8 * np.pi / 9}}
+loc_params["sys2"] = {
+    "faceon": {
+        "phi_S": 0,
+        "theta_S": np.pi / 4,
+        "phi_J": 000000000,
+        "theta_J": np.pi / 4,
+    },
+    "edgeon": {
+        "phi_S": 0,
+        "theta_S": np.pi / 4,
+        "phi_J": np.pi / 2,
+        "theta_J": np.pi / 2,
+    },
+    "random": {
+        "phi_S": 0,
+        "theta_S": np.pi / 4,
+        "phi_J": np.pi / 4,
+        "theta_J": 8 * np.pi / 9,
+    },
+}

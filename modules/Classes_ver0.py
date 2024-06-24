@@ -1,8 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2024-02-07: changed C_amp in polarization_amplitude_and_phase in Precessing class to the correct equation (4a in Evangelos's)
-
 #############################
 # Section 1: Import Modules #
 #############################

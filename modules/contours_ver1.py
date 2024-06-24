@@ -1,9 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2024-04-30: added get_contours_stats() function
-
-
 #############################
 # Section 1: Import Modules #
 #############################

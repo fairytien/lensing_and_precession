@@ -1,12 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2023-11-10: changed L to J for Lensing class, capitalized s for theta & phi in Lensing class, changed l_dot_n to LdotN
-# 2. 2023-11-10: deleted if theta_tilde == 0 under if cos_i_JN == 1 in the integrand_delta_phi function of the Precessing class
-# 3. 2024-01-25: changed "tc" to "t_c"
-# 4. 2024-01-25: changed psi to Psi in Lensing class
-# 5. 2024-02-07: changed C_amp in polarization_amplitude_and_phase in Precessing class to the correct equation (4a in Evangelos's)
-
 #############################
 # Section 1: Import Modules #
 #############################

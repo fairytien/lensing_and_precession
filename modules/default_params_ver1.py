@@ -1,12 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2023-11-10: changed L to J for Lensing, changed lensing_params_0 to lens_params_0
-# 2. 2023-11-13: added loc_params['sys3']
-# 3. 2024-01-25: changed "tc" to "t_c"
-# 4. 2024-03-07: added lens_params_1, RP_params_1, NP_params_1
-
-
 #############################
 # Section 1: Import Modules #
 #############################

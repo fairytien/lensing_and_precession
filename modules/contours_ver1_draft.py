@@ -1,9 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2024-04-30: added get_contours_stats() function
-
-
 #############################
 # Section 1: Import Modules #
 #############################
@@ -29,7 +23,7 @@ def polynomial(x, a, b, c):
 
 
 def gaussian(x, a, mu, sigma):
-    return a * np.exp(-(x - mu)**2 / (2 * sigma**2))
+    return a * np.exp(-((x - mu) ** 2) / (2 * sigma**2))
 
 
 def get_error_bars_ver1(X, Y, Z, min_idx):
@@ -58,16 +52,14 @@ def get_error_bars_ver1(X, Y, Z, min_idx):
     Y_err : 2D array
         FWHM of the dip in Y for each row and column.
     """
-    
+
     omega_arr = X[min_idx[0], :]
     ep_omega_arr = Z[min_idx[0], :]
     popt_omega, pcov_omega = curve_fit(polynomial, omega_arr, ep_omega_arr)
-    
 
     theta_arr = Y[:, min_idx[1]]
     ep_theta_arr = Z[:, min_idx[1]]
     popt_theta, pcov_theta = curve_fit(polynomial, theta_arr, ep_theta_arr)
-    
 
     return omega_err, theta_err
 

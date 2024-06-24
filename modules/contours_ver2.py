@@ -1,10 +1,3 @@
-###########
-# UPDATES #
-###########
-# 1. 2024-04-30: added get_contours_stats() function
-# 2. 2024-06-12: added plot_indiv_contour() and plot_indiv_contour_from_dict() functions
-
-
 #############################
 # Section 1: Import Modules #
 #############################
