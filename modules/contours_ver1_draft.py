@@ -61,6 +61,17 @@ def get_error_bars_ver1(X, Y, Z, min_idx):
     ep_theta_arr = Z[:, min_idx[1]]
     popt_theta, pcov_theta = curve_fit(polynomial, theta_arr, ep_theta_arr)
 
+    # get the quadratic coefficients
+    print("popt_omega: ", popt_omega)  # FOR DEBUGGING
+    print("popt_theta: ", popt_theta)  # FOR DEBUGGING
+    a_omega, b_omega, c_omega = popt_omega
+    a_theta, b_theta, c_theta = popt_theta
+
+    omega_err = 1 / np.sqrt(2 * a_omega)
+    theta_err = 1 / np.sqrt(2 * a_theta)
+    print("omega_err: ", omega_err)  # FOR DEBUGGING
+    print("theta_err: ", theta_err)  # FOR DEBUGGING
+
     return omega_err, theta_err
 
 
@@ -93,6 +104,7 @@ def get_contours_stats_ver1(d: dict) -> dict:
     for k in d_copy.keys():
         if isinstance(k, str):
             continue
+        print("I: ", k)  # FOR DEBUGGING
         contour_data = d_copy[k]["contour"]
         omega_mtx = contour_data["omega_matrix"]
         theta_mtx = contour_data["theta_matrix"]
@@ -197,6 +209,7 @@ def get_super_contour_stats_ver1(d: dict) -> dict:
     for k in d_copy.keys():
         if isinstance(k, str):
             continue
+        print("td: ", k)  # FOR DEBUGGING
         d_copy[k] = get_contours_stats_ver1(d_copy[k])
 
     return d_copy
