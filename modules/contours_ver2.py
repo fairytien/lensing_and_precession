@@ -63,6 +63,12 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
     return results
 
 
+def mismatch_contour_NP_L(t_params: dict, s_params: dict) -> float:
+    t_params_copy, s_params_copy = set_to_params(t_params, s_params)
+    results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
+    return results["ep_min"]
+
+
 ############################
 # Section 3: Data Handling #
 ############################
@@ -138,33 +144,36 @@ def contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
 
 
 def create_mismatch_contours_td(
-    t_params: dict, s_params: dict, MLz_arr: np.ndarray
+    t_params: dict, s_params: dict, I: float, td_arr: np.ndarray, what_template="RP"
 ) -> dict:
-    I = LensingGeo(s_params).I()
-    td_arr = np.zeros_like(MLz_arr)
+    y = get_y_from_I(I)
+    MLz_arr = get_MLz_from_td(td_arr, y)
     results = {}
 
-    for i, MLz in enumerate(MLz_arr):
-        s_params["MLz"] = MLz * solar_mass
-        td = LensingGeo(s_params).td()
+    for i in range(len(td_arr)):
+        s_params["y"] = y
+        s_params["MLz"] = MLz_arr[i] * solar_mass
+        td = td_arr[i]
         td = round(td, 6)  # Round to 6 decimal places
-        td_arr[i] = td
         results[td] = {}
-        results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        if what_template == "RP":
+            results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        elif what_template == "NP":
+            results[td]["epsilon"] = mismatch_contour_NP_L(t_params, s_params)
+        results[td]["source_params"] = s_params
 
-    results["source_params"] = s_params
     results["I"] = I
     results["td_arr"] = td_arr
+    results["y"] = y
     results["MLz_arr"] = MLz_arr
 
     return results
 
 
 def create_mismatch_contours_I(
-    t_params: dict, s_params: dict, td: float, I_arr: np.ndarray
+    t_params: dict, s_params: dict, td: float, I_arr: np.ndarray, what_template="RP"
 ) -> dict:
     y_arr = get_y_from_I(I_arr)
-    # create MLz_arr from y_arr based on the same time delay
     MLz_arr = get_MLz_from_td(td, y_arr)
     results = {}
 
@@ -174,9 +183,12 @@ def create_mismatch_contours_I(
         I = I_arr[i]
         I = round(I, 6)  # Round to 6 decimal places
         results[I] = {}
-        results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        if what_template == "RP":
+            results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        elif what_template == "NP":
+            results[I]["epsilon"] = mismatch_contour_NP_L(t_params, s_params)
+        results[I]["source_params"] = s_params
 
-    results["source_params"] = s_params
     results["td"] = td
     results["I_arr"] = I_arr
     results["y_arr"] = y_arr
@@ -185,8 +197,30 @@ def create_mismatch_contours_I(
     return results
 
 
+############################
+# Section 5: Super Contour #
+############################
+
+
+def get_super_contour(
+    t_params: dict,
+    s_params: dict,
+    td_arr: np.ndarray,
+    I_arr: np.ndarray,
+    what_template="RP",
+) -> dict:
+    results = {}
+    for td in td_arr:
+        td = round(td, 6)
+        results[td] = create_mismatch_contours_I(
+            t_params, s_params, td, I_arr, what_template
+        )
+
+    return results
+
+
 ##############################
-# Section 5: Post-Processing #
+# Section 6: Post-Processing #
 ##############################
 
 
@@ -233,8 +267,18 @@ def get_asym_err(d: dict, k_arr: np.ndarray, param_name: str) -> list:
     return asym_err
 
 
+def get_super_contour_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
+    d_copy = copy.deepcopy(d)
+    for k in d_copy.keys():
+        if isinstance(k, str):
+            continue
+        d_copy[k] = get_contours_stats(d_copy[k], thres_factor, thres_diff)
+
+    return d_copy
+
+
 #######################
-# Section 6: Plotting #
+# Section 7: Plotting #
 #######################
 
 
