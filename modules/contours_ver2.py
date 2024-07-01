@@ -323,7 +323,7 @@ def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
     )
 
 
-def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100):
+def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
     src_params = d["source_params"]
     omega_mtx = d[k]["contour"]["omega_matrix"]
     theta_mtx = d[k]["contour"]["theta_matrix"]
@@ -342,8 +342,16 @@ def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100):
         label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
     )
 
-    ep_min_idx = np.unravel_index(np.argmin(ep_mtx, axis=None), ep_mtx.shape)
-    plt.scatter(omega_mtx[ep_min_idx], theta_mtx[ep_min_idx], color="white", marker="o")
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(
+            np.argsort(ep_mtx, axis=None)[:n_minima], ep_mtx.shape
+        )
+        plt.scatter(
+            omega_mtx[ep_min_indices],
+            theta_mtx[ep_min_indices],
+            color="white",
+            marker="o",
+        )
 
     plt.suptitle(
         "Mismatch Between RP Templates and a Lensed Source",
