@@ -17,7 +17,9 @@ from multiprocessing import Pool, cpu_count
 #################################
 
 
-def compute_mismatch(t_params: dict, s_params: dict, X, Y, r, c) -> tuple:
+def compute_mismatch(
+    t_params: dict, s_params: dict, X: np.ndarray, Y: np.ndarray, r, c
+) -> tuple:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
     t_params_copy["omega_tilde"] = X[r, c]
@@ -58,15 +60,16 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
         "theta_matrix": Y,
         "epsilon_matrix": Z,
         "gammaP_min_matrix": g_min_mtx,
+        "source_params": s_params,
     }
 
     return results
 
 
-def mismatch_contour_NP_L(t_params: dict, s_params: dict) -> float:
+def mismatch_NP_L(t_params: dict, s_params: dict) -> dict:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
-    return results["ep_min"]
+    return {"epsilon": results["ep_min"], "source_params": s_params}
 
 
 ############################
@@ -78,7 +81,7 @@ def get_error_bars(
     X: np.ndarray,
     Y: np.ndarray,
     Z: np.ndarray,
-    min_idx,
+    min_idx: tuple,
     thres_factor: float,
     thres_diff: float,
 ) -> tuple:
@@ -93,7 +96,7 @@ def get_error_bars(
         Array of Y values.
     Z : numpy.ndarray
         Array of Z values.
-    min_idx : int
+    min_idx : tuple
         Index of the minimum value in Z.
     thres_factor : float
         Factor to multiply with Z[min_idx] to get the threshold.
@@ -114,7 +117,14 @@ def get_error_bars(
     return X_vals, Y_vals
 
 
-def contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
+def contour_stats(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    g_min_mtx: np.ndarray,
+    thres_factor: float,
+    thres_diff: float,
+) -> dict:
     min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
     max_idx = np.unravel_index(np.argmax(Z, axis=None), Z.shape)
 
@@ -159,8 +169,7 @@ def create_mismatch_contours_td(
         if what_template == "RP":
             results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
         elif what_template == "NP":
-            results[td]["epsilon"] = mismatch_contour_NP_L(t_params, s_params)
-        results[td]["source_params"] = s_params
+            results[td]["contour"] = mismatch_NP_L(t_params, s_params)
 
     results["I"] = I
     results["td_arr"] = td_arr
@@ -186,8 +195,7 @@ def create_mismatch_contours_I(
         if what_template == "RP":
             results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
         elif what_template == "NP":
-            results[I]["epsilon"] = mismatch_contour_NP_L(t_params, s_params)
-        results[I]["source_params"] = s_params
+            results[I]["contour"] = mismatch_NP_L(t_params, s_params)
 
     results["td"] = td
     results["I_arr"] = I_arr
@@ -218,7 +226,7 @@ def get_super_contour(
 
     results["td_arr"] = td_arr
     results["I_arr"] = I_arr
-    results["source_params"] = s_params
+    results["source_params"] = s_params  # not necessary but convenient for plotting
     return results
 
 
@@ -285,7 +293,14 @@ def get_super_contour_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
 #######################
 
 
-def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
+def plot_indiv_contour(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    src_params: dict,
+    n_levels=100,
+    n_minima=1,
+):
     plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
@@ -293,8 +308,9 @@ def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
         label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
     )
 
-    ep_min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
-    plt.scatter(X[ep_min_idx], Y[ep_min_idx], color="white", marker="o")
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
 
     plt.suptitle(
         "Mismatch Between RP Templates and a Lensed Source",
@@ -324,10 +340,10 @@ def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
 
 
 def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
-    src_params = d["source_params"]
-    omega_mtx = d[k]["contour"]["omega_matrix"]
-    theta_mtx = d[k]["contour"]["theta_matrix"]
-    ep_mtx = d[k]["contour"]["epsilon_matrix"]
+    X = d[k]["contour"]["omega_matrix"]
+    Y = d[k]["contour"]["theta_matrix"]
+    Z = d[k]["contour"]["epsilon_matrix"]
+    src_params = d[k]["contour"]["source_params"]
     if d.get("td") is not None:
         td = d["td"]
         I = k
@@ -335,7 +351,7 @@ def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
         I = d["I"]
         td = k
 
-    plt.contourf(omega_mtx, theta_mtx, ep_mtx, levels=n_levels, cmap="jet")
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
     plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
@@ -343,15 +359,8 @@ def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
     )
 
     if n_minima > 0:
-        ep_min_indices = np.unravel_index(
-            np.argsort(ep_mtx, axis=None)[:n_minima], ep_mtx.shape
-        )
-        plt.scatter(
-            omega_mtx[ep_min_indices],
-            theta_mtx[ep_min_indices],
-            color="white",
-            marker="o",
-        )
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
 
     plt.suptitle(
         "Mismatch Between RP Templates and a Lensed Source",
