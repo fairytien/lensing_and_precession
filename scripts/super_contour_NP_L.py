@@ -4,7 +4,7 @@ sys.path.insert(
     0, "/Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/"
 )
 from modules.Classes_ver2 import *
-from modules.default_params_ver1 import *
+from modules.default_params_ver2 import *
 from modules.functions_ver2 import *
 from modules.contours_ver2 import *
 
@@ -13,11 +13,11 @@ from modules.contours_ver2 import *
 def main():
     print("Number of cores: ", cpu_count())
 
-    mcz = 30
-    lens_params_1["mcz"] = RP_params_1["mcz"] = NP_params_1["mcz"] = mcz * solar_mass
-    lens_params, RP_params, NP_params = set_to_params(
-        lens_params_1, RP_params_1, NP_params_1
+    lens_params, RP_params, NP_params = set_to_location(
+        loc_params["Taman"]["random"], lens_params_1, RP_params_1, NP_params_1
     )
+    mcz = 30
+    lens_params["mcz"] = RP_params["mcz"] = NP_params["mcz"] = mcz * solar_mass
 
     # Find td limits and assign parameters
     RP_params["omega_tilde"] = 3
