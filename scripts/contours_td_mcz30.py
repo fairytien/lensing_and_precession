@@ -25,7 +25,7 @@ def main():
 
     print("Finished assigning parameters")
 
-    results = create_mismatch_contours_td(RP_params, lens_params, 0.5, td_arr)
+    results = create_contours_td(RP_params, lens_params, 0.5, td_arr)
 
     filepath = pickle_data(results, "data", "TACC_contours_mcz" + str(mcz) + "_td")
 
