@@ -21,7 +21,7 @@ def main():
     I_arr = np.linspace(0.1, 0.5, 100)
     print("Finished assigning parameters")
 
-    results = create_mismatch_contours_I(RP_params, lens_params, 0.02, I_arr)
+    results = create_contours_I(RP_params, lens_params, 0.02, I_arr)
 
     filepath = pickle_data(results, "data", "TACC_contours_mcz" + str(mcz) + "_I")
 

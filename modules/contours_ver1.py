@@ -58,6 +58,8 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
         "theta_matrix": Y,
         "epsilon_matrix": Z,
         "gammaP_min_matrix": g_min_mtx,
+        "source_params": s_params,
+        "template_params": t_params,
     }
 
     return results
@@ -108,7 +110,7 @@ def get_error_bars(
     return X_vals, Y_vals
 
 
-def contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
+def get_indiv_contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
     min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
     max_idx = np.unravel_index(np.argmax(Z, axis=None), Z.shape)
 
@@ -137,9 +139,7 @@ def contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
 #####################################
 
 
-def create_mismatch_contours_td(
-    t_params: dict, s_params: dict, MLz_arr: np.ndarray
-) -> dict:
+def create_contours_td(t_params: dict, s_params: dict, MLz_arr: np.ndarray) -> dict:
     I = LensingGeo(s_params).I()
     td_arr = np.zeros_like(MLz_arr)
     results = {}
@@ -160,7 +160,7 @@ def create_mismatch_contours_td(
     return results
 
 
-def create_mismatch_contours_I(
+def create_contours_I(
     t_params: dict, s_params: dict, td: float, y_arr: np.ndarray
 ) -> dict:
     # create MLz_arr from y_arr based on the same time delay
@@ -201,7 +201,7 @@ def get_contours_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
         theta_mtx = contour_data["theta_matrix"]
         ep_mtx = contour_data["epsilon_matrix"]
         g_mtx = contour_data["gammaP_min_matrix"]
-        d_copy[k]["stats"] = contour_stats(
+        d_copy[k]["stats"] = get_indiv_contour_stats(
             omega_mtx, theta_mtx, ep_mtx, g_mtx, thres_factor, thres_diff
         )
 

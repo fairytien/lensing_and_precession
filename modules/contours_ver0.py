@@ -56,6 +56,8 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
         "theta_matrix": Y,
         "epsilon_matrix": Z,
         "gammaP_min_matrix": g_min_mtx,
+        "source_params": s_params,
+        "template_params": t_params,
     }
 
     return results
@@ -74,7 +76,7 @@ def get_error_bars(X, Y, Z, min_idx, thres_factor) -> tuple:
     return X_vals, Y_vals
 
 
-def contour_stats(X, Y, Z, g_min_mtx, thres_factor) -> dict:
+def get_indiv_contour_stats(X, Y, Z, g_min_mtx, thres_factor) -> dict:
     min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
     max_idx = np.unravel_index(np.argmax(Z, axis=None), Z.shape)
 
@@ -103,7 +105,7 @@ def contour_stats(X, Y, Z, g_min_mtx, thres_factor) -> dict:
 #####################################
 
 
-def create_mismatch_contours_td(
+def create_contours_td(
     t_params: dict, s_params: dict, MLz_arr: np.ndarray, thres_factor=1.03
 ) -> dict:
     I = LensingGeo(s_params).I()
@@ -118,7 +120,7 @@ def create_mismatch_contours_td(
         results[td] = {}
         results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
         omega_mtx, theta_mtx, ep_mtx, g_mtx = results[td]["contour"].values()
-        results[td]["stats"] = contour_stats(
+        results[td]["stats"] = get_indiv_contour_stats(
             omega_mtx, theta_mtx, ep_mtx, g_mtx, thres_factor
         )
 
@@ -130,7 +132,7 @@ def create_mismatch_contours_td(
     return results
 
 
-def create_mismatch_contours_I(
+def create_contours_I(
     t_params: dict, s_params: dict, td: float, y_arr: np.ndarray, thres_factor=1.03
 ) -> dict:
     # create MLz_arr from y_arr based on the same time delay
@@ -148,7 +150,7 @@ def create_mismatch_contours_I(
         results[I] = {}
         results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
         omega_mtx, theta_mtx, ep_mtx, g_mtx = results[I]["contour"].values()
-        results[I]["stats"] = contour_stats(
+        results[I]["stats"] = get_indiv_contour_stats(
             omega_mtx, theta_mtx, ep_mtx, g_mtx, thres_factor
         )
 

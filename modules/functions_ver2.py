@@ -462,7 +462,7 @@ def angle_in_pi_format(angle: float, denom_thres=50) -> str:
 ###########################################
 
 
-def cos_i_JN_params(params: dict) -> float:
+def calculate_cosJN_params(params: dict) -> float:
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
@@ -482,7 +482,7 @@ def cos_i_JN_params(params: dict) -> float:
     ) + np.cos(params["theta_J"]) * np.cos(params["theta_S"])
 
 
-def cos_i_JN(phi_S, theta_S, phi_J, theta_J):
+def calculate_cosJN(phi_S, theta_S, phi_J, theta_J):
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
@@ -509,9 +509,9 @@ def find_FaceOn_coords(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     # condition where |Z| = 1 within error
     cond = np.isclose(np.abs(Z), 1, rtol=0, atol=1e-3)
@@ -525,9 +525,9 @@ def find_EdgeOn_coords(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     # condition where |Z| = 0 within error
     cond = np.isclose(np.abs(Z), 0, rtol=0, atol=1e-2)
@@ -553,9 +553,9 @@ def plot_special_coords(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     # plot Z = 0 (edge-on)
     plt.contour(
@@ -575,7 +575,7 @@ def plot_special_coords(fix, fixed_phi, fixed_theta):
     # plt.legend(handles=legend)
 
 
-def cos_i_JN_contour(fix, fixed_phi, fixed_theta):
+def create_cosJN_contour(fix, fixed_phi, fixed_theta):
     """
     Plots contours of the inclination angle between the J and N vectors.
 
@@ -594,9 +594,9 @@ def cos_i_JN_contour(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     plt.contourf(X, np.cos(Y), Z, levels=60, cmap="jet")
     plt.colorbar(label=r"$\cos \iota_{JN}$")

@@ -31,10 +31,10 @@ def compute_mismatch(
 
 
 def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
-    nx_pts = 16
-    ny_pts = 33
-    omega_arr = np.linspace(0, 3, nx_pts)
-    theta_arr = np.linspace(0, 8, ny_pts)
+    nx_pts = 21
+    ny_pts = 76
+    omega_arr = np.linspace(0, 4, nx_pts)
+    theta_arr = np.linspace(0, 15, ny_pts)
     X, Y = np.meshgrid(omega_arr, theta_arr)
     Z = np.zeros_like(X)
     g_min_mtx = np.zeros_like(X)
@@ -61,6 +61,7 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
         "epsilon_matrix": Z,
         "gammaP_min_matrix": g_min_mtx,
         "source_params": s_params,
+        "template_params": t_params,
     }
 
     return results
@@ -117,7 +118,7 @@ def get_error_bars(
     return X_vals, Y_vals
 
 
-def contour_stats(
+def get_indiv_contour_stats(
     X: np.ndarray,
     Y: np.ndarray,
     Z: np.ndarray,
@@ -153,7 +154,7 @@ def contour_stats(
 #####################################
 
 
-def create_mismatch_contours_td(
+def create_contours_td(
     t_params: dict, s_params: dict, I: float, td_arr: np.ndarray, what_template="RP"
 ) -> dict:
     y = get_y_from_I(I)
@@ -179,7 +180,7 @@ def create_mismatch_contours_td(
     return results
 
 
-def create_mismatch_contours_I(
+def create_contours_I(
     t_params: dict, s_params: dict, td: float, I_arr: np.ndarray, what_template="RP"
 ) -> dict:
     y_arr = get_y_from_I(I_arr)
@@ -220,13 +221,12 @@ def get_super_contour(
     results = {}
     for td in td_arr:
         td = round(td, 6)
-        results[td] = create_mismatch_contours_I(
-            t_params, s_params, td, I_arr, what_template
-        )
+        results[td] = create_contours_I(t_params, s_params, td, I_arr, what_template)
 
     results["td_arr"] = td_arr
     results["I_arr"] = I_arr
-    results["source_params"] = s_params  # not necessary but convenient for plotting
+    results["source_params"] = s_params  # for convenience
+    results["template_params"] = t_params  # for convenience
     return results
 
 
@@ -245,7 +245,7 @@ def get_contours_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
         theta_mtx = contour_data["theta_matrix"]
         ep_mtx = contour_data["epsilon_matrix"]
         g_mtx = contour_data["gammaP_min_matrix"]
-        d_copy[k]["stats"] = contour_stats(
+        d_copy[k]["stats"] = get_indiv_contour_stats(
             omega_mtx, theta_mtx, ep_mtx, g_mtx, thres_factor, thres_diff
         )
 
