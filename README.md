@@ -13,4 +13,4 @@ Employing match-filtering analysis and various `PyCBC` packages, we quantify the
 This work is supported by the TEXAS Bridge Program 2023-2024 as a collaboration between the University of Texas at Dallas and the University of North Texas and funded by the NSF PAARE grant AST-2219128.
 
 # Getting started
-This project requires the installation of `lalsuite`{https://pypi.org/project/lalsuite/} and `PyCBC`{https://pycbc.org}.
+This project requires the installation of [`lalsuite`](https://pypi.org/project/lalsuite/) and [`PyCBC`](https://pycbc.org).
