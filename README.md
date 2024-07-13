@@ -1,4 +1,5 @@
 # Distinguishing regularly precessing and lensed gravitational waveforms
+### Authors: Tien Nguyen, Tamanjyot Singh, Michael Kesden, Lindsay King
 
 Gravitational waves (GWs) from binary black hole (BBH) inspirals are affected by the black hole spins and orbital angular momentum, which, when misaligned, cause precession and nutation and introduce modulations in GW amplitudes and phases. In regular precession (without transitional precession or nutation), the total angular momentum has nearly constant direction and the orbital angular momentum precesses on a cone whose opening angle and frequency slowly increase on the radiation-reaction timescale. Regularly precessing BBH systems include those with a single spin, equal masses, or those trapped in spin-orbit resonances.
 
