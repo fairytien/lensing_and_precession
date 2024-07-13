@@ -17,7 +17,9 @@ from multiprocessing import Pool, cpu_count
 #################################
 
 
-def compute_mismatch(t_params: dict, s_params: dict, X, Y, r, c) -> tuple:
+def compute_mismatch(
+    t_params: dict, s_params: dict, X: np.ndarray, Y: np.ndarray, r, c
+) -> tuple:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
     t_params_copy["omega_tilde"] = X[r, c]
@@ -29,10 +31,10 @@ def compute_mismatch(t_params: dict, s_params: dict, X, Y, r, c) -> tuple:
 
 
 def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
-    nx_pts = 16
-    ny_pts = 33
-    omega_arr = np.linspace(0, 3, nx_pts)
-    theta_arr = np.linspace(0, 8, ny_pts)
+    nx_pts = 21
+    ny_pts = 76
+    omega_arr = np.linspace(0, 4, nx_pts)
+    theta_arr = np.linspace(0, 15, ny_pts)
     X, Y = np.meshgrid(omega_arr, theta_arr)
     Z = np.zeros_like(X)
     g_min_mtx = np.zeros_like(X)
@@ -58,9 +60,17 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
         "theta_matrix": Y,
         "epsilon_matrix": Z,
         "gammaP_min_matrix": g_min_mtx,
+        "source_params": s_params,
+        "template_params": t_params,
     }
 
     return results
+
+
+def mismatch_NP_L(t_params: dict, s_params: dict) -> dict:
+    t_params_copy, s_params_copy = set_to_params(t_params, s_params)
+    results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
+    return {"epsilon": results["ep_min"], "source_params": s_params}
 
 
 ############################
@@ -72,7 +82,7 @@ def get_error_bars(
     X: np.ndarray,
     Y: np.ndarray,
     Z: np.ndarray,
-    min_idx,
+    min_idx: tuple,
     thres_factor: float,
     thres_diff: float,
 ) -> tuple:
@@ -87,7 +97,7 @@ def get_error_bars(
         Array of Y values.
     Z : numpy.ndarray
         Array of Z values.
-    min_idx : int
+    min_idx : tuple
         Index of the minimum value in Z.
     thres_factor : float
         Factor to multiply with Z[min_idx] to get the threshold.
@@ -108,7 +118,14 @@ def get_error_bars(
     return X_vals, Y_vals
 
 
-def contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
+def get_indiv_contour_stats(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    g_min_mtx: np.ndarray,
+    thres_factor: float,
+    thres_diff: float,
+) -> dict:
     min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
     max_idx = np.unravel_index(np.argmax(Z, axis=None), Z.shape)
 
@@ -137,34 +154,36 @@ def contour_stats(X, Y, Z, g_min_mtx, thres_factor, thres_diff) -> dict:
 #####################################
 
 
-def create_mismatch_contours_td(
-    t_params: dict, s_params: dict, MLz_arr: np.ndarray
+def create_contours_td(
+    t_params: dict, s_params: dict, I: float, td_arr: np.ndarray, what_template="RP"
 ) -> dict:
-    I = LensingGeo(s_params).I()
-    td_arr = np.zeros_like(MLz_arr)
+    y = get_y_from_I(I)
+    MLz_arr = get_MLz_from_td(td_arr, y)
     results = {}
 
-    for i, MLz in enumerate(MLz_arr):
-        s_params["MLz"] = MLz * solar_mass
-        td = LensingGeo(s_params).td()
+    for i in range(len(td_arr)):
+        s_params["y"] = y
+        s_params["MLz"] = MLz_arr[i] * solar_mass
+        td = td_arr[i]
         td = round(td, 6)  # Round to 6 decimal places
-        td_arr[i] = td
         results[td] = {}
-        results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        if what_template == "RP":
+            results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        elif what_template == "NP":
+            results[td]["contour"] = mismatch_NP_L(t_params, s_params)
 
-    results["source_params"] = s_params
     results["I"] = I
     results["td_arr"] = td_arr
+    results["y"] = y
     results["MLz_arr"] = MLz_arr
 
     return results
 
 
-def create_mismatch_contours_I(
-    t_params: dict, s_params: dict, td: float, I_arr: np.ndarray
+def create_contours_I(
+    t_params: dict, s_params: dict, td: float, I_arr: np.ndarray, what_template="RP"
 ) -> dict:
     y_arr = get_y_from_I(I_arr)
-    # create MLz_arr from y_arr based on the same time delay
     MLz_arr = get_MLz_from_td(td, y_arr)
     results = {}
 
@@ -174,9 +193,11 @@ def create_mismatch_contours_I(
         I = I_arr[i]
         I = round(I, 6)  # Round to 6 decimal places
         results[I] = {}
-        results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        if what_template == "RP":
+            results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        elif what_template == "NP":
+            results[I]["contour"] = mismatch_NP_L(t_params, s_params)
 
-    results["source_params"] = s_params
     results["td"] = td
     results["I_arr"] = I_arr
     results["y_arr"] = y_arr
@@ -185,8 +206,32 @@ def create_mismatch_contours_I(
     return results
 
 
+############################
+# Section 5: Super Contour #
+############################
+
+
+def get_super_contour(
+    t_params: dict,
+    s_params: dict,
+    td_arr: np.ndarray,
+    I_arr: np.ndarray,
+    what_template="RP",
+) -> dict:
+    results = {}
+    for td in td_arr:
+        td = round(td, 6)
+        results[td] = create_contours_I(t_params, s_params, td, I_arr, what_template)
+
+    results["td_arr"] = td_arr
+    results["I_arr"] = I_arr
+    results["source_params"] = s_params  # for convenience
+    results["template_params"] = t_params  # for convenience
+    return results
+
+
 ##############################
-# Section 5: Post-Processing #
+# Section 6: Post-Processing #
 ##############################
 
 
@@ -200,7 +245,7 @@ def get_contours_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
         theta_mtx = contour_data["theta_matrix"]
         ep_mtx = contour_data["epsilon_matrix"]
         g_mtx = contour_data["gammaP_min_matrix"]
-        d_copy[k]["stats"] = contour_stats(
+        d_copy[k]["stats"] = get_indiv_contour_stats(
             omega_mtx, theta_mtx, ep_mtx, g_mtx, thres_factor, thres_diff
         )
 
@@ -233,12 +278,29 @@ def get_asym_err(d: dict, k_arr: np.ndarray, param_name: str) -> list:
     return asym_err
 
 
+def get_super_contour_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
+    d_copy = copy.deepcopy(d)
+    for k in d_copy.keys():
+        if isinstance(k, str):
+            continue
+        d_copy[k] = get_contours_stats(d_copy[k], thres_factor, thres_diff)
+
+    return d_copy
+
+
 #######################
-# Section 6: Plotting #
+# Section 7: Plotting #
 #######################
 
 
-def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
+def plot_indiv_contour(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    src_params: dict,
+    n_levels=100,
+    n_minima=1,
+):
     plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
@@ -246,8 +308,9 @@ def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
         label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
     )
 
-    ep_min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
-    plt.scatter(X[ep_min_idx], Y[ep_min_idx], color="white", marker="o")
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
 
     plt.suptitle(
         "Mismatch Between RP Templates and a Lensed Source",
@@ -276,11 +339,11 @@ def plot_indiv_contour(X, Y, Z, src_params, n_levels=100):
     )
 
 
-def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100):
-    src_params = d["source_params"]
-    omega_mtx = d[k]["contour"]["omega_matrix"]
-    theta_mtx = d[k]["contour"]["theta_matrix"]
-    ep_mtx = d[k]["contour"]["epsilon_matrix"]
+def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
+    X = d[k]["contour"]["omega_matrix"]
+    Y = d[k]["contour"]["theta_matrix"]
+    Z = d[k]["contour"]["epsilon_matrix"]
+    src_params = d[k]["contour"]["source_params"]
     if d.get("td") is not None:
         td = d["td"]
         I = k
@@ -288,15 +351,16 @@ def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100):
         I = d["I"]
         td = k
 
-    plt.contourf(omega_mtx, theta_mtx, ep_mtx, levels=n_levels, cmap="jet")
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
     plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
         label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
     )
 
-    ep_min_idx = np.unravel_index(np.argmin(ep_mtx, axis=None), ep_mtx.shape)
-    plt.scatter(omega_mtx[ep_min_idx], theta_mtx[ep_min_idx], color="white", marker="o")
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
 
     plt.suptitle(
         "Mismatch Between RP Templates and a Lensed Source",

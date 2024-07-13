@@ -178,7 +178,7 @@ loc_params["sys1"] = {
     },
     "random": {
         "phi_S": np.pi / 4,
-        "theta_S": 000000000,
+        "theta_S": 0,
         "phi_J": np.pi / 4,
         "theta_J": np.pi / 3,
     },
@@ -188,7 +188,7 @@ loc_params["sys2"] = {
     "faceon": {
         "phi_S": 0,
         "theta_S": np.pi / 4,
-        "phi_J": 000000000,
+        "phi_J": 0,
         "theta_J": np.pi / 4,
     },
     "edgeon": {

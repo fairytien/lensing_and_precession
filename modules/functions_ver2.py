@@ -9,7 +9,7 @@
 
 # import py scripts
 from modules.Classes_ver2 import *
-from modules.default_params_ver1 import *
+from modules.default_params_ver2 import *
 
 # import modules
 import numpy as np
@@ -132,14 +132,14 @@ def get_gw(
 
 def get_MLz_from_td(td, y):
     """
-    Calculates the lens mass [solar mass] from the given time delay [second] and source position y [dimensionless].
+    Calculates the lens mass [solar mass] from the given time delay [second] and source position [dimensionless].
 
     Args:
-        td (float): The time delay [second].
-        y (float): The source position of the lens [dimensionless]. Recommended is 0.25.
+        td (float or ndarray): The time delay [second].
+        y (float or ndarray): The source position of the lens [dimensionless].
 
     Returns:
-        float: The calculated lens mass [solar mass].
+        float or ndarray: The calculated lens mass [solar mass].
     """
     divisor = 2 * (
         y * np.sqrt(y**2 + 4)
@@ -149,8 +149,16 @@ def get_MLz_from_td(td, y):
 
 
 def get_td_from_MLz(MLz, y):
-    """time delay, equation 16b in Saif et al. 2023"""
-    # TODO: update docstring
+    """
+    Calculates the time delay [second] from the given lens mass [solar mass] and source position [dimensionless], based on equation 16b in Saif et al. 2023.
+
+    Args:
+        MLz (float or ndarray): The lens mass [solar mass].
+        y (float or ndarray): The source position of the lens [dimensionless].
+
+    Returns:
+        float or ndarray: The calculated time delay [second].
+    """
     td_val = (
         2
         * MLz
@@ -164,8 +172,15 @@ def get_td_from_MLz(MLz, y):
 
 
 def get_I_from_y(y):
-    """flux ratio, equation 17a in Saif et al. 2023"""
-    # TODO: update docstring
+    """
+    Calculates the flux ratio [dimensionless] from the given source position [dimensionless], based on equations 16-17 in Saif et al. 2023.
+
+    Args:
+        y (float or ndarray): The source position of the lens [dimensionless].
+
+    Returns:
+        float or ndarray: The calculated flux ratio [dimensionless].
+    """
     # plus magnification, equation 18 in Takahashi & Nakamura 2003, also 16a in Saif et al. 2023
     mu_plus = 1 / 2 + (y**2 + 2) / (2 * y * np.sqrt(y**2 + 4)) + 0j
 
@@ -176,14 +191,26 @@ def get_I_from_y(y):
 
 
 def get_y_from_I(I):
-    # TODO: update docstring
-    # don't need to worry about y being negative here as long as I < 1
+    """
+    Calculates the source position [dimensionless] from the given flux ratio [dimensionless]. Assumes I < 1 for valid calculations (positive y).
+
+    Args:
+        I (float or ndarray): The flux ratio [dimensionless]. Must be less than 1.
+
+    Returns:
+        float or ndarray: The calculated source position [dimensionless]. For ndarray inputs, returns an ndarray of source positions corresponding to each flux ratio.
+    """
+    # Validate input
+    if np.any(I >= 1):
+        raise ValueError("Flux ratio must be less than 1.")
+
     if isinstance(I, float):
         y_roots = fsolve(lambda y: get_I_from_y(y) - I, 1)[0]
     elif isinstance(I, np.ndarray):
         y_roots = np.zeros_like(I)
         for i, I_val in enumerate(I):
             y_roots[i] = fsolve(lambda y: get_I_from_y(y) - I_val, 1)[0]
+
     return y_roots
 
 
@@ -435,7 +462,7 @@ def angle_in_pi_format(angle: float, denom_thres=50) -> str:
 ###########################################
 
 
-def cos_i_JN_params(params: dict) -> float:
+def calculate_cosJN_params(params: dict) -> float:
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
@@ -455,7 +482,7 @@ def cos_i_JN_params(params: dict) -> float:
     ) + np.cos(params["theta_J"]) * np.cos(params["theta_S"])
 
 
-def cos_i_JN(phi_S, theta_S, phi_J, theta_J):
+def calculate_cosJN(phi_S, theta_S, phi_J, theta_J):
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
@@ -482,9 +509,9 @@ def find_FaceOn_coords(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     # condition where |Z| = 1 within error
     cond = np.isclose(np.abs(Z), 1, rtol=0, atol=1e-3)
@@ -498,9 +525,9 @@ def find_EdgeOn_coords(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     # condition where |Z| = 0 within error
     cond = np.isclose(np.abs(Z), 0, rtol=0, atol=1e-2)
@@ -526,9 +553,9 @@ def plot_special_coords(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     # plot Z = 0 (edge-on)
     plt.contour(
@@ -548,7 +575,7 @@ def plot_special_coords(fix, fixed_phi, fixed_theta):
     # plt.legend(handles=legend)
 
 
-def cos_i_JN_contour(fix, fixed_phi, fixed_theta):
+def create_cosJN_contour(fix, fixed_phi, fixed_theta):
     """
     Plots contours of the inclination angle between the J and N vectors.
 
@@ -567,9 +594,9 @@ def cos_i_JN_contour(fix, fixed_phi, fixed_theta):
     X, Y = np.meshgrid(phi_arr, theta_arr)
 
     if fix == "S":
-        Z = cos_i_JN(fixed_phi, fixed_theta, X, Y)
+        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
     else:  # fix == 'J'
-        Z = cos_i_JN(X, Y, fixed_phi, fixed_theta)
+        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
 
     plt.contourf(X, np.cos(Y), Z, levels=60, cmap="jet")
     plt.colorbar(label=r"$\cos \iota_{JN}$")

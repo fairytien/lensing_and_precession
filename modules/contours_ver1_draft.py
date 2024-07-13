@@ -61,6 +61,17 @@ def get_error_bars_ver1(X, Y, Z, min_idx):
     ep_theta_arr = Z[:, min_idx[1]]
     popt_theta, pcov_theta = curve_fit(polynomial, theta_arr, ep_theta_arr)
 
+    # get the quadratic coefficients
+    print("popt_omega: ", popt_omega)  # FOR DEBUGGING
+    print("popt_theta: ", popt_theta)  # FOR DEBUGGING
+    a_omega, b_omega, c_omega = popt_omega
+    a_theta, b_theta, c_theta = popt_theta
+
+    omega_err = 1 / np.sqrt(2 * a_omega)
+    theta_err = 1 / np.sqrt(2 * a_theta)
+    print("omega_err: ", omega_err)  # FOR DEBUGGING
+    print("theta_err: ", theta_err)  # FOR DEBUGGING
+
     return omega_err, theta_err
 
 
@@ -93,6 +104,7 @@ def get_contours_stats_ver1(d: dict) -> dict:
     for k in d_copy.keys():
         if isinstance(k, str):
             continue
+        print("I: ", k)  # FOR DEBUGGING
         contour_data = d_copy[k]["contour"]
         omega_mtx = contour_data["omega_matrix"]
         theta_mtx = contour_data["theta_matrix"]
@@ -108,7 +120,7 @@ def get_contours_stats_ver1(d: dict) -> dict:
 ############################################
 
 
-def mismatch_contour_NP_L(t_params: dict, s_params: dict):
+def mismatch_NP_L(t_params: dict, s_params: dict):
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
     return results["ep_min"]
@@ -119,7 +131,7 @@ def mismatch_contour_NP_L(t_params: dict, s_params: dict):
 ##################################################
 
 
-def create_mismatch_contours_td_NP_L(
+def create_contours_td_NP_L(
     t_params: dict, s_params: dict, MLz_arr: np.ndarray
 ) -> dict:
     I = LensingGeo(s_params).I()
@@ -132,7 +144,7 @@ def create_mismatch_contours_td_NP_L(
         td = round(td, 6)  # Round to 6 decimal places
         td_arr[i] = td
         results[td] = {}
-        results[td]["epsilon"] = mismatch_contour_NP_L(t_params, s_params)
+        results[td]["epsilon"] = mismatch_NP_L(t_params, s_params)
 
     results["source_params"] = s_params
     results["I"] = I
@@ -142,7 +154,7 @@ def create_mismatch_contours_td_NP_L(
     return results
 
 
-def create_mismatch_contours_I_NP_L(
+def create_contours_I_NP_L(
     t_params: dict, s_params: dict, td: float, y_arr: np.ndarray
 ) -> dict:
     # create MLz_arr from y_arr based on the same time delay
@@ -157,7 +169,7 @@ def create_mismatch_contours_I_NP_L(
         I = round(I, 6)  # Round to 6 decimal places
         I_arr[i] = I
         results[I] = {}
-        results[I]["epsilon"] = mismatch_contour_NP_L(t_params, s_params)
+        results[I]["epsilon"] = mismatch_NP_L(t_params, s_params)
 
     results["source_params"] = s_params
     results["td"] = td
@@ -177,7 +189,7 @@ def get_super_contour(t_params, s_params, td_arr, y_arr):
     results = {}
     for td in td_arr:
         td = round(td, 6)
-        results[td] = create_mismatch_contours_I(t_params, s_params, td, y_arr)
+        results[td] = create_contours_I(t_params, s_params, td, y_arr)
 
     return results
 
@@ -197,6 +209,7 @@ def get_super_contour_stats_ver1(d: dict) -> dict:
     for k in d_copy.keys():
         if isinstance(k, str):
             continue
+        print("td: ", k)  # FOR DEBUGGING
         d_copy[k] = get_contours_stats_ver1(d_copy[k])
 
     return d_copy
@@ -206,6 +219,6 @@ def get_super_contour_NP_L(t_params, s_params, td_arr, y_arr):
     results = {}
     for td in td_arr:
         td = round(td, 6)
-        results[td] = create_mismatch_contours_I_NP_L(t_params, s_params, td, y_arr)
+        results[td] = create_contours_I_NP_L(t_params, s_params, td, y_arr)
 
     return results
