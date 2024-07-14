@@ -4,9 +4,6 @@
 
 
 # import py scripts
-from modules.Classes_ver2 import *
-from modules.default_params_ver1 import *
-from modules.functions_ver2 import *
 from modules.contours_ver1 import *
 
 

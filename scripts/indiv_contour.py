@@ -3,9 +3,6 @@ import sys
 sys.path.insert(
     0, "/Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/"
 )
-from modules.Classes_ver2 import *
-from modules.default_params_ver2 import *
-from modules.functions_ver2 import *
 from modules.contours_ver2 import *
 
 
