@@ -1,8 +1,6 @@
-import sys
+import sys, os
 
-sys.path.insert(
-    0, "/Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/"
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from modules.contours_ver2 import *
 
 

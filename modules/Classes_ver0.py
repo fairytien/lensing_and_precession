@@ -249,6 +249,8 @@ class Precessing:
     def __init__(self, params):
         self.params = params
 
+        assert type(self.params == dict), "Parameters should be a dictionary"
+
         # non-precession/unlensed parameters
         self.theta_S = params["theta_S"]
         self.phi_S = params["phi_S"]

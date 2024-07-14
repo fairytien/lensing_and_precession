@@ -12,8 +12,10 @@ from modules.default_params_ver0 import *
 
 # import modules
 import numpy as np
+
 error_handler = np.seterr(invalid="raise")
 import matplotlib
+
 matplotlib.rcParams["figure.dpi"] = 150
 import matplotlib.pyplot as plt
 from matplotlib import colors
@@ -28,7 +30,6 @@ import mpmath as mp
 from pycbc.filter import match
 from pycbc.types import FrequencySeries
 from ipywidgets import interact, interactive, fixed, interact_manual
-import ipywidgets as widgets
 from datetime import datetime
 import pickle
 import copy
@@ -37,24 +38,28 @@ import copy
 # Section 2: Shortcut Functions #
 #################################
 
+
 def set_to_params(*args):
     args_copy = [copy.deepcopy(arg) for arg in args]
     return tuple(args_copy)
+
 
 def set_to_location(loc_dict: dict, *args):
     args_copy = [copy.deepcopy(arg) for arg in args]
 
     for arg_copy in args_copy:
-        arg_copy['theta_J'] = loc_dict['theta_J']
-        arg_copy['phi_J'] = loc_dict['phi_J']
-        arg_copy['theta_S'] = loc_dict['theta_S']
-        arg_copy['phi_S'] = loc_dict['phi_S']
+        arg_copy["theta_J"] = loc_dict["theta_J"]
+        arg_copy["phi_J"] = loc_dict["phi_J"]
+        arg_copy["theta_S"] = loc_dict["theta_S"]
+        arg_copy["phi_S"] = loc_dict["phi_S"]
 
     return tuple(args_copy)
+
 
 #################################
 # Section 3: Mismatch Functions #
 #################################
+
 
 def Sn(f, delta_f=0.25, frequencySeries=True):
     """ALIGO noise curve from arXiv:0903.0338"""
@@ -81,7 +86,10 @@ def Sn(f, delta_f=0.25, frequencySeries=True):
         return FrequencySeries(Sn_val, delta_f=delta_f)
     return Sn_val
 
-def mismatch_epsilon(l_params, rp_params, np_params, cmd, lens_Class=LensingGeo, prec_Class=Precessing):
+
+def mismatch_epsilon(
+    l_params, rp_params, np_params, cmd, lens_Class=LensingGeo, prec_Class=Precessing
+):
     mismatch = None
 
     if cmd in ["L & RP", "RP & L"]:
@@ -134,13 +142,18 @@ def mismatch_epsilon(l_params, rp_params, np_params, cmd, lens_Class=LensingGeo,
 
     return mismatch
 
-def mismatch_epsilon_min_max(l_params, rp_params, np_params, cmd, lens_Class=LensingGeo, prec_Class=Precessing):
+
+def mismatch_epsilon_min_max(
+    l_params, rp_params, np_params, cmd, lens_Class=LensingGeo, prec_Class=Precessing
+):
     gamma_array = np.linspace(0, 2 * np.pi, 100)
     mismatch_array = np.empty_like(gamma_array)
 
     for i, gamma_P in enumerate(gamma_array):
         rp_params["gamma_P"] = gamma_P
-        mismatch = mismatch_epsilon(l_params, rp_params, np_params, cmd, lens_Class, prec_Class)
+        mismatch = mismatch_epsilon(
+            l_params, rp_params, np_params, cmd, lens_Class, prec_Class
+        )
         mismatch_array[i] = mismatch
 
     ind_min = np.argmin(mismatch_array)
@@ -153,20 +166,23 @@ def mismatch_epsilon_min_max(l_params, rp_params, np_params, cmd, lens_Class=Len
 
     return Epsilon_min, gamma_P_min, Epsilon_max, gamma_P_max, mismatch_array[0]
 
+
 #################################
 # Section 4: Plotting Functions #
 #################################
 
+
 def cos_i_JN(phi_J, theta_J, phi_S, theta_S):
     """cosine of the angle between the total angular momentum and the line of sight"""
-    return np.sin(theta_J) * np.sin(theta_S) * np.cos(
-                phi_J - phi_S
-            ) + np.cos(theta_J) * np.cos(theta_S)
+    return np.sin(theta_J) * np.sin(theta_S) * np.cos(phi_J - phi_S) + np.cos(
+        theta_J
+    ) * np.cos(theta_S)
+
 
 def find_FaceOn_coords_J(phi_S, theta_S):
     # find the face-on J coordinates where abs(cos_i_JN) = 1
     n_pts = 150
-    phi_J_arr = np.linspace(0, 2*np.pi, n_pts)
+    phi_J_arr = np.linspace(0, 2 * np.pi, n_pts)
     theta_J_arr = np.linspace(0, np.pi, n_pts)
     X, Y = np.meshgrid(phi_J_arr, theta_J_arr)
     Z = cos_i_JN(X, Y, phi_S, theta_S)
@@ -175,10 +191,11 @@ def find_FaceOn_coords_J(phi_S, theta_S):
     # get phi_J, theta_J where condition is True
     return X[cond], Y[cond]
 
+
 def find_EdgeOn_coords_J(phi_S, theta_S):
     # find the edge-on J coordinates where cos_i_JN = 0
     n_pts = 150
-    phi_J_arr = np.linspace(0, 2*np.pi, n_pts)
+    phi_J_arr = np.linspace(0, 2 * np.pi, n_pts)
     theta_J_arr = np.linspace(0, np.pi, n_pts)
     X, Y = np.meshgrid(phi_J_arr, theta_J_arr)
     Z = cos_i_JN(X, Y, phi_S, theta_S)
@@ -187,23 +204,42 @@ def find_EdgeOn_coords_J(phi_S, theta_S):
     # get phi_J, theta_J where condition is True
     return X[cond], Y[cond]
 
+
 def plot_special_coords(phi_S, theta_S):
     phi_J_FaceOn, theta_J_FaceOn = find_FaceOn_coords_J(phi_S, theta_S)
-    plt.scatter(phi_J_FaceOn, np.cos(theta_J_FaceOn), s=1, c='white', label='face-on')
+    plt.scatter(phi_J_FaceOn, np.cos(theta_J_FaceOn), s=1, c="white", label="face-on")
     phi_J_EdgeOn, theta_J_EdgeOn = find_EdgeOn_coords_J(phi_S, theta_S)
-    plt.scatter(phi_J_EdgeOn, np.cos(theta_J_EdgeOn), s=1, c='black', label='edge-on')
-    plt.legend(bbox_to_anchor=(1.2, 1.2), loc='upper left', borderaxespad=0.)
+    plt.scatter(phi_J_EdgeOn, np.cos(theta_J_EdgeOn), s=1, c="black", label="edge-on")
+    plt.legend(bbox_to_anchor=(1.2, 1.2), loc="upper left", borderaxespad=0.0)
+
 
 def inclination_contour(phi_S, theta_S):
     # contour plot of inclination angle between J and N as a function of theta_J and phi_J
     n_pts = 100
-    phi_J_mesh = np.linspace(0, 2*np.pi, n_pts)
+    phi_J_mesh = np.linspace(0, 2 * np.pi, n_pts)
     theta_J_mesh = np.linspace(0, np.pi, n_pts)
     X, Y = np.meshgrid(phi_J_mesh, theta_J_mesh)
     Z = cos_i_JN(X, Y, phi_S, theta_S)
-    plt.contourf(X, np.cos(Y), Z, levels=40, cmap='viridis')
-    plt.colorbar(label = r'$\cos \iota_{JN}$')
-    plt.ylabel(r'$\cos \theta_J$')
-    plt.xlabel(r'$\phi_J$')
-    plt.xticks(np.arange(0, 2*np.pi + np.pi/4, np.pi/4), [r'$0$', r'$\frac{\pi}{4}$', r'$\frac{\pi}{2}$', r'$\frac{3\pi}{4}$', r'$\pi$', r'$\frac{5\pi}{4}$', r'$\frac{3\pi}{2}$', r'$\frac{7\pi}{4}$', r'$2\pi$'])
-    plt.title(r'inclination contour at $\phi_S$ = {:.3g}, $\theta_S$ = {:.3g}'.format(phi_S, theta_S))
+    plt.contourf(X, np.cos(Y), Z, levels=40, cmap="viridis")
+    plt.colorbar(label=r"$\cos \iota_{JN}$")
+    plt.ylabel(r"$\cos \theta_J$")
+    plt.xlabel(r"$\phi_J$")
+    plt.xticks(
+        np.arange(0, 2 * np.pi + np.pi / 4, np.pi / 4),
+        [
+            r"$0$",
+            r"$\frac{\pi}{4}$",
+            r"$\frac{\pi}{2}$",
+            r"$\frac{3\pi}{4}$",
+            r"$\pi$",
+            r"$\frac{5\pi}{4}$",
+            r"$\frac{3\pi}{2}$",
+            r"$\frac{7\pi}{4}$",
+            r"$2\pi$",
+        ],
+    )
+    plt.title(
+        r"inclination contour at $\phi_S$ = {:.3g}, $\theta_S$ = {:.3g}".format(
+            phi_S, theta_S
+        )
+    )
