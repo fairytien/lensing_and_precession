@@ -219,7 +219,7 @@ pyrightconfig.json
 
 ### VisualStudioCode ###
 .vscode/*
-!.vscode/settings.json
+# !.vscode/settings.json  # ! prefix negates a pattern
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
