@@ -1073,6 +1073,7 @@ def find_optimized_coalescence_params(
 def plot_waveform_comparison(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
+    phase_shift: float = 0,
     f_min=20,
     delta_f=0.25,
     psd=None,
@@ -1141,33 +1142,38 @@ def plot_waveform_comparison(
     s_gw = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)
     s_strain = np.abs(s_gw["strain"])
     s_phase = s_gw["phase"]
+    s_farray = s_gw["f_array"]
     lens_inst = lens_Class(s_params_copy)
     td = lens_inst.td()
     I = lens_inst.I()
-    axes[0].plot(s_gw["f_array"], s_strain, label="source", c="k", ls="-")
+    axes[0].plot(s_farray, s_strain, label="source", c="k", ls="-")
 
     # template waveform
     t_gw = get_gw(t_params_copy, f_min, delta_f, lens_Class, prec_Class)
     t_strain = np.abs(t_gw["strain"])
     t_phase = t_gw["phase"]
-    axes[0].plot(t_gw["f_array"], t_strain, label="template", c="k", ls="--")
+    t_farray = t_gw["f_array"]
+    axes[0].plot(t_farray, t_strain, label="template", c="k", ls="--")
+
+    # phase difference
+    phase_diff = s_phase - t_phase
+    phase_diff = np.unwrap(phase_diff + phase_shift)
+    axes[1].plot(s_farray, phase_diff, c="k", ls="-")
 
     # customize strain plot
+    axes[0].set_yscale("log")
     axes[0].legend(fontsize=20)
     axes[0].set_xlabel("f (Hz)", fontsize=24)
     axes[0].set_ylabel(r"$|\~{h}|$", fontsize=24)
     axes[0].tick_params(axis="both", which="major", labelsize=18)
+    axes[0].grid()
     axes[0].set_title("Strain", fontsize=24)
-
-    # phase difference
-    phase_diff = s_phase - t_phase
-    phase_diff = np.unwrap(phase_diff)
-    axes[1].plot(s_gw["f_array"], phase_diff, c="k", ls="-")
 
     # customize phase difference plot
     axes[1].set_xlabel("f (Hz)", fontsize=24)
     axes[1].set_ylabel(r"$\Phi_{\rm s} - \Phi_{\rm t}$ (rad)", fontsize=24)
     axes[1].tick_params(axis="both", which="major", labelsize=18)
+    axes[1].grid()
     axes[1].set_title("Phase Difference", fontsize=24)
 
     # customize suptitle
