@@ -14,6 +14,8 @@ import scipy.special as sc
 import mpmath as mp
 from pycbc.types import FrequencySeries
 
+NEAR_ZERO_THRESHOLD = 1e-8
+
 ############################
 # Section 2: Lensing Class #
 ############################
@@ -320,7 +322,7 @@ class Precessing:
 
         sin_i_JN = np.sqrt(1 - cos_i_JN**2.0)
 
-        if sin_i_JN == 0:
+        if np.abs(sin_i_JN) < NEAR_ZERO_THRESHOLD:
             cos_o_XH = 1
             sin_o_XH = 0
         else:
@@ -387,9 +389,9 @@ class Precessing:
         else:
             tan_psi = num_psi / den_psi
 
-        if den_psi.all() == 0:
-            if self.theta_tilde == 0:
-                return C_amp, 0, -1
+        # if den_psi.all() == 0:  # True for face-on and theta_tilde = 0
+        #     if self.theta_tilde == 0:  # WRONG!!! Refer to Eq A14 in Taman's paper!
+        #         return C_amp, 0, -1
 
         # define  2 * Psi + alpha
         sin_2pa = (2 * cos_alpha * tan_psi + sin_alpha * (1 - (tan_psi) ** 2)) / (
@@ -448,7 +450,9 @@ class Precessing:
         #     integrand_delta_phi = 0
         #     # not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
 
-        if cos_i_JN == 1:  # face-on (precessing & non-precessing)
+        if (
+            np.abs(1 - cos_i_JN) < NEAR_ZERO_THRESHOLD
+        ):  # face-on (precessing & non-precessing)
             integrand_delta_phi = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
 
         # elif LdotN == 1: # TODO: check this case
