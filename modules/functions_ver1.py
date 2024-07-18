@@ -32,6 +32,7 @@ import mpmath as mp
 from pycbc.filter import match, optimized_match, make_frequency_series
 from pycbc.types import FrequencySeries, TimeSeries
 from pycbc import catalog
+import ipywidgets
 from ipywidgets import interact, interactive, fixed, interact_manual
 from datetime import datetime
 import pickle

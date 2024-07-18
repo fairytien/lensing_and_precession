@@ -29,6 +29,7 @@ import pandas as pd
 import mpmath as mp
 from pycbc.filter import match
 from pycbc.types import FrequencySeries
+import ipywidgets
 from ipywidgets import interact, interactive, fixed, interact_manual
 from datetime import datetime
 import pickle
