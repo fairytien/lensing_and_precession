@@ -12,7 +12,7 @@ def main():
     lens_params, RP_params, NP_params = set_to_location(
         loc_params["Taman"]["random"], lens_params_1, RP_params_1, NP_params_1
     )
-    mcz = 30
+    mcz = 20
     lens_params["mcz"] = RP_params["mcz"] = NP_params["mcz"] = mcz * solar_mass
     RP_params["omega_tilde"] = 3
     limits = get_lens_limits_for_RP_L(RP_params)
