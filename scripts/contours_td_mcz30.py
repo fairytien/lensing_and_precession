@@ -18,7 +18,7 @@ def main():
     mcz = 30
     lens_params["mcz"] = RP_params["mcz"] = mcz * solar_mass
     RP_params["omega_tilde"] = 3.0
-    limits = get_lens_limits_for_RP_L(RP_params, lower=0.5)
+    limits = get_lens_limits_for_RP_L(RP_params)
     td_min, td_max = limits["td_min"], limits["td_max"]
     td_arr = np.linspace(td_min, td_max, 100)
 
