@@ -17,10 +17,10 @@ def main():
     )
     mcz = 20
     lens_params["mcz"] = RP_params["mcz"] = mcz * solar_mass
-    RP_params["omega_tilde"] = 3
-    limits = get_lens_limits_for_RP_L(RP_params)
-    td_min, td_max = limits["td_min"], limits["td_max"]
-    td_arr_long = np.linspace(td_min, td_max, 40)
+    # RP_params["omega_tilde"] = 3
+    # limits = get_lens_limits_for_RP_L(RP_params, lower=0.5)
+    # td_min, td_max = limits["td_min"], limits["td_max"]
+    td_arr_long = np.linspace(0.02, 0.05, 40)  # To be in geometric optics regime
     td_arr = np.array_split(td_arr_long, 4)[idx]
     I_arr = np.linspace(0.1, 0.9, 40)
 
