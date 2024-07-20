@@ -12,7 +12,7 @@ def main():
     lens_params, RP_params = set_to_location(
         loc_params["Taman"]["random"], lens_params_1, RP_params_1
     )
-    mcz = 40
+    mcz = 20
     lens_params["mcz"] = RP_params["mcz"] = mcz * solar_mass
     I = 0.5
     td = 0.03
@@ -24,7 +24,7 @@ def main():
 
     results = mismatch_contour_parallel(RP_params, lens_params)
 
-    filepath = pickle_data(results, "data", "indiv_contour_mcz" + str(mcz))
+    filepath = pickle_data(results, "data", "sys3_indiv_contour_mcz" + str(mcz))
 
 
 if __name__ == "__main__":
