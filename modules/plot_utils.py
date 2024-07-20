@@ -77,7 +77,7 @@ def plot_waveform_comparison(
     phi = updated_params["updated_mismatch_results"]["phi"]
 
     print(
-        f"idx = {idx:.6g}, phi = {phi:.6g}, both should be ~0 if get_updated_mismatch_results is True"
+        f"idx = {idx:.3g}, phi = {phi:.3g}, both should be ~0 if get_updated_mismatch_results is True"
     )  # FOR DEBUGGING
 
     # source waveform
@@ -159,7 +159,7 @@ def plot_template_waveform(
     phi = updated_params["updated_mismatch_results"]["phi"]
 
     print(
-        f"idx = {idx:.6g}, phi = {phi:.6g}, both should be ~0 if get_updated_mismatch_results is True"
+        f"idx = {idx:.3g}, phi = {phi:.3g}, both should be ~0 if get_updated_mismatch_results is True"
     )  # FOR DEBUGGING
 
     # Filter kwargs for get_gw()
