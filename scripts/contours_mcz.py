@@ -22,11 +22,12 @@ def main():
         MLz = get_MLz_from_td(td, y)
         lens_params["y"] = y
         lens_params["MLz"] = MLz * solar_mass
-        print(f"{mcz:.3g}")  # For tracking progress
 
+        mcz = np.round(mcz, 6)
+        print(f"{mcz:.3g}")  # For tracking progress
         results[mcz] = mismatch_contour_parallel(RP_params, lens_params)
 
-    filepath = pickle_data(results, "data", "sys3_contours_mcz" + str(mcz))
+    filepath = pickle_data(results, "data", "sys3_contours_mcz")
 
 
 if __name__ == "__main__":
