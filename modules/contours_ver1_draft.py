@@ -117,7 +117,7 @@ def get_contours_stats_ver1(d: dict) -> dict:
 ############################################
 
 
-def compute_mismatch_NP_L(t_params: dict, s_params: dict):
+def compute_mismatch_L_NP(t_params: dict, s_params: dict):
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
     return results["ep_min"]
@@ -128,7 +128,7 @@ def compute_mismatch_NP_L(t_params: dict, s_params: dict):
 ##################################################
 
 
-def create_contours_td_NP_L(
+def create_contours_td_L_NP(
     t_params: dict, s_params: dict, MLz_arr: np.ndarray
 ) -> dict:
     I = LensingGeo(s_params).I()
@@ -141,7 +141,7 @@ def create_contours_td_NP_L(
         td = round(td, 6)  # Round to 6 decimal places
         td_arr[i] = td
         results[td] = {}
-        results[td]["epsilon"] = compute_mismatch_NP_L(t_params, s_params)
+        results[td]["epsilon"] = compute_mismatch_L_NP(t_params, s_params)
 
     results["source_params"] = s_params
     results["I"] = I
@@ -151,7 +151,7 @@ def create_contours_td_NP_L(
     return results
 
 
-def create_contours_I_NP_L(
+def create_contours_I_L_NP(
     t_params: dict, s_params: dict, td: float, y_arr: np.ndarray
 ) -> dict:
     # create MLz_arr from y_arr based on the same time delay
@@ -166,7 +166,7 @@ def create_contours_I_NP_L(
         I = round(I, 6)  # Round to 6 decimal places
         I_arr[i] = I
         results[I] = {}
-        results[I]["epsilon"] = compute_mismatch_NP_L(t_params, s_params)
+        results[I]["epsilon"] = compute_mismatch_L_NP(t_params, s_params)
 
     results["source_params"] = s_params
     results["td"] = td
@@ -212,10 +212,10 @@ def get_super_contour_stats_ver1(d: dict) -> dict:
     return d_copy
 
 
-def create_super_contour_NP_L(t_params, s_params, td_arr, y_arr):
+def create_super_contour_L_NP(t_params, s_params, td_arr, y_arr):
     results = {}
     for td in td_arr:
         td = round(td, 6)
-        results[td] = create_contours_I_NP_L(t_params, s_params, td, y_arr)
+        results[td] = create_contours_I_L_NP(t_params, s_params, td, y_arr)
 
     return results
