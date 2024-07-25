@@ -22,7 +22,7 @@ def main():
 
     print("Finished assigning parameters")
 
-    results = get_super_contour(RP_params, lens_params, td_arr, I_arr)
+    results = create_super_contour(RP_params, lens_params, td_arr, I_arr)
 
     filepath = pickle_data(results, "data", "TACC_super_contour_mcz" + str(mcz))
 

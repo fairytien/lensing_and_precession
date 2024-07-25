@@ -28,7 +28,7 @@ def compute_mismatch(
     return (results["ep_min"], results["ep_min_gammaP"])
 
 
-def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
+def create_mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
     nx_pts = 21
     ny_pts = 76
     omega_arr = np.linspace(0, 4, nx_pts)
@@ -65,7 +65,7 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
     return results
 
 
-def mismatch_NP_L(t_params: dict, s_params: dict) -> dict:
+def compute_mismatch_NP_L(t_params: dict, s_params: dict) -> dict:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
     return {"epsilon": results["ep_min"], "source_params": s_params}
@@ -166,9 +166,11 @@ def create_contours_td(
         td = round(td, 6)  # Round to 6 decimal places
         results[td] = {}
         if what_template == "RP":
-            results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+            results[td]["contour"] = create_mismatch_contour_parallel(
+                t_params, s_params
+            )
         elif what_template == "NP":
-            results[td]["contour"] = mismatch_NP_L(t_params, s_params)
+            results[td]["contour"] = compute_mismatch_NP_L(t_params, s_params)
 
     results["I"] = I
     results["td_arr"] = td_arr
@@ -192,9 +194,9 @@ def create_contours_I(
         I = round(I, 6)  # Round to 6 decimal places
         results[I] = {}
         if what_template == "RP":
-            results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+            results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
         elif what_template == "NP":
-            results[I]["contour"] = mismatch_NP_L(t_params, s_params)
+            results[I]["contour"] = compute_mismatch_NP_L(t_params, s_params)
 
     results["td"] = td
     results["I_arr"] = I_arr
@@ -209,7 +211,7 @@ def create_contours_I(
 ############################
 
 
-def get_super_contour(
+def create_super_contour(
     t_params: dict,
     s_params: dict,
     td_arr: np.ndarray,
@@ -284,101 +286,3 @@ def get_super_contour_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
         d_copy[k] = get_contours_stats(d_copy[k], thres_factor, thres_diff)
 
     return d_copy
-
-
-#######################
-# Section 7: Plotting #
-#######################
-
-
-def plot_indiv_contour(
-    X: np.ndarray,
-    Y: np.ndarray,
-    Z: np.ndarray,
-    src_params: dict,
-    n_levels=100,
-    n_minima=1,
-):
-    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
-    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
-    )
-
-    if n_minima > 0:
-        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
-        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
-
-    plt.suptitle(
-        "Mismatch Between RP Templates and a Lensed Source",
-        fontsize=16,
-        y=1.0215,
-        x=0.435,
-    )
-
-    td = LensingGeo(src_params).td()
-    I = LensingGeo(src_params).I()
-
-    plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-            angle_in_pi_format(src_params["theta_S"]),
-            angle_in_pi_format(src_params["phi_S"]),
-            angle_in_pi_format(src_params["theta_J"]),
-            angle_in_pi_format(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
-            src_params["mcz"] / solar_mass,
-            r"$M_{\odot}$",
-            td * 1e3,
-            I,
-        ),
-        fontsize=12,
-        y=1.021,
-    )
-
-
-def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
-    X = d[k]["contour"]["omega_matrix"]
-    Y = d[k]["contour"]["theta_matrix"]
-    Z = d[k]["contour"]["epsilon_matrix"]
-    src_params = d[k]["contour"]["source_params"]
-    if d.get("td") is not None:
-        td = d["td"]
-        I = k
-    elif d.get("I") is not None:
-        I = d["I"]
-        td = k
-
-    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
-    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
-    )
-
-    if n_minima > 0:
-        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
-        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
-
-    plt.suptitle(
-        "Mismatch Between RP Templates and a Lensed Source",
-        fontsize=16,
-        y=1.0215,
-        x=0.435,
-    )
-
-    plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-            angle_in_pi_format(src_params["theta_S"]),
-            angle_in_pi_format(src_params["phi_S"]),
-            angle_in_pi_format(src_params["theta_J"]),
-            angle_in_pi_format(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
-            src_params["mcz"] / solar_mass,
-            r"$M_{\odot}$",
-            td * 1e3,
-            I,
-        ),
-        fontsize=12,
-        y=1.021,
-    )

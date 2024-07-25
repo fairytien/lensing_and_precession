@@ -5,6 +5,7 @@
 
 # import py scripts
 from modules.functions_ver2 import *
+from modules.contours_ver2 import *
 
 
 ##########################
@@ -244,3 +245,101 @@ def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
     y_min = min(y0_0[0], y1_0[0])
     axes[0, 0].set_ylim(y_min, y_max)
     axes[1, 0].set_ylim(y_min, y_max)
+
+
+##########################
+# Section 3: Plotting 3D #
+##########################
+
+
+def plot_indiv_contour(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    src_params: dict,
+    n_levels=100,
+    n_minima=1,
+):
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
+    plt.xlabel(r"$\~\Omega$", fontsize=14)
+    plt.ylabel(r"$\~\theta$", fontsize=14)
+    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
+        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
+    )
+
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+
+    plt.suptitle(
+        "Mismatch Between RP Templates and a Lensed Source",
+        fontsize=16,
+        y=1.0215,
+        x=0.435,
+    )
+
+    td = LensingGeo(src_params).td()
+    I = LensingGeo(src_params).I()
+
+    plt.title(
+        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+            angle_in_pi_format(src_params["theta_S"]),
+            angle_in_pi_format(src_params["phi_S"]),
+            angle_in_pi_format(src_params["theta_J"]),
+            angle_in_pi_format(src_params["phi_J"]),
+            r"$\mathcal{M}_{\rm s}$",
+            src_params["mcz"] / solar_mass,
+            r"$M_{\odot}$",
+            td * 1e3,
+            I,
+        ),
+        fontsize=12,
+        y=1.021,
+    )
+
+
+def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
+    X = d[k]["contour"]["omega_matrix"]
+    Y = d[k]["contour"]["theta_matrix"]
+    Z = d[k]["contour"]["epsilon_matrix"]
+    src_params = d[k]["contour"]["source_params"]
+    if d.get("td") is not None:
+        td = d["td"]
+        I = k
+    elif d.get("I") is not None:
+        I = d["I"]
+        td = k
+
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
+    plt.xlabel(r"$\~\Omega$", fontsize=14)
+    plt.ylabel(r"$\~\theta$", fontsize=14)
+    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
+        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
+    )
+
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+
+    plt.suptitle(
+        "Mismatch Between RP Templates and a Lensed Source",
+        fontsize=16,
+        y=1.0215,
+        x=0.435,
+    )
+
+    plt.title(
+        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+            angle_in_pi_format(src_params["theta_S"]),
+            angle_in_pi_format(src_params["phi_S"]),
+            angle_in_pi_format(src_params["theta_J"]),
+            angle_in_pi_format(src_params["phi_J"]),
+            r"$\mathcal{M}_{\rm s}$",
+            src_params["mcz"] / solar_mass,
+            r"$M_{\odot}$",
+            td * 1e3,
+            I,
+        ),
+        fontsize=12,
+        y=1.021,
+    )

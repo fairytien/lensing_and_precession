@@ -25,7 +25,7 @@ def main():
 
         mcz = np.round(mcz, 6)
         print(f"{mcz:.3g}")  # For tracking progress
-        results[mcz] = mismatch_contour_parallel(RP_params, lens_params)
+        results[mcz] = create_mismatch_contour_parallel(RP_params, lens_params)
 
     filepath = pickle_data(results, "data", "sys3_contours_mcz")
 

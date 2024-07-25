@@ -26,7 +26,7 @@ def compute_mismatch(t_params: dict, s_params: dict, X, Y, r, c) -> tuple:
     return (results["ep_min"], results["ep_min_gammaP"])
 
 
-def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
+def create_mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
     nx_pts = 16
     ny_pts = 33
     omega_arr = np.linspace(0, 3, nx_pts)
@@ -148,7 +148,7 @@ def create_contours_td(t_params: dict, s_params: dict, MLz_arr: np.ndarray) -> d
         td = round(td, 6)  # Round to 6 decimal places
         td_arr[i] = td
         results[td] = {}
-        results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        results[td]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
 
     results["source_params"] = s_params
     results["I"] = I
@@ -173,7 +173,7 @@ def create_contours_I(
         I = round(I, 6)  # Round to 6 decimal places
         I_arr[i] = I
         results[I] = {}
-        results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+        results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
 
     results["source_params"] = s_params
     results["td"] = td

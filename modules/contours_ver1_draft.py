@@ -72,7 +72,7 @@ def get_error_bars_ver1(X, Y, Z, min_idx):
     return omega_err, theta_err
 
 
-def contour_stats_ver1(X, Y, Z, g_min_mtx) -> dict:
+def get_contour_stats_ver1(X, Y, Z, g_min_mtx) -> dict:
     min_idx = np.unravel_index(np.argmin(Z, axis=None), Z.shape)
     max_idx = np.unravel_index(np.argmax(Z, axis=None), Z.shape)
 
@@ -107,7 +107,7 @@ def get_contours_stats_ver1(d: dict) -> dict:
         theta_mtx = contour_data["theta_matrix"]
         ep_mtx = contour_data["epsilon_matrix"]
         g_mtx = contour_data["gammaP_min_matrix"]
-        d_copy[k]["stats"] = contour_stats_ver1(omega_mtx, theta_mtx, ep_mtx, g_mtx)
+        d_copy[k]["stats"] = get_contour_stats_ver1(omega_mtx, theta_mtx, ep_mtx, g_mtx)
 
     return d_copy
 
@@ -117,7 +117,7 @@ def get_contours_stats_ver1(d: dict) -> dict:
 ############################################
 
 
-def mismatch_NP_L(t_params: dict, s_params: dict):
+def compute_mismatch_NP_L(t_params: dict, s_params: dict):
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
     return results["ep_min"]
@@ -141,7 +141,7 @@ def create_contours_td_NP_L(
         td = round(td, 6)  # Round to 6 decimal places
         td_arr[i] = td
         results[td] = {}
-        results[td]["epsilon"] = mismatch_NP_L(t_params, s_params)
+        results[td]["epsilon"] = compute_mismatch_NP_L(t_params, s_params)
 
     results["source_params"] = s_params
     results["I"] = I
@@ -166,7 +166,7 @@ def create_contours_I_NP_L(
         I = round(I, 6)  # Round to 6 decimal places
         I_arr[i] = I
         results[I] = {}
-        results[I]["epsilon"] = mismatch_NP_L(t_params, s_params)
+        results[I]["epsilon"] = compute_mismatch_NP_L(t_params, s_params)
 
     results["source_params"] = s_params
     results["td"] = td
@@ -182,7 +182,7 @@ def create_contours_I_NP_L(
 #############################
 
 
-def get_super_contour(t_params, s_params, td_arr, y_arr):
+def create_super_contour(t_params, s_params, td_arr, y_arr):
     results = {}
     for td in td_arr:
         td = round(td, 6)
@@ -212,7 +212,7 @@ def get_super_contour_stats_ver1(d: dict) -> dict:
     return d_copy
 
 
-def get_super_contour_NP_L(t_params, s_params, td_arr, y_arr):
+def create_super_contour_NP_L(t_params, s_params, td_arr, y_arr):
     results = {}
     for td in td_arr:
         td = round(td, 6)

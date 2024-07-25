@@ -22,7 +22,7 @@ def main():
 
     print("Finished assigning parameters")
 
-    results = get_super_contour(
+    results = create_super_contour(
         NP_params, lens_params, td_arr, I_arr, what_template="NP"
     )
 
