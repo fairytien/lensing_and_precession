@@ -9,7 +9,60 @@ from modules.contours_ver2 import *
 
 
 ##########################
-# Section 2: Plotting 2D #
+# Section 2: Convenience #
+##########################
+
+
+def default_plot_fontsizes():
+    plt.rcParams["figure.dpi"] = 150
+    plt.rcParams["axes.titlesize"] = 24
+    plt.rcParams["axes.labelsize"] = 24
+    plt.rcParams["xtick.labelsize"] = 18
+    plt.rcParams["ytick.labelsize"] = 18
+    plt.rcParams["legend.fontsize"] = 20
+    plt.rcParams["figure.titlesize"] = 24
+
+
+def angle_in_pi_format(angle: float, denom_thres=50) -> str:
+    """
+    Converts an angle in radians to a string in pi format.
+
+    Args:
+        angle (float): The angle in radians.
+        denom_thres (int): The threshold for the denominator of the fraction. Default is 50.
+
+    Returns:
+        str: The angle in pi format.
+    """
+
+    # Handle special cases
+    if angle == 0:
+        return "0"
+    elif angle == np.pi:
+        return r"$\pi$"
+    elif angle == -np.pi:
+        return r"-$\pi$"
+    elif angle % np.pi == 0:
+        return rf"{int(angle / np.pi)}$\pi$"
+
+    else:
+        # Convert the angle to a fraction of pi
+        fraction = Fraction(angle / np.pi).limit_denominator(1000)
+
+        # If the denominator is above the threshold, return the decimal form
+        if fraction.denominator > denom_thres:
+            return rf"{angle/np.pi:.3f}$\pi$"
+
+        # If the numerator is 1, we don't need to show it
+        if fraction.numerator == 1:
+            return rf"$\pi$/{fraction.denominator}"
+
+        # Otherwise, return the fraction form
+        return rf"{fraction.numerator}$\pi$/{fraction.denominator}"
+
+
+##########################
+# Section 3: Plotting 2D #
 ##########################
 
 
@@ -248,7 +301,7 @@ def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
 
 
 ##########################
-# Section 3: Plotting 3D #
+# Section 4: Plotting 3D #
 ##########################
 
 
