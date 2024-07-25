@@ -65,7 +65,7 @@ def create_mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
     return results
 
 
-def compute_mismatch_NP_L(t_params: dict, s_params: dict) -> dict:
+def compute_mismatch_L_NP(t_params: dict, s_params: dict) -> dict:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
     return {"epsilon": results["ep_min"], "source_params": s_params}
@@ -170,7 +170,7 @@ def create_contours_td(
                 t_params, s_params
             )
         elif what_template == "NP":
-            results[td]["contour"] = compute_mismatch_NP_L(t_params, s_params)
+            results[td]["contour"] = compute_mismatch_L_NP(t_params, s_params)
 
     results["I"] = I
     results["td_arr"] = td_arr
@@ -196,7 +196,7 @@ def create_contours_I(
         if what_template == "RP":
             results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
         elif what_template == "NP":
-            results[I]["contour"] = compute_mismatch_NP_L(t_params, s_params)
+            results[I]["contour"] = compute_mismatch_L_NP(t_params, s_params)
 
     results["td"] = td
     results["I_arr"] = I_arr
