@@ -8,6 +8,8 @@ from modules.functions_ver2 import *
 
 # import libraries
 from multiprocessing import Pool, cpu_count
+from scipy.optimize import minimize
+from scipy.interpolate import RegularGridInterpolator
 
 
 #################################
@@ -286,3 +288,120 @@ def get_super_contour_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
         d_copy[k] = get_contours_stats(d_copy[k], thres_factor, thres_diff)
 
     return d_copy
+
+
+####################################
+# Section 7: Multiple Local Minima #
+####################################
+
+
+def is_near(
+    point1: Union[tuple, list, np.ndarray],
+    point2: Union[tuple, list, np.ndarray],
+    threshold=0.5,
+):
+    """Checks if point1 is near point2 within a given threshold.
+
+    Args:
+        point1 (Union[tuple, list, np.ndarray]): The first point.
+        point2 (Union[tuple, list, np.ndarray]): The second point.
+        threshold (float, optional): The threshold value for determining nearness. Defaults to 0.5.
+
+    Returns:
+        bool: True if the points are near each other, False otherwise.
+    """
+    distance = np.linalg.norm(np.array(point1) - np.array(point2))
+    return distance < threshold
+
+
+def filter_near_duplicates(results, threshold=0.5):
+    """
+    Filters out near-duplicate results based on a given threshold.
+
+    Args:
+        results (list): A list of tuples, each containing an array of coordinates and a corresponding value.
+        threshold (float, optional): The threshold value for determining near-duplicates. Defaults to 0.5.
+
+    Returns:
+        list: A filtered list of tuples containing non-duplicate coordinates and values.
+    """
+    filtered = []
+    for coords, z in results:
+        # Convert coordinates to a hashable type
+        coord_tuple = tuple(coords)
+        if not any(
+            is_near(coord_tuple, tuple(existing_coords), threshold)
+            for existing_coords, _ in filtered
+        ):
+            filtered.append((coords, z))
+    return filtered
+
+
+def find_local_minima(
+    Z: np.ndarray, x=np.linspace(0, 4, 41), y=np.linspace(0, 15, 151)
+) -> list:
+    """Finds local minima in a 2D dataset.
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        The 2D dataset to analyze.
+    x : np.ndarray, optional
+        The x-coordinates of the dataset. Defaults to np.linspace(0, 4, 41).
+    y : np.ndarray, optional
+        The y-coordinates of the dataset. Defaults to np.linspace(0, 15, 151).
+
+    Returns
+    -------
+    list
+        A list of tuples, each containing the coordinates of a local minimum and the corresponding value.
+    """
+    # Interpolate the dataset
+    Z = Z.T  # Transpose the matrix to match the x and y dimensions
+    interpolator = RegularGridInterpolator((x, y), Z)
+
+    # Define the objective function using the interpolator
+    def objective_function(xy: Union[tuple, np.ndarray]) -> float:
+        """Objective function to minimize.
+
+        Args:
+            xy (Union[tuple, np.ndarray]): The coordinates to evaluate.
+
+        Returns:
+            float: The value of the objective function at the given coordinates.
+        """
+        # Check if the point is within the bounds
+        if xy[0] < x[0] or xy[0] > x[-1] or xy[1] < y[0] or xy[1] > y[-1]:
+            return np.inf  # Return a high value to penalize out-of-bounds points
+        else:
+            # RegularGridInterpolator expects a tuple or an array of coordinates
+            return interpolator(xy)
+
+    # Define multiple starting points
+    starting_points = [
+        (x[0], y[0]),  # Bottom-left corner
+        (x[-1], y[0]),  # Bottom-right corner
+        (x[0], y[-1]),  # Top-left corner
+        (x[-1], y[-1]),  # Top-right corner
+        (x[len(x) // 2], y[len(y) // 2]),  # Center
+        (x[0], y[len(y) // 2]),  # Left-center
+        (x[-1], y[len(y) // 2]),  # Right-center
+        (x[len(x) // 2], y[0]),  # Bottom-center
+        (x[len(x) // 2], y[-1]),  # Top-center
+    ]
+
+    results = []
+
+    for point in starting_points:
+        result = minimize(objective_function, point, method="Nelder-Mead")
+        results.append((result.x, result.fun))
+
+    # Round the coordinates to a given precision
+    rounded_results = [(np.round(coords, 1), z) for coords, z in results]
+    filtered_results = filter_near_duplicates(rounded_results, threshold=0.5)
+
+    # Print or process the results
+    for position, value in filtered_results:
+        print(f"Local minimum found at: {position} with epsilon: {value}")
+
+    return filtered_results
