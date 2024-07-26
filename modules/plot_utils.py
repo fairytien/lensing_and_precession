@@ -7,6 +7,14 @@
 from modules.functions_ver2 import *
 from modules.contours_ver2 import *
 
+# import libraries
+import matplotlib
+from matplotlib import colors
+import matplotlib.pyplot as plt
+from fractions import Fraction
+import ipywidgets
+from ipywidgets import interact, interactive, fixed, interact_manual, SelectionSlider
+
 
 ##########################
 # Section 2: Convenience #
@@ -246,6 +254,44 @@ def plot_template_waveform(
             t_params_copy["theta_tilde"],
             epsilon,
         )
+    )
+
+
+def plot_waveforms_paper(data, axes: matplotlib.axes._axes.Axes) -> None:
+    # plot source waveform
+    s_params = data["source_params"]
+    s_gw = get_gw(s_params)
+    s_strain = np.abs(s_gw["strain"])
+    axes[0].plot(s_gw["f_array"], s_strain, label="lensed", c="red", ls="-")
+
+    # plot template waveforms
+    t_params = data["template_params"]
+    t_params["omega_tilde"] = data["stats"]["ep_min_omega_tilde"]
+    t_params["theta_tilde"] = data["stats"]["ep_min_theta_tilde"]
+    t_params["gamma_P"] = data["stats"]["ep_min_gammaP"]
+    plot_template_waveform(
+        t_params,
+        s_params,
+        get_updated_mismatch_results=True,
+        axes=axes,
+        label="precessing",
+        c="k",
+        ls="-",
+    )
+
+    s_params = data["source_params"]
+    t_params = data["template_params"]
+    t_params["omega_tilde"] = 0
+    t_params["theta_tilde"] = 0
+    t_params["gamma_P"] = 0
+    plot_template_waveform(
+        t_params,
+        s_params,
+        get_updated_mismatch_results=True,
+        axes=axes,
+        label="NP",
+        c="k",
+        ls="--",
     )
 
 

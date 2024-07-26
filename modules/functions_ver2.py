@@ -15,34 +15,18 @@ from modules.default_params_ver2 import *
 import numpy as np
 
 error_handler = np.seterr(invalid="raise")
-
-import matplotlib
-
-matplotlib.rcParams["figure.dpi"] = 150
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib import colors
-import matplotlib.image as mpimg
 from scipy.integrate import simps
-from scipy.integrate import odeint
-import scipy.special as sc
 from scipy.optimize import fsolve
-import math
-import sympy as sp
-import pandas as pd
-import mpmath as mp
 from pycbc.filter import match, optimized_match, make_frequency_series
 from pycbc.types import FrequencySeries, TimeSeries
-from pycbc import catalog
-import ipywidgets
-from ipywidgets import interact, interactive, fixed, interact_manual, SelectionSlider
 import os
 from datetime import datetime
 import time
 import pickle
 import copy
 from typing import Union, Type, Tuple, List, Dict, Any
-from fractions import Fraction
 
 
 ######################################
