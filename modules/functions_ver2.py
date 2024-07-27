@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 from scipy.integrate import simps
 from scipy.optimize import fsolve
+import math
 from pycbc.filter import match, optimized_match, make_frequency_series
 from pycbc.types import FrequencySeries, TimeSeries
 import os

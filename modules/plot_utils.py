@@ -257,28 +257,20 @@ def plot_template_waveform(
     )
 
 
-def plot_waveforms_paper(data, axes: matplotlib.axes._axes.Axes) -> None:
+def plot_waveforms_paper(
+    data,
+    axes: matplotlib.axes._axes.Axes,
+    plot_local_min=False,
+    local_omega=0.0,
+    local_theta=0.0,
+) -> None:
     # plot source waveform
     s_params = data["source_params"]
     s_gw = get_gw(s_params)
     s_strain = np.abs(s_gw["strain"])
-    axes[0].plot(s_gw["f_array"], s_strain, label="lensed", c="red", ls="-")
+    axes[0].plot(s_gw["f_array"], s_strain, label="lensed", c="magenta", ls="-")
 
     # plot template waveforms
-    t_params = data["template_params"]
-    t_params["omega_tilde"] = data["stats"]["ep_min_omega_tilde"]
-    t_params["theta_tilde"] = data["stats"]["ep_min_theta_tilde"]
-    t_params["gamma_P"] = data["stats"]["ep_min_gammaP"]
-    plot_template_waveform(
-        t_params,
-        s_params,
-        get_updated_mismatch_results=True,
-        axes=axes,
-        label="precessing",
-        c="k",
-        ls="-",
-    )
-
     s_params = data["source_params"]
     t_params = data["template_params"]
     t_params["omega_tilde"] = 0
@@ -289,10 +281,44 @@ def plot_waveforms_paper(data, axes: matplotlib.axes._axes.Axes) -> None:
         s_params,
         get_updated_mismatch_results=True,
         axes=axes,
-        label="NP",
+        label="unlensed",
         c="k",
         ls="--",
     )
+
+    t_params = data["template_params"]
+    t_params["omega_tilde"] = data["stats"]["ep_min_omega_tilde"]
+    t_params["theta_tilde"] = data["stats"]["ep_min_theta_tilde"]
+    t_params["gamma_P"] = data["stats"]["ep_min_gammaP"]
+    plot_template_waveform(
+        t_params,
+        s_params,
+        get_updated_mismatch_results=True,
+        axes=axes,
+        label="best" if plot_local_min else "RP",
+        c="k",
+        ls="-",
+    )
+
+    if plot_local_min:
+        t_params = data["template_params"]
+        t_params["omega_tilde"] = local_omega
+        t_params["theta_tilde"] = local_theta
+        t_params["gamma_P"] = data["gammaP_min_matrix"][
+            np.where(
+                (data["omega_matrix"] == local_omega)
+                & (data["theta_matrix"] == local_theta)
+            )
+        ]
+        plot_template_waveform(
+            t_params,
+            s_params,
+            get_updated_mismatch_results=True,
+            axes=axes,
+            label="local",
+            c="blue",
+            ls="-.",
+        )
 
 
 def customize_2x1_axes(axes: matplotlib.axes._axes.Axes) -> None:
