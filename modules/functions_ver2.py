@@ -15,8 +15,6 @@ from modules.default_params_ver2 import *
 import numpy as np
 
 error_handler = np.seterr(invalid="raise")
-import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 from scipy.integrate import simps
 from scipy.optimize import fsolve
 import math
@@ -99,10 +97,10 @@ def get_gw(
 
     f_cut = gw_inst.f_cut()
     f_arr = np.arange(f_min, f_cut, delta_f)
-    h = gw_inst.strain(f_arr, delta_f=delta_f)
-    phase = np.unwrap(np.angle(h))
+    strain = gw_inst.strain(f_arr, delta_f=delta_f)
+    phase = np.unwrap(np.angle(strain))
 
-    return {"strain": h, "phase": phase, "f_array": f_arr}
+    return {"strain": strain, "phase": phase, "f_array": f_arr}
 
 
 def get_MLz_from_td(td, y):
@@ -403,16 +401,15 @@ def calculate_cosJN_params(params: dict) -> float:
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
-    Parameters:
-    - params (dict): A dictionary containing the following keys:
-        - "theta_J" (float): The polar angle of J with respect to the detector frame.
-        - "phi_J" (float): The azimuthal angle of J with respect to the detector frame.
-        - "theta_S" (float): The polar angle of N with respect to the detector frame.
+    Args:
+        params (dict): A dictionary containing the parameters the following keys:
         - "phi_S" (float): The azimuthal angle of N with respect to the detector frame.
-        - etc.
+        - "theta_S" (float): The polar angle of N with respect to the detector frame.
+        - "phi_J" (float): The azimuthal angle of J with respect to the detector frame.
+        - "theta_J" (float): The polar angle of J with respect to the detector frame.
 
     Returns:
-    - float: The cosine of the angle between J and N.
+        float: The cosine of the angle between J and N.
     """
     return np.sin(params["theta_J"]) * np.sin(params["theta_S"]) * np.cos(
         params["phi_J"] - params["phi_S"]
@@ -423,15 +420,14 @@ def calculate_cosJN(phi_S, theta_S, phi_J, theta_J):
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
-    Parameters:
-    - "phi_S" (float): The azimuthal angle of N with respect to the detector frame.
-    - "theta_S" (float): The polar angle of N with respect to the detector frame.
-    - "phi_J" (float): The azimuthal angle of J with respect to the detector frame.
-    - "theta_J" (float): The polar angle of J with respect to the detector frame.
-    - etc.
+    Args:
+        phi_S (float): The azimuthal angle of N with respect to the detector frame.
+        theta_S (float): The polar angle of N with respect to the detector frame.
+        phi_J (float): The azimuthal angle of J with respect to the detector frame.
+        theta_J (float): The polar angle of J with respect to the detector frame.
 
     Returns:
-    - float: The cosine of the angle between J and N.
+        float: The cosine of the angle between J and N.
     """
     print("order of arguments: phi_S, theta_S, phi_J, theta_J")
     return np.sin(theta_J) * np.sin(theta_S) * np.cos(phi_J - phi_S) + np.cos(
@@ -440,7 +436,18 @@ def calculate_cosJN(phi_S, theta_S, phi_J, theta_J):
 
 
 def find_FaceOn_coords(fix, fixed_phi, fixed_theta):
-    n_pts = 150
+    """
+    Finds the coordinate values where the BBH source is face-on (|cos(JN)| = 1 within error).
+
+    Args:
+        fix (str): The parameter to fix. Either "S" for fixing the source's sky location or "J" for fixing the binary orientation.
+        fixed_phi (float): The fixed azimuthal angle.
+        fixed_theta (float): The fixed polar angle.
+
+    Returns:
+        tuple: A tuple containing the azimuthal and polar angles where the source is face-on.
+    """
+    n_pts = 151
     phi_arr = np.linspace(0, 2 * np.pi, n_pts)
     theta_arr = np.linspace(0, np.pi, n_pts)
     X, Y = np.meshgrid(phi_arr, theta_arr)
@@ -456,7 +463,18 @@ def find_FaceOn_coords(fix, fixed_phi, fixed_theta):
 
 
 def find_EdgeOn_coords(fix, fixed_phi, fixed_theta):
-    n_pts = 150
+    """
+    Finds the coordinate values where the BBH source is edge-on (|cos(JN)| = 0 within error).
+
+    Args:
+        fix (str): The parameter to fix. Either "S" for fixing the source's sky location or "J" for fixing the binary orientation.
+        fixed_phi (float): The fixed azimuthal angle.
+        fixed_theta (float): The fixed polar angle.
+
+    Returns:
+        tuple: A tuple containing the azimuthal and polar angles where the source is edge-on.
+    """
+    n_pts = 151
     phi_arr = np.linspace(0, 2 * np.pi, n_pts)
     theta_arr = np.linspace(0, np.pi, n_pts)
     X, Y = np.meshgrid(phi_arr, theta_arr)
@@ -471,108 +489,31 @@ def find_EdgeOn_coords(fix, fixed_phi, fixed_theta):
     return X[cond], Y[cond]
 
 
-def plot_special_coords(fix, fixed_phi, fixed_theta):
-    """
-    Plots the face-on and edge-on coordinates for a given fixed_phi and fixed_theta.
-
-    Args:
-        fix (str): Determines which variable is fixed ('S' for sky location, 'J' for binary orientation).
-        fixed_phi (float): The fixed phi (in radians).
-        fixed_theta (float): The fixed theta (in radians).
-
-    Returns:
-        None
-    """
-
-    n_pts = 150
-    phi_arr = np.linspace(0, 2 * np.pi, n_pts)
-    theta_arr = np.linspace(0, np.pi, n_pts)
-    X, Y = np.meshgrid(phi_arr, theta_arr)
-
-    if fix == "S":
-        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
-    else:  # fix == 'J'
-        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
-
-    # plot Z = 0 (edge-on)
-    plt.contour(
-        X, np.cos(Y), Z, levels=[0], linestyles="-", colors="black", labels="edge-on"
-    )
-
-    # plot |Z| = 1 (face-on) within error
-    cond = np.isclose(np.abs(Z), 1, rtol=0, atol=1e-4)
-    plt.scatter(X[cond], np.cos(Y[cond]), marker="x", color="white", label="face-on")
-
-    # create custom legend handles
-    legend = [
-        Line2D([0], [0], c="black", lw=1, ls="-", label="edge-on"),
-        Line2D([0], [0], c="white", marker="x", ms=5, label="face-on"),
-    ]
-
-    # plt.legend(handles=legend)
-
-
-def create_cosJN_contour(fix, fixed_phi, fixed_theta):
-    """
-    Plots contours of the inclination angle between the J and N vectors.
-
-    Args:
-        fix (str): Determines which variable is fixed ('S' for sky location, 'J' for binary orientation).
-        fixed_phi (float): The fixed phi (in radians).
-        fixed_theta (float): The fixed theta (in radians).
-
-    Returns:
-        None
-    """
-
-    n_pts = 150
-    phi_arr = np.linspace(0, 2 * np.pi, n_pts)
-    theta_arr = np.linspace(0, np.pi, n_pts)
-    X, Y = np.meshgrid(phi_arr, theta_arr)
-
-    if fix == "S":
-        Z = calculate_cosJN(fixed_phi, fixed_theta, X, Y)
-    else:  # fix == 'J'
-        Z = calculate_cosJN(X, Y, fixed_phi, fixed_theta)
-
-    plt.contourf(X, np.cos(Y), Z, levels=60, cmap="jet")
-    plt.colorbar(label=r"$\cos \iota_{JN}$")
-    plt.xticks(
-        np.arange(0, 2 * np.pi + np.pi / 4, np.pi / 4),
-        [
-            r"$0$",
-            r"$\frac{\pi}{4}$",
-            r"$\frac{\pi}{2}$",
-            r"$\frac{3\pi}{4}$",
-            r"$\pi$",
-            r"$\frac{5\pi}{4}$",
-            r"$\frac{3\pi}{2}$",
-            r"$\frac{7\pi}{4}$",
-            r"$2\pi$",
-        ],
-    )
-
-    if fix == "S":
-        plt.ylabel(r"$\cos \theta_J$")
-        plt.xlabel(r"$\phi_J$")
-        plt.title(
-            r"$\phi_S$ = {:.3g}, $\theta_S$ = {:.3g}".format(fixed_phi, fixed_theta)
-        )
-    else:  # fix == 'J'
-        plt.ylabel(r"$\cos \theta_S$")
-        plt.xlabel(r"$\phi_S$")
-        plt.title(
-            r"$\phi_J$ = {:.3g}, $\theta_J$ = {:.3g}".format(fixed_phi, fixed_theta)
-        )
-
-
 ##################
 # Section 5: SNR #
 ##################
 
 
 def Sn(f_arr, f_min=20, delta_f=0.25, frequencySeries=True):
-    """aLIGO noise curve from arXiv:0903.0338"""
+    """
+    Calculates the power spectral density of the aLIGO noise curve based on arXiv:0903.0338.
+
+    Parameters
+    ----------
+    f_arr : np.ndarray
+        The frequency array.
+    f_min : float, optional
+        The minimum frequency. Defaults to 20 Hz.
+    delta_f : float, optional
+        The frequency step size. Defaults to 0.25 Hz.
+    frequencySeries : bool, optional
+        If True, returns a FrequencySeries object. Defaults to True.
+
+    Returns
+    -------
+    np.ndarray or FrequencySeries
+        The power spectral density of the aLIGO noise curve.
+    """
 
     Sn_val = np.zeros_like(f_arr)
     for i in range(len(f_arr)):
@@ -665,8 +606,8 @@ def mismatch(
     """
     Calculates the mismatch between two waveforms using the given parameters.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     t_params : dict
         The parameters for the template waveform.
     s_params : dict
@@ -684,8 +625,8 @@ def mismatch(
     use_opt_match : bool, optional
         If True, uses the optimized_match function from pycbc.filter. Default is True.
 
-    Returns:
-    --------
+    Returns
+    -------
     dict
         A dictionary containing the following keys:
         - "mismatch" (float): The mismatch between the two waveforms.
@@ -693,16 +634,18 @@ def mismatch(
         - "phi" (float): The phase to rotate the complex source waveform to match with the template.
     """
 
-    t_gw = get_gw(t_params, f_min, delta_f, lens_Class, prec_Class)["strain"]
-    s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)["strain"]
-    t_gw.resize(len(s_gw))
+    t_gw = get_gw(t_params, f_min, delta_f, lens_Class, prec_Class)
+    t_h = t_gw["strain"]
+    s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)
+    s_h = s_gw["strain"]
+    t_h.resize(len(s_h))
 
     if psd is None:
-        f_arr = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)["f_array"]
+        f_arr = s_gw["f_array"]
         psd = Sn(f_arr)
 
     match_func = optimized_match if use_opt_match else match
-    match_val, index, phi = match_func(t_gw, s_gw, psd, return_phase=True)  # type: ignore
+    match_val, index, phi = match_func(t_h, s_h, psd, return_phase=True)  # type: ignore
 
     mismatch = 1 - match_val
 
@@ -769,7 +712,7 @@ def optimize_mismatch_gammaP(
     if "gamma_P" not in t_params_copy:
         raise ValueError("t_params must be precessing parameters")
 
-    gamma_arr = np.linspace(0, 2 * np.pi, 100)
+    gamma_arr = np.linspace(0, 2 * np.pi, 101)
 
     mismatch_dict = {
         gamma_P: mismatch(
