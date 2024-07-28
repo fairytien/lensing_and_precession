@@ -5,10 +5,72 @@
 
 # import py scripts
 from modules.functions_ver2 import *
+from modules.contours_ver2 import *
+
+# import libraries
+import matplotlib
+from matplotlib import colors
+import matplotlib.pyplot as plt
+from fractions import Fraction
+import ipywidgets
+from ipywidgets import interact, interactive, fixed, interact_manual, SelectionSlider
 
 
 ##########################
-# Section 2: Plotting 2D #
+# Section 2: Convenience #
+##########################
+
+
+def default_plot_fontsizes():
+    plt.rcParams["figure.dpi"] = 150
+    plt.rcParams["axes.titlesize"] = 24
+    plt.rcParams["axes.labelsize"] = 24
+    plt.rcParams["xtick.labelsize"] = 18
+    plt.rcParams["ytick.labelsize"] = 18
+    plt.rcParams["legend.fontsize"] = 20
+    plt.rcParams["figure.titlesize"] = 24
+
+
+def angle_in_pi_format(angle: float, denom_thres=50) -> str:
+    """
+    Converts an angle in radians to a string in pi format.
+
+    Args:
+        angle (float): The angle in radians.
+        denom_thres (int): The threshold for the denominator of the fraction. Default is 50.
+
+    Returns:
+        str: The angle in pi format.
+    """
+
+    # Handle special cases
+    if angle == 0:
+        return "0"
+    elif angle == np.pi:
+        return r"$\pi$"
+    elif angle == -np.pi:
+        return r"-$\pi$"
+    elif angle % np.pi == 0:
+        return rf"{int(angle / np.pi)}$\pi$"
+
+    else:
+        # Convert the angle to a fraction of pi
+        fraction = Fraction(angle / np.pi).limit_denominator(1000)
+
+        # If the denominator is above the threshold, return the decimal form
+        if fraction.denominator > denom_thres:
+            return rf"{angle/np.pi:.3f}$\pi$"
+
+        # If the numerator is 1, we don't need to show it
+        if fraction.numerator == 1:
+            return rf"$\pi$/{fraction.denominator}"
+
+        # Otherwise, return the fraction form
+        return rf"{fraction.numerator}$\pi$/{fraction.denominator}"
+
+
+##########################
+# Section 3: Plotting 2D #
 ##########################
 
 
@@ -195,6 +257,70 @@ def plot_template_waveform(
     )
 
 
+def plot_waveforms_paper(
+    data,
+    axes: matplotlib.axes._axes.Axes,
+    plot_local_min=False,
+    local_omega=0.0,
+    local_theta=0.0,
+) -> None:
+    # plot source waveform
+    s_params = data["source_params"]
+    s_gw = get_gw(s_params)
+    s_strain = np.abs(s_gw["strain"])
+    axes[0].plot(s_gw["f_array"], s_strain, label="lensed", c="magenta", ls="-")
+
+    # plot template waveforms
+    s_params = data["source_params"]
+    t_params = data["template_params"]
+    t_params["omega_tilde"] = 0
+    t_params["theta_tilde"] = 0
+    t_params["gamma_P"] = 0
+    plot_template_waveform(
+        t_params,
+        s_params,
+        get_updated_mismatch_results=True,
+        axes=axes,
+        label="unlensed",
+        c="k",
+        ls="--",
+    )
+
+    t_params = data["template_params"]
+    t_params["omega_tilde"] = data["stats"]["ep_min_omega_tilde"]
+    t_params["theta_tilde"] = data["stats"]["ep_min_theta_tilde"]
+    t_params["gamma_P"] = data["stats"]["ep_min_gammaP"]
+    plot_template_waveform(
+        t_params,
+        s_params,
+        get_updated_mismatch_results=True,
+        axes=axes,
+        label="best" if plot_local_min else "RP",
+        c="k",
+        ls="-",
+    )
+
+    if plot_local_min:
+        t_params = data["template_params"]
+        t_params["omega_tilde"] = local_omega
+        t_params["theta_tilde"] = local_theta
+        t_params["gamma_P"] = data["gammaP_min_matrix"][
+            np.where(
+                (data["omega_matrix"] == local_omega)
+                & (data["theta_matrix"] == local_theta)
+            )
+        ]
+        plot_template_waveform(
+            t_params,
+            s_params,
+            get_updated_mismatch_results=True,
+            axes=axes,
+            label="local",
+            c="blue",
+            ls="-.",
+        )
+
+
 def customize_2x1_axes(axes: matplotlib.axes._axes.Axes) -> None:
     # customize strain plot
     axes[0].set_xlabel("f (Hz)", fontsize=24)
@@ -244,3 +370,101 @@ def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
     y_min = min(y0_0[0], y1_0[0])
     axes[0, 0].set_ylim(y_min, y_max)
     axes[1, 0].set_ylim(y_min, y_max)
+
+
+##########################
+# Section 4: Plotting 3D #
+##########################
+
+
+def plot_indiv_contour(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    src_params: dict,
+    n_levels=100,
+    n_minima=1,
+):
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
+    plt.xlabel(r"$\~\Omega$", fontsize=14)
+    plt.ylabel(r"$\~\theta$", fontsize=14)
+    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
+        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
+    )
+
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+
+    plt.suptitle(
+        "Mismatch Between RP Templates and a Lensed Source",
+        fontsize=16,
+        y=1.0215,
+        x=0.435,
+    )
+
+    td = LensingGeo(src_params).td()
+    I = LensingGeo(src_params).I()
+
+    plt.title(
+        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+            angle_in_pi_format(src_params["theta_S"]),
+            angle_in_pi_format(src_params["phi_S"]),
+            angle_in_pi_format(src_params["theta_J"]),
+            angle_in_pi_format(src_params["phi_J"]),
+            r"$\mathcal{M}_{\rm s}$",
+            src_params["mcz"] / solar_mass,
+            r"$M_{\odot}$",
+            td * 1e3,
+            I,
+        ),
+        fontsize=12,
+        y=1.021,
+    )
+
+
+def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
+    X = d[k]["contour"]["omega_matrix"]
+    Y = d[k]["contour"]["theta_matrix"]
+    Z = d[k]["contour"]["epsilon_matrix"]
+    src_params = d[k]["contour"]["source_params"]
+    if d.get("td") is not None:
+        td = d["td"]
+        I = k
+    elif d.get("I") is not None:
+        I = d["I"]
+        td = k
+
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
+    plt.xlabel(r"$\~\Omega$", fontsize=14)
+    plt.ylabel(r"$\~\theta$", fontsize=14)
+    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
+        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
+    )
+
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+
+    plt.suptitle(
+        "Mismatch Between RP Templates and a Lensed Source",
+        fontsize=16,
+        y=1.0215,
+        x=0.435,
+    )
+
+    plt.title(
+        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+            angle_in_pi_format(src_params["theta_S"]),
+            angle_in_pi_format(src_params["phi_S"]),
+            angle_in_pi_format(src_params["theta_J"]),
+            angle_in_pi_format(src_params["phi_J"]),
+            r"$\mathcal{M}_{\rm s}$",
+            src_params["mcz"] / solar_mass,
+            r"$M_{\odot}$",
+            td * 1e3,
+            I,
+        ),
+        fontsize=12,
+        y=1.021,
+    )

@@ -21,7 +21,7 @@ def main():
     lens_params["MLz"] = MLz * solar_mass
     print("Finished assigning parameters")
 
-    results = mismatch_contour_parallel(RP_params, lens_params)
+    results = create_mismatch_contour_parallel(RP_params, lens_params)
 
     filepath = pickle_data(results, "data", "null_indiv_contour_mcz" + str(mcz))
 

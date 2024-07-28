@@ -8,6 +8,8 @@ from modules.functions_ver2 import *
 
 # import libraries
 from multiprocessing import Pool, cpu_count
+from scipy.optimize import minimize
+from scipy.interpolate import RegularGridInterpolator
 
 
 #################################
@@ -28,9 +30,9 @@ def compute_mismatch(
     return (results["ep_min"], results["ep_min_gammaP"])
 
 
-def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
-    nx_pts = 41
-    ny_pts = 151
+def create_mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
+    nx_pts = 21
+    ny_pts = 76
     omega_arr = np.linspace(0, 4, nx_pts)
     theta_arr = np.linspace(0, 15, ny_pts)
     X, Y = np.meshgrid(omega_arr, theta_arr)
@@ -65,7 +67,7 @@ def mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
     return results
 
 
-def mismatch_NP_L(t_params: dict, s_params: dict) -> dict:
+def compute_mismatch_L_NP(t_params: dict, s_params: dict) -> dict:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
     results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
     return {"epsilon": results["ep_min"], "source_params": s_params}
@@ -166,9 +168,11 @@ def create_contours_td(
         td = round(td, 6)  # Round to 6 decimal places
         results[td] = {}
         if what_template == "RP":
-            results[td]["contour"] = mismatch_contour_parallel(t_params, s_params)
+            results[td]["contour"] = create_mismatch_contour_parallel(
+                t_params, s_params
+            )
         elif what_template == "NP":
-            results[td]["contour"] = mismatch_NP_L(t_params, s_params)
+            results[td]["contour"] = compute_mismatch_L_NP(t_params, s_params)
 
     results["I"] = I
     results["td_arr"] = td_arr
@@ -192,9 +196,9 @@ def create_contours_I(
         I = round(I, 6)  # Round to 6 decimal places
         results[I] = {}
         if what_template == "RP":
-            results[I]["contour"] = mismatch_contour_parallel(t_params, s_params)
+            results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
         elif what_template == "NP":
-            results[I]["contour"] = mismatch_NP_L(t_params, s_params)
+            results[I]["contour"] = compute_mismatch_L_NP(t_params, s_params)
 
     results["td"] = td
     results["I_arr"] = I_arr
@@ -209,7 +213,7 @@ def create_contours_I(
 ############################
 
 
-def get_super_contour(
+def create_super_contour(
     t_params: dict,
     s_params: dict,
     td_arr: np.ndarray,
@@ -286,99 +290,118 @@ def get_super_contour_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
     return d_copy
 
 
-#######################
-# Section 7: Plotting #
-#######################
+####################################
+# Section 7: Multiple Local Minima #
+####################################
 
 
-def plot_indiv_contour(
-    X: np.ndarray,
-    Y: np.ndarray,
-    Z: np.ndarray,
-    src_params: dict,
-    n_levels=100,
-    n_minima=1,
+def is_near(
+    point1: Union[tuple, list, np.ndarray],
+    point2: Union[tuple, list, np.ndarray],
+    threshold=0.5,
 ):
-    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
-    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
-    )
+    """Checks if point1 is near point2 within a given threshold.
 
-    if n_minima > 0:
-        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
-        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+    Args:
+        point1 (Union[tuple, list, np.ndarray]): The first point.
+        point2 (Union[tuple, list, np.ndarray]): The second point.
+        threshold (float, optional): The threshold value for determining nearness. Defaults to 0.5.
 
-    plt.suptitle(
-        "Mismatch Between RP Templates and a Lensed Source",
-        fontsize=16,
-        y=1.0215,
-        x=0.435,
-    )
-
-    td = LensingGeo(src_params).td()
-    I = LensingGeo(src_params).I()
-
-    plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-            angle_in_pi_format(src_params["theta_S"]),
-            angle_in_pi_format(src_params["phi_S"]),
-            angle_in_pi_format(src_params["theta_J"]),
-            angle_in_pi_format(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
-            src_params["mcz"] / solar_mass,
-            r"$M_{\odot}$",
-            td * 1e3,
-            I,
-        ),
-        fontsize=12,
-        y=1.021,
-    )
+    Returns:
+        bool: True if the points are near each other, False otherwise.
+    """
+    distance = np.linalg.norm(np.array(point1) - np.array(point2))
+    return distance < threshold
 
 
-def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
-    X = d[k]["contour"]["omega_matrix"]
-    Y = d[k]["contour"]["theta_matrix"]
-    Z = d[k]["contour"]["epsilon_matrix"]
-    src_params = d[k]["contour"]["source_params"]
-    if d.get("td") is not None:
-        td = d["td"]
-        I = k
-    elif d.get("I") is not None:
-        I = d["I"]
-        td = k
+def filter_near_duplicates(results, threshold=0.5):
+    """
+    Filters out near-duplicate results based on a given threshold.
 
-    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
-    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
-    )
+    Args:
+        results (list): A list of tuples, each containing an array of coordinates and a corresponding value.
+        threshold (float, optional): The threshold value for determining near-duplicates. Defaults to 0.5.
 
-    if n_minima > 0:
-        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
-        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+    Returns:
+        list: A filtered list of tuples containing non-duplicate coordinates and values.
+    """
+    filtered = []
+    for coords, z in results:
+        # Convert coordinates to a hashable type
+        coord_tuple = tuple(coords)
+        if not any(
+            is_near(coord_tuple, tuple(existing_coords), threshold)
+            for existing_coords, _ in filtered
+        ):
+            filtered.append((coords, z))
+    return filtered
 
-    plt.suptitle(
-        "Mismatch Between RP Templates and a Lensed Source",
-        fontsize=16,
-        y=1.0215,
-        x=0.435,
-    )
 
-    plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-            angle_in_pi_format(src_params["theta_S"]),
-            angle_in_pi_format(src_params["phi_S"]),
-            angle_in_pi_format(src_params["theta_J"]),
-            angle_in_pi_format(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
-            src_params["mcz"] / solar_mass,
-            r"$M_{\odot}$",
-            td * 1e3,
-            I,
-        ),
-        fontsize=12,
-        y=1.021,
-    )
+def find_local_minima(
+    Z: np.ndarray, x=np.linspace(0, 4, 41), y=np.linspace(0, 15, 151)
+) -> list:
+    """Finds local minima in a 2D dataset.
+
+    Parameters
+    ----------
+    Z : np.ndarray
+        The 2D dataset to analyze.
+    x : np.ndarray, optional
+        The x-coordinates of the dataset. Defaults to np.linspace(0, 4, 41).
+    y : np.ndarray, optional
+        The y-coordinates of the dataset. Defaults to np.linspace(0, 15, 151).
+
+    Returns
+    -------
+    list
+        A list of tuples, each containing the coordinates of a local minimum and the corresponding value.
+    """
+    # Interpolate the dataset
+    Z = Z.T  # Transpose the matrix to match the x and y dimensions
+    interpolator = RegularGridInterpolator((x, y), Z)
+
+    # Define the objective function using the interpolator
+    def objective_function(xy: Union[tuple, np.ndarray]) -> float:
+        """Objective function to minimize.
+
+        Args:
+            xy (Union[tuple, np.ndarray]): The coordinates to evaluate.
+
+        Returns:
+            float: The value of the objective function at the given coordinates.
+        """
+        # Check if the point is within the bounds
+        if xy[0] < x[0] or xy[0] > x[-1] or xy[1] < y[0] or xy[1] > y[-1]:
+            return np.inf  # Return a high value to penalize out-of-bounds points
+        else:
+            # RegularGridInterpolator expects a tuple or an array of coordinates
+            return interpolator(xy)
+
+    # Define multiple starting points
+    starting_points = [
+        (x[0], y[0]),  # Bottom-left corner
+        (x[-1], y[0]),  # Bottom-right corner
+        (x[0], y[-1]),  # Top-left corner
+        (x[-1], y[-1]),  # Top-right corner
+        (x[len(x) // 2], y[len(y) // 2]),  # Center
+        (x[0], y[len(y) // 2]),  # Left-center
+        (x[-1], y[len(y) // 2]),  # Right-center
+        (x[len(x) // 2], y[0]),  # Bottom-center
+        (x[len(x) // 2], y[-1]),  # Top-center
+    ]
+
+    results = []
+
+    for point in starting_points:
+        result = minimize(objective_function, point, method="Nelder-Mead")
+        results.append((result.x, result.fun))
+
+    # Round the coordinates to a given precision
+    rounded_results = [(np.round(coords, 1), z) for coords, z in results]
+    filtered_results = filter_near_duplicates(rounded_results, threshold=0.5)
+
+    # Print or process the results
+    for position, value in filtered_results:
+        print(f"Local minimum found at: {position} with epsilon: {value}")
+
+    return filtered_results
