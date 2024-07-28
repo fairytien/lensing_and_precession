@@ -2,9 +2,9 @@
 #SBATCH -J indiv # Job name
 #SBATCH --account=AST23010 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes and cores per node required
-#SBATCH -t 00:07:00 # Walltime
+#SBATCH -t 00:02:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
-#SBATCH -o batch_outputs/indiv.out # Output file
+#SBATCH -o batch_outputs/indiv_40.out # Output file
 #SBATCH --mail-type=NONE # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tien.nguyen@utdallas.edu
 

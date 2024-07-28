@@ -31,8 +31,8 @@ def compute_mismatch(
 
 
 def create_mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
-    nx_pts = 21
-    ny_pts = 76
+    nx_pts = 41
+    ny_pts = 151
     omega_arr = np.linspace(0, 4, nx_pts)
     theta_arr = np.linspace(0, 15, ny_pts)
     X, Y = np.meshgrid(omega_arr, theta_arr)
