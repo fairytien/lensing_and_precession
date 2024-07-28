@@ -6,6 +6,8 @@ from modules.default_params_ver2 import *
 
 NEAR_ZERO_THRESHOLD = 1e-8
 
+# ONLY APPLICABLE FOR ARRAYS OF PARAMETERS, NOT SINGLE VALUES
+
 
 def L_total_mass(mcz=20 * solar_mass, eta=0.25, **kwargs):
     """Total mass from chirp mass [seconds]"""
@@ -152,9 +154,17 @@ def L_td(MLz=2e3 * solar_mass, y=0.25, **kwargs):
 
 def L_F(f, **kwargs):
     """PM amplification factor in geometric optics limit, equation 18 in Takahashi & Nakamura 2003"""
-    F_val = np.sqrt(np.abs(L_mu_plus(**kwargs))) - 1j * np.sqrt(
-        np.abs(L_mu_minus(**kwargs))
-    ) * np.exp(2j * np.pi * f * L_td(**kwargs))
+    L_mu_plus_arr = L_mu_plus(**kwargs)
+    L_mu_plus_arr = L_mu_plus_arr[:, np.newaxis]  # Make it 2D for broadcasting
+    L_mu_minus_arr = L_mu_minus(**kwargs)
+    L_mu_minus_arr = L_mu_minus_arr[:, np.newaxis]  # Make it 2D for broadcasting
+    L_td_arr = L_td(**kwargs)
+    L_td_arr = L_td_arr[:, np.newaxis]  # Make it 2D for broadcasting
+    f = np.tile(f, L_td_arr.shape)
+
+    F_val = np.sqrt(np.abs(L_mu_plus_arr)) - 1j * np.sqrt(
+        np.abs(L_mu_minus_arr)
+    ) * np.exp(2j * np.pi * f * L_td_arr)
     return F_val
 
 
@@ -171,6 +181,9 @@ def L_strain(f, delta_f=0.25, frequencySeries=True, **kwargs):
     hL = L_hI(f, **kwargs) * L_F(f, **kwargs)
 
     if frequencySeries:
-        return FrequencySeries(hL, delta_f)
+        hL = list(hL)
+        for i in range(len(hL)):
+            hL[i] = FrequencySeries(hL[i], delta_f)
+        return hL
 
     return hL
