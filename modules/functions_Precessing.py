@@ -24,12 +24,16 @@ def P_f_cut(**kwargs):
 
 def P_theta_LJ(f, theta_tilde=4.0, **kwargs):
     """theta_LJ_new"""
-    return 0.1 * theta_tilde * (f / P_f_cut(**kwargs)) ** (1 / 3)
+    theta_tilde_arr = theta_tilde[:, np.newaxis]  # Make it 2D for broadcasting
+    f = np.tile(f, theta_tilde_arr.shape)
+    return 0.1 * theta_tilde_arr * (f / P_f_cut(**kwargs)) ** (1 / 3)
 
 
 def P_phi_LJ(f, mcz=20 * solar_mass, omega_tilde=2.0, gamma_P=0.0, **kwargs):
     """phi_LJ"""
-    num = (5000 / 96) * omega_tilde
+    omega_tilde_arr = omega_tilde[:, np.newaxis]  # Make it 2D for broadcasting
+    f = np.tile(f, omega_tilde_arr.shape)
+    num = (5000 / 96) * omega_tilde_arr
     deno = (
         (P_total_mass(**kwargs) / SOLMASS2SEC)
         * (np.pi ** (8 / 3))
