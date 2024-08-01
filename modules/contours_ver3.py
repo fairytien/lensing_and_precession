@@ -8,13 +8,11 @@ from modules.functions_ver2 import *
 
 # import libraries
 from multiprocessing import Pool, cpu_count
-from scipy.optimize import minimize
-from scipy.interpolate import RegularGridInterpolator
 
 
-################################################
-# Section 2: Speed-Optimized Contour Functions #
-################################################
+#################################
+# Section 2: A Mismatch Contour #
+#################################
 
 
 def create_RP_templates(t_params: dict) -> dict:
@@ -31,14 +29,14 @@ def create_RP_templates(t_params: dict) -> dict:
     )
 
     # Initialize an empty dict to store the templates
-    templates = {}
-    templates["template_params"] = t_params
-    templates["omega_array"] = omega_arr
-    templates["theta_array"] = theta_arr
-    templates["gamma_array"] = gamma_arr
-    templates["omega_grid_3D"] = omega_grid
-    templates["theta_grid_3D"] = theta_grid
-    templates["gamma_grid_3D"] = gamma_grid
+    template_bank = {}
+    template_bank["template_params"] = t_params
+    template_bank["omega_array"] = omega_arr
+    template_bank["theta_array"] = theta_arr
+    template_bank["gamma_array"] = gamma_arr
+    template_bank["omega_grid_3D"] = omega_grid
+    template_bank["theta_grid_3D"] = theta_grid
+    template_bank["gamma_grid_3D"] = gamma_grid
 
     def compute_RP_template(indices):
         i, j, k = indices
@@ -69,9 +67,9 @@ def create_RP_templates(t_params: dict) -> dict:
 
     # Store the results in the templates dictionary
     for coords, template in results:
-        templates[coords] = template
+        template_bank[coords] = template
 
-    return templates
+    return template_bank
 
 
 def compute_mismatch(
@@ -81,7 +79,7 @@ def compute_mismatch(
     psd=None,
     use_opt_match=True,
 ) -> dict:
-    # Should provide psd to avoid recomputing it and speed up the computation
+    # Get the psd from s_strain; Should provide psd to avoid recomputing it and save time
     if psd is None:
         f_arr = s_strain.sample_frequencies + f_min
         psd = Sn(f_arr)
@@ -94,67 +92,200 @@ def compute_mismatch(
 
 
 def create_mismatch_contour(
-    templates: dict, s_strain: FrequencySeries, s_params: dict, f_min=20
+    template_bank: dict,
+    s_params: dict,
+    f_min=20,
+    delta_f=0.25,
+    psd=None,
+    use_opt_match=True,
 ) -> dict:
-    # Get the psd from s_vec
-    f_arr = s_strain.sample_frequencies + f_min
-    psd = Sn(f_arr)
+    # Get the strain from the source parameters
+    s_strain = get_gw(s_params, f_min, delta_f)["strain"]
+
+    # Get the psd from s_strain; Should provide psd to avoid recomputing it and save time
+    if psd is None:
+        f_arr = s_strain.sample_frequencies + f_min
+        psd = Sn(f_arr)
 
     # Extract template coordinates and FrequencySeries objects
     templates_coords = [
-        coords for coords in templates.keys() if isinstance(coords, dict)
+        coord for coord in template_bank.keys() if isinstance(coord, dict)
     ]
-    templates_list = [templates[coords] for coords in templates_coords]
+    templates_list = [template_bank[coord] for coord in templates_coords]
 
     # Compute the mismatches in parallel
     with Pool(cpu_count()) as pool:
         results = pool.starmap(
             compute_mismatch,
-            [(t_strain, s_strain, f_min, psd) for t_strain in templates_list],
+            [
+                (t_strain, s_strain, f_min, psd, use_opt_match)
+                for t_strain in templates_list
+            ],
         )
 
     # Initialize 3D grids
-    omega_grid_3D = templates["omega_grid_3D"]
+    omega_grid_3D = template_bank["omega_grid_3D"]
     ep_grid_3D = np.zeros_like(omega_grid_3D)
     idx_grid_3D = np.zeros_like(omega_grid_3D)
     phi_grid_3D = np.zeros_like(omega_grid_3D)
 
     # Populate 3D grids with mismatch results
-    for i, coords in enumerate(templates_coords):
+    for i, coord in enumerate(templates_coords):
         indices_3D = np.where(
-            (templates["omega_grid_3D"] == coords["omega_tilde"])
-            & (templates["theta_grid_3D"] == coords["theta_tilde"])
-            & (templates["gamma_grid_3D"] == coords["gamma_P"])
+            (template_bank["omega_grid_3D"] == coord["omega_tilde"])
+            & (template_bank["theta_grid_3D"] == coord["theta_tilde"])
+            & (template_bank["gamma_grid_3D"] == coord["gamma_P"])
         )
         ep_grid_3D[indices_3D] = results[i]["mismatch"]
         idx_grid_3D[indices_3D] = results[i]["index"]
         phi_grid_3D[indices_3D] = results[i]["phi"]
 
     # Initialize 2D grids
-    omega_arr = templates["omega_array"]
-    theta_arr = templates["theta_array"]
-    gamma_arr = templates["gamma_array"]
+    omega_arr = template_bank["omega_array"]
+    theta_arr = template_bank["theta_array"]
+    gamma_arr = template_bank["gamma_array"]
     omega_grid_2D, theta_grid_2D = np.meshgrid(omega_arr, theta_arr, indexing="ij")
-    gamma_min_grid_2D = np.zeros_like(omega_grid_2D)
+    g_min_grid_2D = np.zeros_like(omega_grid_2D)
     ep_grid_2D = np.zeros_like(omega_grid_2D)
 
     # Find the gamma_P that minimizes the mismatch for each omega_tilde and theta_tilde pair
     for i in range(len(omega_arr)):
         for j in range(len(theta_arr)):
             gamma_min_idx = np.argmin(ep_grid_3D[i, j, :])
-            gamma_min_grid_2D[i, j] = gamma_arr[gamma_min_idx]
+            g_min_grid_2D[i, j] = gamma_arr[gamma_min_idx]
             ep_grid_2D[i, j] = ep_grid_3D[i, j, gamma_min_idx]
 
     return {
         "omega_grid_2D": omega_grid_2D,
         "theta_grid_2D": theta_grid_2D,
         "epsilon_grid_2D": ep_grid_2D,
-        "gamma_min_grid_2D": gamma_min_grid_2D,
+        "gamma_min_grid_2D": g_min_grid_2D,
         "source_params": s_params,
-        "template_params": templates["template_params"],
+        "template_params": template_bank["template_params"],
     }
 
 
-################################################
-# Section 2: Speed-Optimized Contour Functions #
-################################################
+#####################################
+# Section 3: Dictionary of Contours #
+#####################################
+
+
+def create_contours_td(
+    template_bank: dict,
+    s_params: dict,
+    I: float,
+    td_arr: np.ndarray,
+    f_min=20,
+    delta_f=0.25,
+    psd=None,
+    what_template="RP",
+) -> dict:
+
+    if psd is None:
+        f_cut = get_fcut_from_mcz(s_params["mcz"])
+        f_arr = np.arange(f_min, f_cut, delta_f)
+        psd = Sn(f_arr)
+
+    td_arr = np.round(td_arr, 6)  # Round to 6 decimal places
+    y = get_y_from_I(I)
+    MLz_arr = get_MLz_from_td(td_arr, y)
+    results = {}
+
+    for i in range(len(td_arr)):
+        s_params["y"] = y
+        s_params["MLz"] = MLz_arr[i] * solar_mass
+        td = td_arr[i]
+        results[td] = {}
+        if what_template == "RP":
+            results[td]["contour"] = create_mismatch_contour(
+                template_bank, s_params, f_min, delta_f, psd
+            )
+        elif what_template == "NP":
+            # TODO
+            pass
+
+    results["I"] = I
+    results["td_arr"] = td_arr
+    results["y"] = y
+    results["MLz_arr"] = MLz_arr
+
+    return results
+
+
+def create_contours_I(
+    template_bank: dict,
+    s_params: dict,
+    td: float,
+    I_arr: np.ndarray,
+    f_min=20,
+    delta_f=0.25,
+    psd=None,
+    what_template="RP",
+) -> dict:
+
+    if psd is None:
+        f_cut = get_fcut_from_mcz(s_params["mcz"])
+        f_arr = np.arange(f_min, f_cut, delta_f)
+        psd = Sn(f_arr)
+
+    I_arr = np.round(I_arr, 6)  # Round to 6 decimal places
+    y_arr = get_y_from_I(I_arr)
+    MLz_arr = get_MLz_from_td(td, y_arr)
+    results = {}
+
+    for i in range(len(I_arr)):
+        s_params["y"] = y_arr[i]
+        s_params["MLz"] = MLz_arr[i] * solar_mass
+        I = I_arr[i]
+        results[I] = {}
+        if what_template == "RP":
+            results[I]["contour"] = create_mismatch_contour(
+                template_bank, s_params, f_min, delta_f, psd
+            )
+        elif what_template == "NP":
+            # TODO
+            pass
+
+    results["td"] = td
+    results["I_arr"] = I_arr
+    results["y_arr"] = y_arr
+    results["MLz_arr"] = MLz_arr
+
+    return results
+
+
+############################
+# Section 4: Super Contour #
+############################
+
+
+def create_super_contour(
+    template_bank: dict,
+    s_params: dict,
+    td_arr: np.ndarray,
+    I_arr: np.ndarray,
+    f_min=20,
+    delta_f=0.25,
+    psd=None,
+    what_template="RP",
+) -> dict:
+
+    if psd is None:
+        f_cut = get_fcut_from_mcz(s_params["mcz"])
+        f_arr = np.arange(f_min, f_cut, delta_f)
+        psd = Sn(f_arr)
+
+    td_arr = np.round(td_arr, 6)  # Round to 6 decimal places
+    I_arr = np.round(I_arr, 6)  # Round to 6 decimal places
+    results = {}
+
+    for td in td_arr:
+        results[td] = create_contours_I(
+            template_bank, s_params, td, I_arr, f_min, delta_f, psd, what_template
+        )
+
+    results["td_arr"] = td_arr
+    results["I_arr"] = I_arr
+    results["source_params"] = s_params  # for convenience
+    results["template_params"] = template_bank["template_params"]  # for convenience
+    return results
