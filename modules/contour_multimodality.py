@@ -137,6 +137,95 @@ def find_local_minima(
     return filtered_results
 
 
+def find_local_minima_gradient_descent(
+    Z: np.ndarray,
+    x=np.linspace(0, 4, 41),
+    y=np.linspace(0, 15, 151),
+    print_results=True,
+) -> list:
+    # Interpolate the dataset
+    Z = Z.T  # Transpose the matrix to match the x and y dimensions
+    interpolator = RegularGridInterpolator((x, y), Z)
+
+    # Define the objective function using the interpolator
+    def objective_function(xy: Union[tuple, np.ndarray]) -> float:
+        # Check if the point is within the bounds
+        if xy[0] < x[0] or xy[0] > x[-1] or xy[1] < y[0] or xy[1] > y[-1]:
+            return np.inf  # Return a high value to penalize out-of-bounds points
+        else:
+            # RegularGridInterpolator expects a tuple or an array of coordinates
+            return interpolator(xy)
+
+    # Define multiple starting points
+    starting_points = [
+        (x[0], y[0]),  # Bottom-left corner
+        (x[-1], y[0]),  # Bottom-right corner
+        (x[0], y[-1]),  # Top-left corner
+        (x[-1], y[-1]),  # Top-right corner
+        (x[len(x) // 2], y[len(y) // 2]),  # Center
+        (x[0], y[len(y) // 2]),  # Left-center
+        (x[-1], y[len(y) // 2]),  # Right-center
+        (x[len(x) // 2], y[0]),  # Bottom-center
+        (x[len(x) // 2], y[-1]),  # Top-center
+    ]
+
+    def approximate_gradient(f, xy, bounds, h=1e-5):
+        grad = np.zeros_like(xy)
+        for i in range(len(xy)):
+            x_plus_h = np.array(xy)
+            x_minus_h = np.array(xy)
+            x_plus_h[i] = min(
+                x_plus_h[i] + h, bounds[i][1]
+            )  # Ensure x_plus_h is within upper bound
+            x_minus_h[i] = max(
+                x_minus_h[i] - h, bounds[i][0]
+            )  # Ensure x_minus_h is within lower bound
+            f_plus_h = f(x_plus_h)
+            f_minus_h = f(x_minus_h)
+            grad[i] = (f_plus_h - f_minus_h) / (
+                2 * h if x_plus_h[i] != x_minus_h[i] else h
+            )
+        return grad
+
+    def gradient_descent(
+        f, grad_approx, start, bounds, learning_rate=0.1, max_iter=100, tol=1e-6
+    ):
+        point = np.array(start)
+        for _ in range(max_iter):
+            gradient = grad_approx(f, point, bounds)
+            next_point = point - learning_rate * gradient
+            # Ensure next_point stays within bounds
+            next_point = np.clip(
+                next_point, [b[0] for b in bounds], [b[1] for b in bounds]
+            )
+            if np.linalg.norm(f(next_point) - f(point)) < tol:
+                break
+            point = next_point
+        return point, f(point)
+
+    # Define bounds for each dimension, e.g., [(min_x, max_x), (min_y, max_y)]
+    bounds = [(x[0], x[-1]), (y[0], y[-1])]
+
+    # Modify the calls to gradient_descent to include bounds
+    results = []
+
+    for point in starting_points:
+        result_point, result_fun = gradient_descent(
+            objective_function, approximate_gradient, point, bounds
+        )
+        results.append((result_point, result_fun))
+
+    # Round and filter results as before
+    rounded_results = [(np.round(coords, 1), z) for coords, z in results]
+    filtered_results = filter_near_duplicates(rounded_results, threshold=0.5)
+
+    if print_results:
+        for coords, z in filtered_results:
+            print(f"Local minimum at {coords}: {z}")
+
+    return filtered_results
+
+
 #######################################
 # Section 3: Tracking Multiple Minima #
 #######################################
