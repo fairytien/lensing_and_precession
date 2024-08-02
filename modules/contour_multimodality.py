@@ -47,14 +47,14 @@ def filter_near_duplicates(results, threshold=0.5):
         list: A filtered list of tuples containing non-duplicate coordinates and values.
     """
     filtered = []
-    for coords, z in results:
+    for coord, z in results:
         # Convert coordinates to a hashable type
-        coord_tuple = tuple(coords)
+        coord_tuple = tuple(coord)
         if not any(
-            is_near(coord_tuple, tuple(existing_coords), threshold)
-            for existing_coords, _ in filtered
+            is_near(coord_tuple, tuple(existing_coord), threshold)
+            for existing_coord, _ in filtered
         ):
-            filtered.append((coords, z))
+            filtered.append((coord, z))
     return filtered
 
 
@@ -121,18 +121,17 @@ def find_local_minima(
         results.append((result.x, result.fun))
 
     # Round the coordinates to a given precision
-    rounded_results = [(np.round(coords, 1), z) for coords, z in results]
+    rounded_results = [(np.round(coord, 1), z) for coord, z in results]
     filtered_results = filter_near_duplicates(rounded_results, threshold=0.5)
 
-    # Discard coords with the highest z value twice
-    if len(filtered_results) > 1:
-        filtered_results = sorted(filtered_results, key=lambda result: result[1])
-        filtered_results = filtered_results[:-2]
+    # Discard coords with z values greater than the mean of Z
+    Z_mean = np.mean(Z)
+    filtered_results = [(coord, z) for coord, z in filtered_results if z < Z_mean]
 
     # Print or process the results
     if print_results:
-        for coords, z in filtered_results:
-            print(f"Local minimum at {coords}: {z}")
+        for coord, z in filtered_results:
+            print(f"Local minimum at {coord}: {z}")
 
     return filtered_results
 
@@ -216,12 +215,12 @@ def find_local_minima_gradient_descent(
         results.append((result_point, result_fun))
 
     # Round and filter results as before
-    rounded_results = [(np.round(coords, 1), z) for coords, z in results]
+    rounded_results = [(np.round(coord, 1), z) for coord, z in results]
     filtered_results = filter_near_duplicates(rounded_results, threshold=0.5)
 
     if print_results:
-        for coords, z in filtered_results:
-            print(f"Local minimum at {coords}: {z}")
+        for coord, z in filtered_results:
+            print(f"Local minimum at {coord}: {z}")
 
     return filtered_results
 
@@ -232,42 +231,63 @@ def find_local_minima_gradient_descent(
 
 
 def track_minima(
-    results: dict, Z: np.ndarray, td: float, I: float, z_thres: float, dist_thres=0.6
+    results: dict,
+    Z: np.ndarray,
+    td: float,
+    I: float,
+    step: int,
+    z_thres: float,
+    dist_thres=1.0,
 ) -> dict:
-    """Tracks multiple minima in a 2D dataset over time.
+    """Tracks multiple minima in 2D datasets over successive steps.
 
     Args:
-        results (dict): A dictionary containing the tracked minima.
+        results (dict): A dictionary to store the tracked minima.
         Z (np.ndarray): The 2D dataset to analyze.
         td (float): The time delay corresponding to the dataset.
         I (float): The flux ratio corresponding to the dataset.
+        step (int): The current step in the tracking process.
         z_thres (float): The threshold value for determining minima.
         dist_thres (float, optional): The threshold distance for matching minima. Defaults to 0.6.
 
     Returns:
         dict: The updated dictionary containing the tracked minima.
     """
-    for coords, z in find_local_minima(Z, print_results=False):
+
+    for coord, z in find_local_minima(Z, print_results=False):
         best_match_key = None
         best_match_distance = float("inf")
 
         for key in results.keys():
-            distance = np.linalg.norm(coords - results[key]["coord_arr"][-1])
-            if distance < best_match_distance and z < z_thres:
-                best_match_distance = distance
+            distance = np.linalg.norm(coord - results[key]["coord_arr"][-1])
+            steps_since_last = step - results[key]["step_arr"][-1]
+            if distance < best_match_distance and z < z_thres and steps_since_last < 5:
                 best_match_key = key
+                best_match_distance = distance
 
         if best_match_key is not None and best_match_distance < dist_thres:
-            results[best_match_key]["coord_arr"].append(coords)
-            results[best_match_key]["td_arr"].append(td)
-            results[best_match_key]["I_arr"].append(I)
-            results[best_match_key]["ep_arr"].append(z)
+            results[best_match_key]["coord_arr"] = np.append(
+                results[best_match_key]["coord_arr"], [coord], axis=0
+            )
+            results[best_match_key]["td_arr"] = np.append(
+                results[best_match_key]["td_arr"], td
+            )
+            results[best_match_key]["I_arr"] = np.append(
+                results[best_match_key]["I_arr"], I
+            )
+            results[best_match_key]["step_arr"] = np.append(
+                results[best_match_key]["step_arr"], step
+            )
+            results[best_match_key]["ep_arr"] = np.append(
+                results[best_match_key]["ep_arr"], z
+            )
         else:
             results[len(results)] = {
-                "coord_arr": [coords],
-                "td_arr": [td],
-                "I_arr": [I],
-                "ep_arr": [z],
+                "coord_arr": np.array([coord]),
+                "td_arr": np.array([td]),
+                "I_arr": np.array([I]),
+                "step_arr": np.array([step]),
+                "ep_arr": np.array([z]),
             }
 
     return results
