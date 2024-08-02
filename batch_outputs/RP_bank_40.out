@@ -1,0 +1,32 @@
+This is task
+no change     /home1/10000/fairytien33/miniconda3/condabin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda-env
+no change     /home1/10000/fairytien33/miniconda3/bin/activate
+no change     /home1/10000/fairytien33/miniconda3/bin/deactivate
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.sh
+no change     /home1/10000/fairytien33/miniconda3/etc/fish/conf.d/conda.fish
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/Conda.psm1
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/conda-hook.ps1
+no change     /home1/10000/fairytien33/miniconda3/lib/python3.12/site-packages/xontrib/conda.xsh
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.csh
+no change     /home1/10000/fairytien33/.bashrc
+No action taken.
+
+CondaError: Run 'conda init' before 'conda activate'
+
+Number of cores:  128
+Traceback (most recent call last):
+  File "/home1/10000/fairytien33/lensing_and_precession/scripts/template_bank.py", line 22, in <module>
+    main()
+  File "/home1/10000/fairytien33/lensing_and_precession/modules/functions_ver2.py", line 346, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/lensing_and_precession/scripts/template_bank.py", line 16, in main
+    results = create_RP_templates(RP_params)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/lensing_and_precession/modules/contours_ver3.py", line 73, in create_RP_templates
+    results = pool.map(
+              ^^^^^^^^^
+TypeError: Pool.map() takes from 3 to 4 positional arguments but 7 were given
+srun: error: c308-009: task 0: Exited with exit code 1

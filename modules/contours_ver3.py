@@ -15,6 +15,31 @@ from multiprocessing import Pool, cpu_count
 #################################
 
 
+def compute_RP_template(
+    t_params: dict,
+    omega_grid: np.ndarray,
+    theta_grid: np.ndarray,
+    gamma_grid: np.ndarray,
+    indices: tuple,
+) -> tuple:
+    i, j, k = indices
+    omega = np.round(omega_grid[i, j, k], 6)
+    theta = np.round(theta_grid[i, j, k], 6)
+    gamma = np.round(gamma_grid[i, j, k], 6)
+
+    coord = (omega, theta, gamma)
+
+    # Compute the template based on t_params
+    t_params_copy = copy.deepcopy(t_params)
+    t_params_copy["omega_tilde"] = omega
+    t_params_copy["theta_tilde"] = theta
+    t_params_copy["gamma_P"] = gamma
+
+    template = get_gw(t_params_copy)["strain"]
+
+    return coord, template
+
+
 def create_RP_templates(t_params: dict) -> dict:
     nx_pts = 41
     ny_pts = 151
@@ -38,24 +63,6 @@ def create_RP_templates(t_params: dict) -> dict:
     template_bank["theta_grid_3D"] = theta_grid
     template_bank["gamma_grid_3D"] = gamma_grid
 
-    def compute_RP_template(indices):
-        i, j, k = indices
-        omega = np.round(omega_grid[i, j, k], 6)
-        theta = np.round(theta_grid[i, j, k], 6)
-        gamma = np.round(gamma_grid[i, j, k], 6)
-
-        coords = {"omega_tilde": omega, "theta_tilde": theta, "gamma_P": gamma}
-
-        # Compute the template based on t_params
-        t_params_copy = copy.deepcopy(t_params)
-        t_params_copy["omega_tilde"] = omega
-        t_params_copy["theta_tilde"] = theta
-        t_params_copy["gamma_P"] = gamma
-
-        template = get_gw(t_params_copy)["strain"]
-
-        return coords, template
-
     # Create a list of all parameter combinations
     indices_list = [
         (i, j, k) for i in range(nx_pts) for j in range(ny_pts) for k in range(nz_pts)
@@ -63,11 +70,18 @@ def create_RP_templates(t_params: dict) -> dict:
 
     # Use Pool to parallelize the computation
     with Pool(cpu_count()) as pool:  # Use maximum number of cores
-        results = pool.map(compute_RP_template, indices_list)
+        results = pool.map(
+            compute_RP_template,
+            t_params,
+            omega_grid,
+            theta_grid,
+            gamma_grid,
+            indices_list,
+        )
 
     # Store the results in the templates dictionary
-    for coords, template in results:
-        template_bank[coords] = template
+    for coord, template in results:
+        template_bank[coord] = template
 
     return template_bank
 
