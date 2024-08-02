@@ -70,15 +70,13 @@ def create_RP_templates(t_params: dict) -> dict:
 
     # Use Pool to parallelize the computation
     with Pool(cpu_count()) as pool:  # Use maximum number of cores
-        results = pool.map(
+        results = pool.starmap(
             compute_RP_template,
-            t_params,
-            omega_grid,
-            theta_grid,
-            gamma_grid,
-            indices_list,
+            [
+                (t_params, omega_grid, theta_grid, gamma_grid, indices)
+                for indices in indices_list
+            ],
         )
-
     # Store the results in the templates dictionary
     for coord, template in results:
         template_bank[coord] = template
@@ -146,9 +144,9 @@ def create_mismatch_contour(
     # Populate 3D grids with mismatch results
     for i, coord in enumerate(templates_coords):
         indices_3D = np.where(
-            (template_bank["omega_grid_3D"] == coord["omega_tilde"])
-            & (template_bank["theta_grid_3D"] == coord["theta_tilde"])
-            & (template_bank["gamma_grid_3D"] == coord["gamma_P"])
+            (template_bank["omega_grid_3D"] == coord[0])
+            & (template_bank["theta_grid_3D"] == coord[1])
+            & (template_bank["gamma_grid_3D"] == coord[2])
         )
         ep_grid_3D[indices_3D] = results[i]["mismatch"]
         idx_grid_3D[indices_3D] = results[i]["index"]
