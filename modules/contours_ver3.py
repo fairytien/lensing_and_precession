@@ -20,24 +20,18 @@ def compute_RP_template(
     omega_grid: np.ndarray,
     theta_grid: np.ndarray,
     gamma_grid: np.ndarray,
-    indices: tuple,
+    idx: tuple,
 ) -> tuple:
-    i, j, k = indices
-    omega = np.round(omega_grid[i, j, k], 6)
-    theta = np.round(theta_grid[i, j, k], 6)
-    gamma = np.round(gamma_grid[i, j, k], 6)
-
-    coord = (omega, theta, gamma)
 
     # Compute the template based on t_params
     t_params_copy = copy.deepcopy(t_params)
-    t_params_copy["omega_tilde"] = omega
-    t_params_copy["theta_tilde"] = theta
-    t_params_copy["gamma_P"] = gamma
+    t_params_copy["omega_tilde"] = omega_grid[idx]
+    t_params_copy["theta_tilde"] = theta_grid[idx]
+    t_params_copy["gamma_P"] = gamma_grid[idx]
 
-    template = get_gw(t_params_copy)["strain"]
+    template = get_gw(t_params_copy, frequencySeries=False)["strain"]
 
-    return coord, template
+    return idx, template
 
 
 def create_RP_templates(t_params: dict) -> dict:
@@ -62,26 +56,64 @@ def create_RP_templates(t_params: dict) -> dict:
     template_bank["omega_grid_3D"] = omega_grid
     template_bank["theta_grid_3D"] = theta_grid
     template_bank["gamma_grid_3D"] = gamma_grid
+    template_bank["template_grid_3D"] = np.empty((nx_pts, ny_pts, nz_pts), dtype=object)
 
     # Create a list of all parameter combinations
-    indices_list = [
-        (i, j, k) for i in range(nx_pts) for j in range(ny_pts) for k in range(nz_pts)
-    ]
+    idx_list = list(np.ndindex(nx_pts, ny_pts, nz_pts))
 
     # Use Pool to parallelize the computation
     with Pool(cpu_count()) as pool:  # Use maximum number of cores
         results = pool.starmap(
             compute_RP_template,
-            [
-                (t_params, omega_grid, theta_grid, gamma_grid, indices)
-                for indices in indices_list
-            ],
+            [(t_params, omega_grid, theta_grid, gamma_grid, idx) for idx in idx_list],
         )
     # Store the results in the templates dictionary
-    for coord, template in results:
-        template_bank[coord] = template
+    for idx, template in results:
+        template_bank["template_grid_3D"][idx] = template
 
     return template_bank
+
+
+def create_RP_templates_mtx(t_params: dict):
+    nx_pts = 41
+    ny_pts = 151
+    nz_pts = 101
+    omega_arr = np.linspace(0, 4, nx_pts)
+    theta_arr = np.linspace(0, 15, ny_pts)
+    gamma_arr = np.linspace(0, 2 * np.pi, nz_pts)
+
+    # Create a 3D meshgrid
+    omega_grid, theta_grid, gamma_grid = np.meshgrid(
+        omega_arr, theta_arr, gamma_arr, indexing="ij"
+    )
+
+    # Initialize an empty dict to store the templates
+    template_grid = np.empty((nx_pts, ny_pts, nz_pts), dtype=object)
+
+    # Create a list of all parameter combinations
+    idx_list = list(np.ndindex(nx_pts, ny_pts, nz_pts))
+
+    # Use Pool to parallelize the computation
+    with Pool(cpu_count()) as pool:  # Use maximum number of cores
+        results = pool.starmap(
+            compute_RP_template,
+            [(t_params, omega_grid, theta_grid, gamma_grid, idx) for idx in idx_list],
+        )
+    # Store the results in the templates dictionary
+    for idx, template in results:
+        template_grid[idx] = template
+
+    np.savez_compressed(
+        "data/template_bank.npz",
+        template_grid=template_grid,
+        omega_grid=omega_grid,
+        theta_grid=theta_grid,
+        gamma_grid=gamma_grid,
+        omega_arr=omega_arr,
+        theta_arr=theta_arr,
+        gamma_arr=gamma_arr,
+        t_params=t_params,
+    )
 
 
 def compute_mismatch(
@@ -119,21 +151,17 @@ def create_mismatch_contour(
         f_arr = s_strain.sample_frequencies + f_min
         psd = Sn(f_arr)
 
-    # Extract template coordinates and FrequencySeries objects
-    t_coords, t_strains = zip(
-        *(
-            (coord, strain)
-            for coord, strain in template_bank.items()
-            if isinstance(coord, tuple)
-        )
-    )
+    # Extract template FrequencySeries objects from the template bank
+    template_grid_3D = template_bank["template_grid_3D"]
 
     # Compute the mismatches in parallel
-    num_processes = cpu_count() - 28
-    with Pool(num_processes) as pool:
+    with Pool(cpu_count()) as pool:
         results = pool.starmap(
             compute_mismatch,
-            [(t_strain, s_strain, f_min, psd, use_opt_match) for t_strain in t_strains],
+            [
+                (t_strain, s_strain, f_min, psd, use_opt_match)
+                for t_strain in template_grid_3D.flatten()
+            ],
         )
 
     # Initialize 3D grids
@@ -143,15 +171,11 @@ def create_mismatch_contour(
     phi_grid_3D = np.zeros_like(omega_grid_3D)
 
     # Populate 3D grids with mismatch results
-    for i, coord in enumerate(t_coords):
-        indices_3D = np.where(
-            (template_bank["omega_grid_3D"] == coord[0])
-            & (template_bank["theta_grid_3D"] == coord[1])
-            & (template_bank["gamma_grid_3D"] == coord[2])
-        )
-        ep_grid_3D[indices_3D] = results[i]["mismatch"]
-        idx_grid_3D[indices_3D] = results[i]["index"]
-        phi_grid_3D[indices_3D] = results[i]["phi"]
+    for i, result in enumerate(results):
+        i_3D = np.unravel_index(i, template_grid_3D.shape)
+        ep_grid_3D[i_3D] = result["mismatch"]
+        idx_grid_3D[i_3D] = result["index"]
+        phi_grid_3D[i_3D] = result["phi"]
 
     # Initialize 2D grids
     omega_arr = template_bank["omega_array"]
@@ -162,8 +186,8 @@ def create_mismatch_contour(
     ep_grid_2D = np.zeros_like(omega_grid_2D)
 
     # Find the gamma_P that minimizes the mismatch for each omega_tilde and theta_tilde pair
-    for i in range(len(omega_arr)):
-        for j in range(len(theta_arr)):
+    for i, omega in enumerate(omega_arr):
+        for j, theta in enumerate(theta_arr):
             gamma_min_idx = np.argmin(ep_grid_3D[i, j, :])
             g_min_grid_2D[i, j] = gamma_arr[gamma_min_idx]
             ep_grid_2D[i, j] = ep_grid_3D[i, j, gamma_min_idx]

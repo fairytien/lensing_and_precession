@@ -72,7 +72,12 @@ def set_to_location(loc_dict: dict, *args):
 
 
 def get_gw(
-    params: dict, f_min=20, delta_f=0.25, lens_Class=LensingGeo, prec_Class=Precessing
+    params: dict,
+    f_min=20,
+    delta_f=0.25,
+    lens_Class=LensingGeo,
+    prec_Class=Precessing,
+    frequencySeries=True,
 ):
     """
     Calculates the GW for a given set of parameters.
@@ -97,7 +102,7 @@ def get_gw(
 
     f_cut = gw_inst.f_cut()
     f_arr = np.arange(f_min, f_cut, delta_f)
-    strain = gw_inst.strain(f_arr, delta_f=delta_f)
+    strain = gw_inst.strain(f_arr, delta_f, frequencySeries)
     phase = np.unwrap(np.angle(strain))
 
     return {"strain": strain, "phase": phase, "f_array": f_arr}
