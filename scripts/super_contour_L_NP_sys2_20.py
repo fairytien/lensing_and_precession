@@ -22,7 +22,7 @@ def main():
         NP_params, lens_params, td_arr, I_arr, what_template="NP"
     )
 
-    filepath = pickle_data(results, "data", "sys2_super_contour_NP_L_mcz" + str(mcz))
+    filepath = pickle_data(results, "data", "sys2_super_contour_L_NP_mcz" + str(mcz))
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from matplotlib.lines import Line2D
 import ipywidgets
 from ipywidgets import interact, interactive, fixed, interact_manual, SelectionSlider
 
+plt.rcParams["figure.dpi"] = 150
 
 ##########################
 # Section 2: Convenience #
@@ -480,6 +481,8 @@ def plot_indiv_contour(
     src_params: dict,
     n_levels=100,
     n_minima=1,
+    title=True,
+    suptitle=True,
 ):
     plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
     plt.xlabel(r"$\~\Omega$", fontsize=14)
@@ -491,35 +494,41 @@ def plot_indiv_contour(
     if n_minima > 0:
         ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
         plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+        print(
+            f"minima: {Z[ep_min_indices]}, omega: {X[ep_min_indices]}, theta: {Y[ep_min_indices]}"
+        )
 
-    plt.suptitle(
-        "Mismatch Between RP Templates and a Lensed Source",
-        fontsize=16,
-        y=1.0215,
-        x=0.435,
-    )
+    if suptitle:
+        plt.suptitle(
+            "Mismatch Between RP Templates and a Lensed Source",
+            fontsize=16,
+            y=1.0215,
+            x=0.435,
+        )
 
-    td = LensingGeo(src_params).td()
-    I = LensingGeo(src_params).I()
+    if title:
+        td = LensingGeo(src_params).td()
+        I = LensingGeo(src_params).I()
+        plt.title(
+            r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+                angle_in_pi_format(src_params["theta_S"]),
+                angle_in_pi_format(src_params["phi_S"]),
+                angle_in_pi_format(src_params["theta_J"]),
+                angle_in_pi_format(src_params["phi_J"]),
+                r"$\mathcal{M}_{\rm s}$",
+                src_params["mcz"] / solar_mass,
+                r"$M_{\odot}$",
+                td * 1e3,
+                I,
+            ),
+            fontsize=12,
+            y=1.021,
+        )
 
-    plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-            angle_in_pi_format(src_params["theta_S"]),
-            angle_in_pi_format(src_params["phi_S"]),
-            angle_in_pi_format(src_params["theta_J"]),
-            angle_in_pi_format(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
-            src_params["mcz"] / solar_mass,
-            r"$M_{\odot}$",
-            td * 1e3,
-            I,
-        ),
-        fontsize=12,
-        y=1.021,
-    )
 
-
-def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
+def plot_indiv_contour_from_dict(
+    d: dict, k: float, n_levels=100, n_minima=1, title=True, suptitle=True
+):
     X = d[k]["contour"]["omega_matrix"]
     Y = d[k]["contour"]["theta_matrix"]
     Z = d[k]["contour"]["epsilon_matrix"]
@@ -541,26 +550,31 @@ def plot_indiv_contour_from_dict(d: dict, k: float, n_levels=100, n_minima=1):
     if n_minima > 0:
         ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
         plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+        print(
+            f"minima: {Z[ep_min_indices]}, omega: {X[ep_min_indices]}, theta: {Y[ep_min_indices]}"
+        )
 
-    plt.suptitle(
-        "Mismatch Between RP Templates and a Lensed Source",
-        fontsize=16,
-        y=1.0215,
-        x=0.435,
-    )
+    if suptitle:
+        plt.suptitle(
+            "Mismatch Between RP Templates and a Lensed Source",
+            fontsize=16,
+            y=1.0215,
+            x=0.435,
+        )
 
-    plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-            angle_in_pi_format(src_params["theta_S"]),
-            angle_in_pi_format(src_params["phi_S"]),
-            angle_in_pi_format(src_params["theta_J"]),
-            angle_in_pi_format(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
-            src_params["mcz"] / solar_mass,
-            r"$M_{\odot}$",
-            td * 1e3,
-            I,
-        ),
-        fontsize=12,
-        y=1.021,
-    )
+    if title:
+        plt.title(
+            r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+                angle_in_pi_format(src_params["theta_S"]),
+                angle_in_pi_format(src_params["phi_S"]),
+                angle_in_pi_format(src_params["theta_J"]),
+                angle_in_pi_format(src_params["phi_J"]),
+                r"$\mathcal{M}_{\rm s}$",
+                src_params["mcz"] / solar_mass,
+                r"$M_{\odot}$",
+                td * 1e3,
+                I,
+            ),
+            fontsize=12,
+            y=1.021,
+        )
