@@ -74,7 +74,7 @@ def create_RP_templates(t_params: dict) -> dict:
     return template_bank
 
 
-def create_RP_templates_mtx(t_params: dict):
+def create_RP_templates_mtx(t_params: dict, filename: str):
     nx_pts = 41
     ny_pts = 151
     nz_pts = 101
@@ -104,7 +104,7 @@ def create_RP_templates_mtx(t_params: dict):
         template_grid[idx] = template
 
     np.savez_compressed(
-        "data/template_bank.npz",
+        filename,
         template_grid=template_grid,
         omega_grid=omega_grid,
         theta_grid=theta_grid,

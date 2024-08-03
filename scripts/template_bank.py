@@ -10,12 +10,14 @@ def main():
 
     # Assign parameters
     RP_params = set_to_location(loc_params["Taman"]["edgeon"], RP_params_1)[0]
-    mcz = 40
+    mcz = 60
     RP_params["mcz"] = mcz * solar_mass
 
-    results = create_RP_templates(RP_params)
+    create_RP_templates_mtx(
+        RP_params, "data/sys2_template_bank_mcz" + str(mcz) + ".npz"
+    )
 
-    filepath = pickle_data(results, "data", "sys2_template_bank_mcz" + str(mcz))
+    # filepath = pickle_data(results, "data", "sys2_template_bank_mcz" + str(mcz))
 
 
 if __name__ == "__main__":
