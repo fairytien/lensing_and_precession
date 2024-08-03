@@ -17,13 +17,9 @@ def main():
     )
     mcz = 40
     lens_params["mcz"] = RP_params["mcz"] = mcz * solar_mass
-    # RP_params["omega_tilde"] = 3
-    # limits = get_lens_limits_for_RP_L(RP_params, lower=0.5)
-    # td_min, td_max = limits["td_min"], limits["td_max"]
-    td_arr_long = np.linspace(0.02, 0.06, 40)  # To be in geometric optics regime
+    td_arr_long = np.linspace(0.02, 0.07, 40)  # To be in geometric optics regime
     td_arr = np.array_split(td_arr_long, 10)[idx]
     I_arr = np.linspace(0.1, 0.9, 40)
-
     print("Finished assigning parameters")
 
     results = create_super_contour(RP_params, lens_params, td_arr, I_arr)

@@ -18,13 +18,13 @@ def main():
     MLz = get_MLz_from_td(td, y)
     lens_params["y"] = y
     lens_params["MLz"] = MLz * solar_mass
+    print("Finished assigning parameters")
 
     # Load the RP template bank
     filepath = "data/sys3_template_bank_mcz" + str(mcz) + ".pkl"
     with open(filepath, "rb") as f:
         RP_template_bank = pickle.load(f)
-
-    print("Finished assigning parameters")
+    print("Finished loading RP template bank")
 
     results = create_mismatch_contour(RP_template_bank, lens_params)
 

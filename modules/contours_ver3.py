@@ -120,20 +120,20 @@ def create_mismatch_contour(
         psd = Sn(f_arr)
 
     # Extract template coordinates and FrequencySeries objects
-    templates_coords = [
-        coord for coord in template_bank.keys() if isinstance(coord, tuple)
-    ]
-    templates_list = [template_bank[coord] for coord in templates_coords]
+    t_coords, t_strains = zip(
+        *(
+            (coord, strain)
+            for coord, strain in template_bank.items()
+            if isinstance(coord, tuple)
+        )
+    )
 
     # Compute the mismatches in parallel
     num_processes = cpu_count() - 28
     with Pool(num_processes) as pool:
         results = pool.starmap(
             compute_mismatch,
-            [
-                (t_strain, s_strain, f_min, psd, use_opt_match)
-                for t_strain in templates_list
-            ],
+            [(t_strain, s_strain, f_min, psd, use_opt_match) for t_strain in t_strains],
         )
 
     # Initialize 3D grids
@@ -143,7 +143,7 @@ def create_mismatch_contour(
     phi_grid_3D = np.zeros_like(omega_grid_3D)
 
     # Populate 3D grids with mismatch results
-    for i, coord in enumerate(templates_coords):
+    for i, coord in enumerate(t_coords):
         indices_3D = np.where(
             (template_bank["omega_grid_3D"] == coord[0])
             & (template_bank["theta_grid_3D"] == coord[1])
