@@ -16,6 +16,5 @@ No action taken.
 CondaError: Run 'conda init' before 'conda activate'
 
 Number of cores:  128
-Finished assigning parameters
-Results saved as data/sys2_indiv_contour_mcz40_2024-08-03_02-29-05.pkl
-Total time to run the script: 0:0:50.58 (h:m:s)
+Results saved as data/sys2_template_bank_mcz40_2024-08-02_23-55-03.pkl
+Total time to run the script: 0:1:12.31 (h:m:s)

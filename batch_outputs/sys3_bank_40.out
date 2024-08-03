@@ -16,6 +16,11 @@ No action taken.
 CondaError: Run 'conda init' before 'conda activate'
 
 Number of cores:  128
-Finished assigning parameters
-Results saved as data/sys2_indiv_contour_mcz40_2024-08-03_02-29-05.pkl
-Total time to run the script: 0:0:50.58 (h:m:s)
+/home1/10000/fairytien33/lensing_and_precession/modules/Classes_ver2.py:480: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/home1/10000/fairytien33/lensing_and_precession/modules/Classes_ver2.py:480: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/home1/10000/fairytien33/lensing_and_precession/modules/Classes_ver2.py:480: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+Results saved as data/sys3_template_bank_mcz40_2024-08-02_00-38-37.pkl
+Total time to run the script: 0:1:19.14 (h:m:s)

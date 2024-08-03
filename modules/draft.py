@@ -14,6 +14,7 @@ class Car:
     def stop_engine(self):
         print("Engine stopped.")
 
+
 # %%
 # write a class that inherits from Car
 class ElectricCar(Car):
@@ -29,6 +30,7 @@ class ElectricCar(Car):
     def recharge(self):
         print("Battery charging.")
 
+
 # %%
 class Fruit:
     def __init__(self, name, color):
@@ -40,7 +42,8 @@ class Fruit:
 
     def is_edible(self):
         return True
-    
+
+
 # %%
 # write a class that inherits from Fruit
 class Apple(Fruit):
@@ -57,6 +60,7 @@ class Apple(Fruit):
     def is_delicious(self):
         return True
 
+
 # %%
 def whichClass(Class):
     if isinstance(Class, Car):
@@ -66,6 +70,7 @@ def whichClass(Class):
     else:
         print("This is not a Car or an ElectricCar")
 
+
 # %%
 car = Car("Honda", "Civic", 2017)
 whichClass(car)
@@ -73,6 +78,7 @@ whichClass(car)
 # %%
 electricCar = ElectricCar("Tesla", "Model 3", 2019)
 whichClass(electricCar)
+
 
 # %%
 def whichClass_naive(Class):
@@ -82,6 +88,7 @@ def whichClass_naive(Class):
         print("This is an ElectricCar")
     else:
         print("This is not a Car or an ElectricCar")
+
 
 # %%
 whichClass_naive(Car)
@@ -112,6 +119,8 @@ print(electricCar.__class__.__name__)
 # %%
 # define an example dictionary
 d = {"a": 1, "b": 2, "c": 3}
+
+
 def test_global():
     global d
     # print the dictionary
@@ -123,11 +132,13 @@ def test_global():
     # print the dictionary again
     print(d)
 
+
 test_global()
 
 # %%
 # define a global variable
 x = 10
+
 
 # define a function that modifies the global variable
 def modify_global():
@@ -135,6 +146,7 @@ def modify_global():
     x = 20
     d["a"] = 100
     d["b"] = 200
+
 
 # print the value of x before and after calling the function
 print(x)  # output: 10
@@ -163,13 +175,17 @@ import numpy as np
 
 # Create a sample dataset
 np.random.seed(0)
-category = np.repeat(['Category 1', 'Category 2'], 100)
-value = np.concatenate([np.random.normal(loc=5, scale=2, size=100), 
-                        np.random.normal(loc=10, scale=3, size=100)])
-df = pd.DataFrame({'Category': category, 'Value': value})
+category = np.repeat(["Category 1", "Category 2"], 100)
+value = np.concatenate(
+    [
+        np.random.normal(loc=5, scale=2, size=100),
+        np.random.normal(loc=10, scale=3, size=100),
+    ]
+)
+df = pd.DataFrame({"Category": category, "Value": value})
 
 # Create the violin plot
-sns.violinplot(x='Category', y='Value', data=df)
+sns.violinplot(x="Category", y="Value", data=df)
 
 # Show the plot
 plt.show()
@@ -197,8 +213,9 @@ print(f"Estimated value of pi: {pi_estimate}")
 states = ["sunny", "rainy"]
 
 # Define the transition matrix
-transition_matrix = np.array([[0.8, 0.2],  # Probabilities of going from sunny to sunny or rainy
-                              [0.6, 0.4]]) # Probabilities of going from rainy to sunny or rainy
+transition_matrix = np.array(
+    [[0.8, 0.2], [0.6, 0.4]]  # Probabilities of going from sunny to sunny or rainy
+)  # Probabilities of going from rainy to sunny or rainy
 
 # Start with a sunny day
 weather = [states[0]]
@@ -226,7 +243,7 @@ import matplotlib.pyplot as plt
 
 # Step 2: Create some data
 time_step = 0.02
-period = 5.
+period = 5.0
 time_vec = np.arange(0, 20, time_step)
 sig = np.sin(2 * np.pi / period * time_vec) + 0.5 * np.random.randn(time_vec.size)
 
@@ -239,7 +256,7 @@ fft_abs = np.abs(fft_vals)
 # Step 4: Visualize the result
 plt.figure()
 plt.plot(fft_abs)
-plt.title('Fourier transform')
+plt.title("Fourier transform")
 plt.show()
 
 # %%
@@ -258,16 +275,16 @@ fft_result = np.fft.fft(signal)  # Fourier transform
 # Plot the time-domain signal
 plt.subplot(2, 1, 1)
 plt.plot(t, signal)
-plt.title('Time-Domain Signal')
-plt.xlabel('Time')
-plt.ylabel('Amplitude')
+plt.title("Time-Domain Signal")
+plt.xlabel("Time")
+plt.ylabel("Amplitude")
 
 # Plot the frequency-domain representation
 plt.subplot(2, 1, 2)
 plt.plot(freq, np.abs(fft_result))
-plt.title('Frequency-Domain Representation')
-plt.xlabel('Frequency')
-plt.ylabel('Amplitude')
+plt.title("Frequency-Domain Representation")
+plt.xlabel("Frequency")
+plt.ylabel("Amplitude")
 
 plt.tight_layout()
 plt.show()
@@ -279,22 +296,22 @@ fft_result_shifted = np.fft.fftshift(fft_result)
 
 # Plot the shifted frequency-domain representation
 plt.plot(freq_shifted, np.abs(fft_result_shifted))
-plt.title('Shifted Frequency-Domain Representation')
-plt.xlabel('Frequency')
-plt.ylabel('Amplitude')
+plt.title("Shifted Frequency-Domain Representation")
+plt.xlabel("Frequency")
+plt.ylabel("Amplitude")
 plt.show()
 
 # %%
 import sympy as sp
 
 # Define symbols
-t, s = sp.symbols('t s', real=True)
-m, c, k = sp.symbols('m c k', positive=True, real=True)
-x = sp.Function('x')(t)
-F = sp.Function('F')(t)
+t, s = sp.symbols("t s", real=True)
+m, c, k = sp.symbols("m c k", positive=True, real=True)
+x = sp.Function("x")(t)
+F = sp.Function("F")(t)
 
 # Define the differential equation
-diff_eq = m*x.diff(t, t) + c*x.diff(t) + k*x - F
+diff_eq = m * x.diff(t, t) + c * x.diff(t) + k * x - F
 
 # Assume a specific form for the external force F(t)
 F_t = sp.sin(t)
@@ -310,6 +327,15 @@ X_s = sp.solve(laplace_eq, sp.laplace_transform(x, t, s, noconds=True))[0]
 X_s_with_F = X_s.subs(sp.laplace_transform(F, t, s, noconds=True), laplace_F)
 
 # Print the Laplace transform of the solution with the external force
-print('X(s) with F(t) =', X_s_with_F)
+print("X(s) with F(t) =", X_s_with_F)
 
 # %%
+results = [
+    ({"omega_tilde": 1, "theta_tilde": 2, "gamma_P": 3}, 4),
+    ({"omega_tilde": 2, "theta_tilde": 4, "gamma_P": 6}, 8),
+]
+template_bank = {}
+for coords, template in results:
+    template_bank[tuple(coords.items())] = template
+
+print(template_bank)
