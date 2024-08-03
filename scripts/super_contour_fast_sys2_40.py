@@ -17,8 +17,8 @@ def main():
     # RP_params["omega_tilde"] = 3
     # limits = get_lens_limits_for_RP_L(RP_params, lower=0.5)
     # td_min, td_max = limits["td_min"], limits["td_max"]
-    td_arr = np.linspace(0.02, 0.07, 40)  # To be in geometric optics regime
-    I_arr = np.linspace(0.1, 0.9, 40)
+    td_arr = np.linspace(0.02, 0.07, 30)  # To be in geometric optics regime
+    I_arr = np.linspace(0.1, 0.9, 30)
     print("Finished assigning parameters")
 
     results = create_super_contour(RP_params, lens_params, td_arr, I_arr)
