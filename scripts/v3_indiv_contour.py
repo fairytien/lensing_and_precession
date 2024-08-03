@@ -10,7 +10,7 @@ def main():
 
     # Assign parameters
     lens_params = set_to_location(loc_params["Taman"]["random"], lens_params_1)[0]
-    mcz = 20
+    mcz = 40
     lens_params["mcz"] = mcz * solar_mass
     I = 0.5
     td = 0.03
@@ -20,7 +20,7 @@ def main():
     lens_params["MLz"] = MLz * solar_mass
 
     # Load the RP template bank
-    filepath = "data/sys3_template_bank_mcz" + str(mcz)
+    filepath = "data/sys3_template_bank_mcz" + str(mcz) + ".pkl"
     with open(filepath, "rb") as f:
         RP_template_bank = pickle.load(f)
 

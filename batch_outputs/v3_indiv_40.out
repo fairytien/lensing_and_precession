@@ -16,17 +16,10 @@ No action taken.
 CondaError: Run 'conda init' before 'conda activate'
 
 Number of cores:  128
-Traceback (most recent call last):
-  File "/home1/10000/fairytien33/lensing_and_precession/scripts/template_bank.py", line 22, in <module>
-    main()
-  File "/home1/10000/fairytien33/lensing_and_precession/modules/functions_ver2.py", line 346, in wrapper
-    result = func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/lensing_and_precession/scripts/template_bank.py", line 16, in main
-    results = create_RP_templates(RP_params)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/lensing_and_precession/modules/contours_ver3.py", line 73, in create_RP_templates
-    results = pool.map(
-              ^^^^^^^^^
-TypeError: Pool.map() takes from 3 to 4 positional arguments but 7 were given
-srun: error: c308-009: task 0: Exited with exit code 1
+Finished assigning parameters
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 1869357 ON c311-171 CANCELLED AT 2024-08-02T20:35:30 DUE TO TIME LIMIT ***
+slurmstepd: error: *** STEP 1869357.0 ON c311-171 CANCELLED AT 2024-08-02T20:35:30 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+srun: error: c311-171: task 0: Terminated

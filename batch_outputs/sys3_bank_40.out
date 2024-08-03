@@ -1,0 +1,26 @@
+This is task
+no change     /home1/10000/fairytien33/miniconda3/condabin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda-env
+no change     /home1/10000/fairytien33/miniconda3/bin/activate
+no change     /home1/10000/fairytien33/miniconda3/bin/deactivate
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.sh
+no change     /home1/10000/fairytien33/miniconda3/etc/fish/conf.d/conda.fish
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/Conda.psm1
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/conda-hook.ps1
+no change     /home1/10000/fairytien33/miniconda3/lib/python3.12/site-packages/xontrib/conda.xsh
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.csh
+no change     /home1/10000/fairytien33/.bashrc
+No action taken.
+
+CondaError: Run 'conda init' before 'conda activate'
+
+Number of cores:  128
+/home1/10000/fairytien33/lensing_and_precession/modules/Classes_ver2.py:480: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/home1/10000/fairytien33/lensing_and_precession/modules/Classes_ver2.py:480: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/home1/10000/fairytien33/lensing_and_precession/modules/Classes_ver2.py:480: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+Results saved as data/sys3_template_bank_mcz40_2024-08-02_00-38-37.pkl
+Total time to run the script: 0:1:19.14 (h:m:s)

@@ -121,12 +121,13 @@ def create_mismatch_contour(
 
     # Extract template coordinates and FrequencySeries objects
     templates_coords = [
-        coord for coord in template_bank.keys() if isinstance(coord, dict)
+        coord for coord in template_bank.keys() if isinstance(coord, tuple)
     ]
     templates_list = [template_bank[coord] for coord in templates_coords]
 
     # Compute the mismatches in parallel
-    with Pool(cpu_count()) as pool:
+    num_processes = cpu_count() - 28
+    with Pool(num_processes) as pool:
         results = pool.starmap(
             compute_mismatch,
             [
