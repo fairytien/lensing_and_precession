@@ -10,7 +10,7 @@ def main():
 
     # Assign parameters
     lens_params, RP_params, NP_params = set_to_location(
-        loc_params["Taman"]["random"], lens_params_1, RP_params_1, NP_params_1
+        loc_params["Taman"]["edgeon"], lens_params_1, RP_params_1, NP_params_1
     )
     mcz = 20
     lens_params["mcz"] = RP_params["mcz"] = NP_params["mcz"] = mcz * solar_mass
@@ -22,7 +22,7 @@ def main():
         NP_params, lens_params, td_arr, I_arr, what_template="NP"
     )
 
-    filepath = pickle_data(results, "data", "super_contour_NP_L_mcz" + str(mcz))
+    filepath = pickle_data(results, "data", "sys2_super_contour_NP_L_mcz" + str(mcz))
 
 
 if __name__ == "__main__":
