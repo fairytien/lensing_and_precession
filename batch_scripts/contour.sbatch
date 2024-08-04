@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH -J super20 # Job name
+#SBATCH -J super30 # Job name
 #SBATCH --account=AST23010 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes and cores per node required
-#SBATCH -t 05:00:00 # Walltime
+#SBATCH -t 03:15:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
-#SBATCH -o batch_outputs/super20.out # Output file
+#SBATCH -o batch_outputs/super30.out # Output file
 #SBATCH --mail-type=ALL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tien.nguyen@utdallas.edu
 #SBATCH --array=0-9
@@ -18,4 +18,4 @@ cd $SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python scripts/super_contour_sys2_20.py
+srun python scripts/super_contour_sys2_30.py
