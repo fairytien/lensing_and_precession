@@ -12,7 +12,7 @@ def main():
     lens_params, RP_params, NP_params = set_to_location(
         loc_params["Taman"]["edgeon"], lens_params_1, RP_params_1, NP_params_1
     )
-    mcz = 20
+    mcz = 40
     lens_params["mcz"] = RP_params["mcz"] = NP_params["mcz"] = mcz * solar_mass
     td_arr = np.linspace(0.02, 0.07, 40)  # To be in geometric optics regime
     I_arr = np.linspace(0.1, 0.9, 40)
