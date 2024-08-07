@@ -13,7 +13,7 @@ def main():
     mcz = 60
     RP_params["mcz"] = mcz * solar_mass
 
-    create_RP_templates_mtx(
+    create_RP_templates_npz(
         RP_params, "data/sys2_template_bank_mcz" + str(mcz) + ".npz"
     )
 

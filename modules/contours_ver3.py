@@ -10,9 +10,9 @@ from modules.functions_ver2 import *
 from multiprocessing import Pool, cpu_count
 
 
-#################################
-# Section 2: A Mismatch Contour #
-#################################
+###############################
+# Section 2: RP Template Bank #
+###############################
 
 
 def compute_RP_template(
@@ -21,6 +21,7 @@ def compute_RP_template(
     theta_grid: np.ndarray,
     gamma_grid: np.ndarray,
     idx: tuple,
+    **kwargs,
 ) -> tuple:
 
     # Compute the template based on t_params
@@ -29,7 +30,7 @@ def compute_RP_template(
     t_params_copy["theta_tilde"] = theta_grid[idx]
     t_params_copy["gamma_P"] = gamma_grid[idx]
 
-    template = get_gw(t_params_copy, frequencySeries=False)["strain"]
+    template = get_gw(t_params_copy, frequencySeries=False, **kwargs)["strain"]
 
     return idx, template
 
@@ -74,7 +75,7 @@ def create_RP_templates(t_params: dict) -> dict:
     return template_bank
 
 
-def create_RP_templates_mtx(t_params: dict, filename: str):
+def create_RP_templates_npz(t_params: dict, filename: str):
     nx_pts = 41
     ny_pts = 151
     nz_pts = 101
@@ -116,13 +117,24 @@ def create_RP_templates_mtx(t_params: dict, filename: str):
     )
 
 
+#################################
+# Section 3: A Mismatch Contour #
+#################################
+
+
 def compute_mismatch(
-    t_strain: FrequencySeries,
-    s_strain: FrequencySeries,
+    t_strain: Union[np.ndarray, FrequencySeries],
+    s_strain: Union[np.ndarray, FrequencySeries],
     f_min=20,
+    delta_f=0.25,
     psd=None,
     use_opt_match=True,
 ) -> dict:
+    if not isinstance(t_strain, FrequencySeries):
+        t_strain = FrequencySeries(t_strain, delta_f)
+    if not isinstance(s_strain, FrequencySeries):
+        s_strain = FrequencySeries(s_strain, delta_f)
+
     # Get the psd from s_strain; Should provide psd to avoid recomputing it and save time
     if psd is None:
         f_arr = s_strain.sample_frequencies + f_min
@@ -159,7 +171,7 @@ def create_mismatch_contour(
         results = pool.starmap(
             compute_mismatch,
             [
-                (t_strain, s_strain, f_min, psd, use_opt_match)
+                (t_strain, s_strain, f_min, delta_f, psd, use_opt_match)
                 for t_strain in template_grid_3D.flatten()
             ],
         )
@@ -203,7 +215,7 @@ def create_mismatch_contour(
 
 
 #####################################
-# Section 3: Dictionary of Contours #
+# Section 4: Dictionary of Contours #
 #####################################
 
 
@@ -223,6 +235,7 @@ def create_contours_td(
         f_arr = np.arange(f_min, f_cut, delta_f)
         psd = Sn(f_arr)
 
+    I = np.round(I, 6)  # Round to 6 decimal places
     td_arr = np.round(td_arr, 6)  # Round to 6 decimal places
     y = get_y_from_I(I)
     MLz_arr = get_MLz_from_td(td_arr, y)
@@ -265,6 +278,7 @@ def create_contours_I(
         f_arr = np.arange(f_min, f_cut, delta_f)
         psd = Sn(f_arr)
 
+    td = np.round(td, 6)  # Round to 6 decimal places
     I_arr = np.round(I_arr, 6)  # Round to 6 decimal places
     y_arr = get_y_from_I(I_arr)
     MLz_arr = get_MLz_from_td(td, y_arr)
@@ -292,7 +306,7 @@ def create_contours_I(
 
 
 ############################
-# Section 4: Super Contour #
+# Section 5: Super Contour #
 ############################
 
 
