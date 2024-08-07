@@ -38,7 +38,7 @@ def compute_RP_template(
 def create_RP_templates(t_params: dict) -> dict:
     nx_pts = 41
     ny_pts = 151
-    nz_pts = 101
+    nz_pts = 51
     omega_arr = np.linspace(0, 4, nx_pts)
     theta_arr = np.linspace(0, 15, ny_pts)
     gamma_arr = np.linspace(0, 2 * np.pi, nz_pts)
@@ -50,13 +50,13 @@ def create_RP_templates(t_params: dict) -> dict:
 
     # Initialize an empty dict to store the templates
     template_bank = {}
-    template_bank["template_params"] = t_params
-    template_bank["omega_array"] = omega_arr
-    template_bank["theta_array"] = theta_arr
-    template_bank["gamma_array"] = gamma_arr
-    template_bank["omega_grid_3D"] = omega_grid
-    template_bank["theta_grid_3D"] = theta_grid
-    template_bank["gamma_grid_3D"] = gamma_grid
+    # template_bank["template_params"] = t_params
+    # template_bank["omega_array"] = omega_arr
+    # template_bank["theta_array"] = theta_arr
+    # template_bank["gamma_array"] = gamma_arr
+    # template_bank["omega_grid_3D"] = omega_grid
+    # template_bank["theta_grid_3D"] = theta_grid
+    # template_bank["gamma_grid_3D"] = gamma_grid
     template_bank["template_grid_3D"] = np.empty((nx_pts, ny_pts, nz_pts), dtype=object)
 
     # Create a list of all parameter combinations
@@ -78,7 +78,7 @@ def create_RP_templates(t_params: dict) -> dict:
 def create_RP_templates_npz(t_params: dict, filename: str):
     nx_pts = 41
     ny_pts = 151
-    nz_pts = 101
+    nz_pts = 26
     omega_arr = np.linspace(0, 4, nx_pts)
     theta_arr = np.linspace(0, 15, ny_pts)
     gamma_arr = np.linspace(0, 2 * np.pi, nz_pts)
@@ -104,17 +104,19 @@ def create_RP_templates_npz(t_params: dict, filename: str):
     for idx, template in results:
         template_grid[idx] = template
 
-    np.savez_compressed(
-        filename,
-        template_grid=template_grid,
-        omega_grid=omega_grid,
-        theta_grid=theta_grid,
-        gamma_grid=gamma_grid,
-        omega_arr=omega_arr,
-        theta_arr=theta_arr,
-        gamma_arr=gamma_arr,
-        t_params=t_params,
-    )
+    # np.savez_compressed(
+    #     filename,
+    #     template_grid=template_grid,
+    #     omega_grid=omega_grid,
+    #     theta_grid=theta_grid,
+    #     gamma_grid=gamma_grid,
+    #     omega_arr=omega_arr,
+    #     theta_arr=theta_arr,
+    #     gamma_arr=gamma_arr,
+    #     t_params=t_params,
+    # )
+
+    np.savez_compressed(filename, template_grid=template_grid)
 
 
 #################################

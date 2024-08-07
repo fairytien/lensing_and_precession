@@ -13,9 +13,11 @@ def main():
     mcz = 20
     RP_params["mcz"] = mcz * solar_mass
 
-    results = create_RP_templates(RP_params)
+    create_RP_templates_npz(
+        RP_params, "data/sys2_template_bank_mcz" + str(mcz) + ".npz"
+    )
 
-    filepath = pickle_data(results, "data", "sys2_template_bank_mcz" + str(mcz))
+    # filepath = pickle_data(results, "data", "sys2_template_bank_mcz" + str(mcz))
 
 
 if __name__ == "__main__":
