@@ -1,4 +1,3 @@
-This is task
 no change     /home1/10000/fairytien33/miniconda3/condabin/conda
 no change     /home1/10000/fairytien33/miniconda3/bin/conda
 no change     /home1/10000/fairytien33/miniconda3/bin/conda-env
@@ -17,38 +16,6 @@ CondaError: Run 'conda init' before 'conda activate'
 
 Number of cores:  128
 Finished assigning parameters
-Traceback (most recent call last):
-  File "/home1/10000/fairytien33/lensing_and_precession/scripts/v3_indiv_contour.py", line 35, in <module>
-    main()
-  File "/home1/10000/fairytien33/lensing_and_precession/modules/functions_ver2.py", line 346, in wrapper
-    result = func(*args, **kwargs)
-             ^^^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/lensing_and_precession/scripts/v3_indiv_contour.py", line 29, in main
-    results = create_mismatch_contour(RP_template_bank, lens_params)
-              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/lensing_and_precession/modules/contours_ver3.py", line 130, in create_mismatch_contour
-    with Pool(num_processes) as pool:
-         ^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/context.py", line 119, in Pool
-    return Pool(processes, initializer, initargs, maxtasksperchild,
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/pool.py", line 215, in __init__
-    self._repopulate_pool()
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/pool.py", line 306, in _repopulate_pool
-    return self._repopulate_pool_static(self._ctx, self.Process,
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/pool.py", line 329, in _repopulate_pool_static
-    w.start()
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/process.py", line 121, in start
-    self._popen = self._Popen(self)
-                  ^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/context.py", line 282, in _Popen
-    return Popen(process_obj)
-           ^^^^^^^^^^^^^^^^^^
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/popen_fork.py", line 19, in __init__
-    self._launch(process_obj)
-  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/popen_fork.py", line 66, in _launch
-    self.pid = os.fork()
-               ^^^^^^^^^
-OSError: [Errno 12] Cannot allocate memory
-srun: error: c305-017: task 0: Exited with exit code 1
+Finished loading RP template grid
+Results saved as /home1/10000/fairytien33/lensing_and_precession/data/v3_sys2_indiv_contour_mcz40_2024-08-08_01-19-14.pkl
+Total time to run the script: 0:0:13.98 (h:m:s)
