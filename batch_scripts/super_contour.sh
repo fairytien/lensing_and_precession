@@ -14,11 +14,10 @@ sbatch --job-name=super${MCZ_VALUE} --output=batch_outputs/v3_super${MCZ_VALUE}.
 #!/bin/bash
 #SBATCH --account=AST23010 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes and cores per node required
-#SBATCH -t 10:00:00 # Walltime
-#SBATCH -p normal # Queue name where job is submitted
+#SBATCH -t 00:15:00 # Walltime
+#SBATCH -p development # Queue name where job is submitted
 #SBATCH --mail-type=ALL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tien.nguyen@utdallas.edu
-#SBATCH --array=0-9
 
 echo This is task \$SLURM_ARRAY_TASK_ID
 cd \$SLURM_SUBMIT_DIR
