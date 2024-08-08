@@ -717,7 +717,7 @@ def optimize_mismatch_gammaP(
     if "gamma_P" not in t_params_copy:
         raise ValueError("t_params must be precessing parameters")
 
-    gamma_arr = np.linspace(0, 2 * np.pi, 101)
+    gamma_arr = np.linspace(0, 2 * np.pi, 51)
 
     mismatch_dict = {
         gamma_P: mismatch(
