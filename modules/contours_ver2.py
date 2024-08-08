@@ -155,6 +155,9 @@ def get_indiv_contour_stats(
 def create_contours_td(
     t_params: dict, s_params: dict, I: float, td_arr: np.ndarray, what_template="RP"
 ) -> dict:
+
+    I = np.round(I, 6)
+    td_arr = np.round(td_arr, 6)
     y = get_y_from_I(I)
     MLz_arr = get_MLz_from_td(td_arr, y)
     results = {}
@@ -163,7 +166,6 @@ def create_contours_td(
         s_params["y"] = y
         s_params["MLz"] = MLz_arr[i] * solar_mass
         td = td_arr[i]
-        td = round(td, 6)  # Round to 6 decimal places
         results[td] = {}
         if what_template == "RP":
             results[td]["contour"] = create_mismatch_contour_parallel(
@@ -183,6 +185,9 @@ def create_contours_td(
 def create_contours_I(
     t_params: dict, s_params: dict, td: float, I_arr: np.ndarray, what_template="RP"
 ) -> dict:
+
+    td = np.round(td, 6)
+    I_arr = np.round(I_arr, 6)
     y_arr = get_y_from_I(I_arr)
     MLz_arr = get_MLz_from_td(td, y_arr)
     results = {}
@@ -191,7 +196,6 @@ def create_contours_I(
         s_params["y"] = y_arr[i]
         s_params["MLz"] = MLz_arr[i] * solar_mass
         I = I_arr[i]
-        I = round(I, 6)  # Round to 6 decimal places
         results[I] = {}
         if what_template == "RP":
             results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
@@ -218,15 +222,19 @@ def create_super_contour(
     I_arr: np.ndarray,
     what_template="RP",
 ) -> dict:
+
+    td_arr = np.round(td_arr, 6)
+    I_arr = np.round(I_arr, 6)
     results = {}
+
     for td in td_arr:
-        td = round(td, 6)
         results[td] = create_contours_I(t_params, s_params, td, I_arr, what_template)
 
     results["td_arr"] = td_arr
     results["I_arr"] = I_arr
     results["source_params"] = s_params  # for convenience
     results["template_params"] = t_params  # for convenience
+
     return results
 
 
