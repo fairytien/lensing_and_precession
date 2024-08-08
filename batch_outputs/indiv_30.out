@@ -1,0 +1,21 @@
+This is task
+no change     /home1/10000/fairytien33/miniconda3/condabin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda-env
+no change     /home1/10000/fairytien33/miniconda3/bin/activate
+no change     /home1/10000/fairytien33/miniconda3/bin/deactivate
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.sh
+no change     /home1/10000/fairytien33/miniconda3/etc/fish/conf.d/conda.fish
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/Conda.psm1
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/conda-hook.ps1
+no change     /home1/10000/fairytien33/miniconda3/lib/python3.12/site-packages/xontrib/conda.xsh
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.csh
+no change     /home1/10000/fairytien33/.bashrc
+No action taken.
+
+CondaError: Run 'conda init' before 'conda activate'
+
+Number of cores:  128
+Finished assigning parameters
+Results saved as data/sys2_indiv_contour_mcz30_2024-08-03_03-52-30.pkl
+Total time to run the script: 0:1:4.34 (h:m:s)
