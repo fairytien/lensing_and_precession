@@ -24,15 +24,13 @@ def main():
     # Load the RP template grid from the environment variable
     template_grid_path = os.environ.get("TEMPLATE_GRID_PATH")
     if template_grid_path:
-        RP_template_grid = np.load(template_grid_path, allow_pickle=True)[
-            "template_grid"
-        ]
+        template_grid = np.load(template_grid_path, allow_pickle=True)["template_grid"]
         print("Finished loading RP template grid")
     else:
         print("TEMPLATE_GRID_PATH environment variable is not set.")
         return
 
-    results = create_mismatch_contour(RP_template_grid, lens_params)
+    results = create_mismatch_contour(template_grid, lens_params)
 
     # Save results to $HOME directory
     home_dir = os.environ.get("HOME", ".")
