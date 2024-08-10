@@ -67,13 +67,104 @@ def create_mismatch_contour_parallel(t_params: dict, s_params: dict) -> dict:
 
 def compute_mismatch_L_NP(t_params: dict, s_params: dict) -> dict:
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
-    results = optimize_mismatch_gammaP(t_params_copy, s_params_copy)
-    return {"epsilon": results["ep_min"], "source_params": s_params}
+    results = mismatch(t_params_copy, s_params_copy)
+    return {"epsilon": results["mismatch"], "source_params": s_params}
+
+
+#####################################
+# Section 3: Dictionary of Contours #
+#####################################
+
+
+def create_contours_td(
+    t_params: dict, s_params: dict, I: float, td_arr: np.ndarray, what_template="RP"
+) -> dict:
+
+    I = np.round(I, 6)
+    td_arr = np.round(td_arr, 6)
+    y = get_y_from_I(I)
+    MLz_arr = get_MLz_from_td(td_arr, y)
+    results = {}
+
+    for i in range(len(td_arr)):
+        s_params["y"] = y
+        s_params["MLz"] = MLz_arr[i] * solar_mass
+        td = td_arr[i]
+        results[td] = {}
+        if what_template == "RP":
+            results[td]["contour"] = create_mismatch_contour_parallel(
+                t_params, s_params
+            )
+        elif what_template == "NP":
+            results[td]["contour"] = compute_mismatch_L_NP(t_params, s_params)
+
+    results["I"] = I
+    results["td_arr"] = td_arr
+    results["y"] = y
+    results["MLz_arr"] = MLz_arr
+
+    return results
+
+
+def create_contours_I(
+    t_params: dict, s_params: dict, td: float, I_arr: np.ndarray, what_template="RP"
+) -> dict:
+
+    td = np.round(td, 6)
+    I_arr = np.round(I_arr, 6)
+    y_arr = get_y_from_I(I_arr)
+    MLz_arr = get_MLz_from_td(td, y_arr)
+    results = {}
+
+    for i in range(len(I_arr)):
+        s_params["y"] = y_arr[i]
+        s_params["MLz"] = MLz_arr[i] * solar_mass
+        I = I_arr[i]
+        results[I] = {}
+        if what_template == "RP":
+            results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
+        elif what_template == "NP":
+            results[I]["contour"] = compute_mismatch_L_NP(t_params, s_params)
+
+    results["td"] = td
+    results["I_arr"] = I_arr
+    results["y_arr"] = y_arr
+    results["MLz_arr"] = MLz_arr
+
+    return results
 
 
 ############################
-# Section 3: Data Handling #
+# Section 4: Super Contour #
 ############################
+
+
+def create_super_contour(
+    t_params: dict,
+    s_params: dict,
+    td_arr: np.ndarray,
+    I_arr: np.ndarray,
+    what_template="RP",
+) -> dict:
+
+    td_arr = np.round(td_arr, 6)
+    I_arr = np.round(I_arr, 6)
+    results = {}
+
+    for td in td_arr:
+        results[td] = create_contours_I(t_params, s_params, td, I_arr, what_template)
+
+    results["td_arr"] = td_arr
+    results["I_arr"] = I_arr
+    results["source_params"] = s_params  # for convenience
+    results["template_params"] = t_params  # for convenience
+
+    return results
+
+
+##############################
+# Section 5: Post-Processing #
+##############################
 
 
 def get_error_bars(
@@ -145,102 +236,6 @@ def get_indiv_contour_stats(
     }
 
     return results
-
-
-#####################################
-# Section 4: Dictionary of Contours #
-#####################################
-
-
-def create_contours_td(
-    t_params: dict, s_params: dict, I: float, td_arr: np.ndarray, what_template="RP"
-) -> dict:
-
-    I = np.round(I, 6)
-    td_arr = np.round(td_arr, 6)
-    y = get_y_from_I(I)
-    MLz_arr = get_MLz_from_td(td_arr, y)
-    results = {}
-
-    for i in range(len(td_arr)):
-        s_params["y"] = y
-        s_params["MLz"] = MLz_arr[i] * solar_mass
-        td = td_arr[i]
-        results[td] = {}
-        if what_template == "RP":
-            results[td]["contour"] = create_mismatch_contour_parallel(
-                t_params, s_params
-            )
-        elif what_template == "NP":
-            results[td]["contour"] = compute_mismatch_L_NP(t_params, s_params)
-
-    results["I"] = I
-    results["td_arr"] = td_arr
-    results["y"] = y
-    results["MLz_arr"] = MLz_arr
-
-    return results
-
-
-def create_contours_I(
-    t_params: dict, s_params: dict, td: float, I_arr: np.ndarray, what_template="RP"
-) -> dict:
-
-    td = np.round(td, 6)
-    I_arr = np.round(I_arr, 6)
-    y_arr = get_y_from_I(I_arr)
-    MLz_arr = get_MLz_from_td(td, y_arr)
-    results = {}
-
-    for i in range(len(I_arr)):
-        s_params["y"] = y_arr[i]
-        s_params["MLz"] = MLz_arr[i] * solar_mass
-        I = I_arr[i]
-        results[I] = {}
-        if what_template == "RP":
-            results[I]["contour"] = create_mismatch_contour_parallel(t_params, s_params)
-        elif what_template == "NP":
-            results[I]["contour"] = compute_mismatch_L_NP(t_params, s_params)
-
-    results["td"] = td
-    results["I_arr"] = I_arr
-    results["y_arr"] = y_arr
-    results["MLz_arr"] = MLz_arr
-
-    return results
-
-
-############################
-# Section 5: Super Contour #
-############################
-
-
-def create_super_contour(
-    t_params: dict,
-    s_params: dict,
-    td_arr: np.ndarray,
-    I_arr: np.ndarray,
-    what_template="RP",
-) -> dict:
-
-    td_arr = np.round(td_arr, 6)
-    I_arr = np.round(I_arr, 6)
-    results = {}
-
-    for td in td_arr:
-        results[td] = create_contours_I(t_params, s_params, td, I_arr, what_template)
-
-    results["td_arr"] = td_arr
-    results["I_arr"] = I_arr
-    results["source_params"] = s_params  # for convenience
-    results["template_params"] = t_params  # for convenience
-
-    return results
-
-
-##############################
-# Section 6: Post-Processing #
-##############################
 
 
 def get_contours_stats(d: dict, thres_factor=1.01, thres_diff=0.0) -> dict:
