@@ -488,7 +488,7 @@ def plot_indiv_contour(
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
     plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
+        label=r"$\epsilon(\~h_{\rm L}, \~h_{\rm P})$", size=14
     )
 
     if n_minima > 0:
@@ -544,7 +544,7 @@ def plot_indiv_contour_from_dict(
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
     plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm P}, \~h_{\rm L})$", size=14
+        label=r"$\epsilon(\~h_{\rm L}, \~h_{\rm P})$", size=14
     )
 
     if n_minima > 0:

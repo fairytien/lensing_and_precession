@@ -9,6 +9,7 @@ from modules.contours_ver2 import *
 # import libraries
 from scipy.optimize import minimize
 from scipy.interpolate import RegularGridInterpolator
+import matplotlib.pyplot as plt
 
 
 ######################################
@@ -291,3 +292,46 @@ def track_minima(
             }
 
     return results
+
+
+def plot_trackers(data: dict, fixed_key: float, x_axis="td" or "I") -> None:
+    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    colors = ["black", "yellow", "red", "pink"]
+
+    for i, tracker in enumerate(data[fixed_key].keys()):
+        axes[0].plot(
+            data[fixed_key][tracker]["td_arr"] * 1e3,
+            data[fixed_key][tracker]["coord_arr"][:, 0],
+            "-o",
+            label=f"Tracker {tracker}",
+            c=colors[i],
+        )
+    axes[0].set_xlabel(r"$\Delta t_d$ [ms]")
+    axes[0].set_ylabel(r"$\~{\Omega}_{\rm best}$")
+
+    for i, tracker in enumerate(data[fixed_key].keys()):
+        axes[1].plot(
+            data[fixed_key][tracker]["td_arr"] * 1e3,
+            data[fixed_key][tracker]["coord_arr"][:, 1],
+            "-o",
+            label=f"Tracker {tracker}",
+            c=colors[i],
+        )
+    axes[1].set_xlabel(r"$\Delta t_d$ [ms]")
+    axes[1].set_ylabel(r"$\~{\theta}_{\rm best}$")
+
+    for i, tracker in enumerate(data[fixed_key].keys()):
+        axes[2].plot(
+            data[fixed_key][tracker]["td_arr"] * 1e3,
+            data[fixed_key][tracker]["ep_arr"],
+            "-o",
+            label=f"Tracker {tracker}",
+            c=colors[i],
+        )
+    axes[2].set_xlabel(r"$\Delta t_d$ [ms]")
+    axes[2].set_ylabel(r"$\epsilon$")
+    axes[2].legend()
+
+    fig.suptitle("Tracking Minima", fontsize=16, y=1.02)
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
+    plt.show()
