@@ -15,4 +15,7 @@ No action taken.
 CondaError: Run 'conda init' before 'conda activate'
 
 Number of cores:  128
-Total time to run the script: 0:0:46.32 (h:m:s)
+Finished assigning parameters
+Finished loading RP template grid
+Results saved as /home1/10000/fairytien33/lensing_and_precession/data/v3_sys2_indiv_contour_mcz30_2024-08-08_01-21-21.pkl
+Total time to run the script: 0:0:18.26 (h:m:s)
