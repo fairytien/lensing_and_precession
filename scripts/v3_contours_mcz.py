@@ -12,7 +12,7 @@ def main(output_dir):
 
     # Assign parameters
     results = {}
-    mcz_arr = np.linspace(10, 90, 81)
+    mcz_arr = np.round(np.linspace(10, 90, 81), 2)
     lens_params, RP_params = set_to_location(
         loc_params["Taman"]["edgeon"], lens_params_1, RP_params_1
     )
@@ -28,12 +28,11 @@ def main(output_dir):
 
         # Create RP template grid
         RP_params["mcz"] = mcz * solar_mass
-        template_bank = create_RP_templates(
+        template_grid = create_RP_templates(
             RP_params,
             output_dir + "/sys2_template_grid_mcz" + str(mcz) + ".npz",
             npz=True,
         )
-        template_grid = template_bank["template_grid"]
 
         # Create mismatch contour for each mcz value
         lens_params["mcz"] = mcz * solar_mass

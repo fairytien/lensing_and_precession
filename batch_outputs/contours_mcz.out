@@ -1,0 +1,53 @@
+no change     /home1/10000/fairytien33/miniconda3/condabin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda
+no change     /home1/10000/fairytien33/miniconda3/bin/conda-env
+no change     /home1/10000/fairytien33/miniconda3/bin/activate
+no change     /home1/10000/fairytien33/miniconda3/bin/deactivate
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.sh
+no change     /home1/10000/fairytien33/miniconda3/etc/fish/conf.d/conda.fish
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/Conda.psm1
+no change     /home1/10000/fairytien33/miniconda3/shell/condabin/conda-hook.ps1
+no change     /home1/10000/fairytien33/miniconda3/lib/python3.12/site-packages/xontrib/conda.xsh
+no change     /home1/10000/fairytien33/miniconda3/etc/profile.d/conda.csh
+no change     /home1/10000/fairytien33/.bashrc
+No action taken.
+
+CondaError: Run 'conda init' before 'conda activate'
+
+Number of cores:  128
+10
+Traceback (most recent call last):
+  File "/home1/10000/fairytien33/lensing_and_precession/scripts/v3_contours_mcz.py", line 50, in <module>
+    main(args.output_dir)
+  File "/home1/10000/fairytien33/lensing_and_precession/modules/functions_ver2.py", line 351, in wrapper
+    result = func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/lensing_and_precession/scripts/v3_contours_mcz.py", line 39, in main
+    results[mcz] = create_mismatch_contour(template_grid, lens_params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/lensing_and_precession/modules/contours_ver3.py", line 122, in create_mismatch_contour
+    with Pool(cpu_count()) as pool:
+         ^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/context.py", line 119, in Pool
+    return Pool(processes, initializer, initargs, maxtasksperchild,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/pool.py", line 215, in __init__
+    self._repopulate_pool()
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/pool.py", line 306, in _repopulate_pool
+    return self._repopulate_pool_static(self._ctx, self.Process,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/pool.py", line 329, in _repopulate_pool_static
+    w.start()
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/process.py", line 121, in start
+    self._popen = self._Popen(self)
+                  ^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/context.py", line 282, in _Popen
+    return Popen(process_obj)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/popen_fork.py", line 19, in __init__
+    self._launch(process_obj)
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/multiprocessing/popen_fork.py", line 66, in _launch
+    self.pid = os.fork()
+               ^^^^^^^^^
+OSError: [Errno 12] Cannot allocate memory
+srun: error: c306-005: task 0: Exited with exit code 1
