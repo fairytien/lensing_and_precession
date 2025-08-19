@@ -7,8 +7,8 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.Classes_ver0 import *
-from modules.default_params_ver0 import *
+from modules.Classes_v0 import *
+from modules.default_params_v0 import *
 
 # import modules
 import numpy as np

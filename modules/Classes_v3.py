@@ -29,12 +29,16 @@ try:
 except Exception:  # pragma: no cover - environment-specific safeguard
     error_handler = None
 
-from scipy.integrate import odeint, cumulative_trapezoid
+from scipy.integrate import cumulative_trapezoid
 import scipy.special as sc
 import mpmath as mp
 from pycbc.types import FrequencySeries
 
+# Define converters/constants
 NEAR_ZERO_THRESHOLD = 1e-8
+SOLMASS2SEC = 4.92624076 * 1e-6  # solar mass -> seconds
+GIGAPC2SEC = 1.02927125 * 1e17  # gigaparsec -> seconds
+FMIN = 20  # lower frequency of the detector sensitivity band [Hz]
 
 ############################
 # Section 2: Lensing Class #
@@ -289,12 +293,6 @@ class Precessing:
         self.omega_tilde = params["omega_tilde"]
         self.gamma_P = params["gamma_P"]
 
-        # some converters/constants
-
-        self.SOLMASS2SEC = 4.92624076 * 1e-6  # solar mass -> seconds
-        self.GIGAPC2SEC = 1.02927125 * 1e17  # gigaparsec -> seconds
-        self.FMIN = 20  # lower frequency of the detector sensitivity band [Hz]
-
     def total_mass(self):
         """Total mass from chirp mass [seconds]"""
         return self.mcz / (self.eta ** (3 / 5))
@@ -311,13 +309,13 @@ class Precessing:
         """phi_LJ"""
         num = (5000 / 96) * self.omega_tilde
         deno = (
-            (self.total_mass() / self.SOLMASS2SEC)
+            (self.total_mass() / SOLMASS2SEC)
             * (np.pi ** (8 / 3))
             * (self.mcz ** (5 / 3))
             * (self.f_cut() ** (5 / 3))
         )
         phi_LJ_amp = num / deno
-        return phi_LJ_amp * (1 / self.FMIN - 1 / f) + self.gamma_P
+        return phi_LJ_amp * (1 / FMIN - 1 / f) + self.gamma_P
 
     def amp_prefactor(self) -> float:
         """amplitude prefactor calculated using chirp mass and distance"""
@@ -469,7 +467,7 @@ class Precessing:
             1000.0
             * self.omega_tilde
             * (f / self.f_cut()) ** (5.0 / 3.0)
-            / (self.total_mass() / self.SOLMASS2SEC)
+            / (self.total_mass() / SOLMASS2SEC)
         )
 
         face_on = np.abs(1.0 - cos_i_JN) < NEAR_ZERO_THRESHOLD

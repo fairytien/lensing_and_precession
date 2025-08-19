@@ -34,7 +34,7 @@
 19. 2024-04-22: added `plot_waveform_comparison` function
 20. 2024-04-22: added `pickle_data` function
 21. 2024-04-29: abbreviated `time_delay` to `td` in functions' names
-22. 2024-04-29: imported `Classes_ver2` instead of `Classes_ver1`
+22. 2024-04-29: imported `Classes_v2` instead of `Classes_v1`
 23. 2024-04-29: changed `Delta_td` to `td` throughout the script
 24. 2024-05-02: improved `get_MLz_limits_for_RP_L` function
 25. 2024-05-02: added `dir` argument to `pickle_data` function

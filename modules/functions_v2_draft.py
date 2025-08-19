@@ -8,7 +8,7 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.functions_ver2 import *
+from modules.functions_v2 import *
 
 
 ################################################

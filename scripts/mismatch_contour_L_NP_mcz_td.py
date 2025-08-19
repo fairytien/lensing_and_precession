@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Reuse utilities and defaults
-from modules.contours_ver2 import *  # noqa: F401,F403
+from modules.contours_ver3 import *  # noqa: F401,F403
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -21,15 +21,6 @@ def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
     return fig_dir, data_dir
 
 
-def _build_params_for_location():
-    # Set sky location to Taman edge-on for both lensed source and NP templates
-    # Returns deep copies that we can safely mutate
-    lens_params, NP_params = set_to_location(
-        loc_params["Taman"]["edgeon"], lens_params_1, NP_params_1
-    )
-    return lens_params, NP_params
-
-
 def _compute_mismatch_for_mcz(args):
     """
     Compute mismatch for a single mcz value across all time delays.
@@ -38,7 +29,9 @@ def _compute_mismatch_for_mcz(args):
     mcz, td_arr, y, f_min, delta_f = args
 
     # Build fresh parameter dictionaries for this process
-    lens_params, NP_params = _build_params_for_location()
+    lens_params, NP_params = set_to_location(
+        loc_params["Taman"]["edgeon"], lens_params_1, NP_params_1
+    )  # Location shouldn't matter for lensed and unlensed waveforms
 
     # Set chirp mass for both source and template (convert Msun -> sec)
     lens_params["mcz"] = NP_params["mcz"] = mcz * solar_mass
@@ -86,7 +79,9 @@ def _compute_mismatch_for_mcz_optimized(args):
     mcz, td_arr, y, f_min, delta_f = args
 
     # Build fresh parameter dictionaries for this process
-    lens_params, NP_params = _build_params_for_location()
+    lens_params, NP_params = set_to_location(
+        loc_params["Taman"]["edgeon"], lens_params_1, NP_params_1
+    )  # Location shouldn't matter for lensed and unlensed waveforms
 
     # Set source chirp mass (convert Msun -> sec)
     lens_params["mcz"] = mcz * solar_mass

@@ -4,7 +4,7 @@
 
 
 # import py scripts
-from modules.contours_ver1 import *
+from modules.contours_v1 import *
 
 
 #######################

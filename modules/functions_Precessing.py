@@ -1,15 +1,27 @@
+# NOTE: This module is built to experiment with vectorization of precessing waveform calculations.
+
+#############################
+# Section 1: Import Modules #
+#############################
+
+
 import numpy as np
 
 error_handler = np.seterr(invalid="raise")
 from scipy.integrate import odeint
 from pycbc.types import FrequencySeries
-from modules.default_params_ver2 import *
+from modules.default_params_v2 import *
 
 NEAR_ZERO_THRESHOLD = 1e-8
 
 SOLMASS2SEC = 4.92624076 * 1e-6  # solar mass -> seconds
 GIGAPC2SEC = 1.02927125 * 1e17  # gigaparsec -> seconds
 FMIN = 20  # lower frequency of the detector sensitivity band [Hz]
+
+
+###################################
+# Section 2: Precessing Functions #
+###################################
 
 
 def P_total_mass(mcz=20 * solar_mass, eta=0.25, **kwargs):

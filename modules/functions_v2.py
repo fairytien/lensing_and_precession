@@ -8,8 +8,8 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.Classes_ver2 import *
-from modules.default_params_ver2 import *
+from modules.Classes_v2 import *
+from modules.default_params_v2 import *
 
 # import modules
 import numpy as np
@@ -57,6 +57,9 @@ def set_to_params(*args):
 
     Returns:
         A tuple of deep copies of the input arguments.
+
+    Example:
+        >>> params, _ = set_to_params(RP_params_1)
     """
 
     args_copy = [copy.deepcopy(arg) for arg in args]
@@ -73,6 +76,9 @@ def set_to_location(loc_dict: dict, *args):
 
     Returns:
         tuple: A tuple containing the modified versions of each argument in `args`.
+
+    Example:
+        >>> params, _ = set_to_location(loc_params["Taman"]["edgeon"], params)
     """
 
     args_copy = [copy.deepcopy(arg) for arg in args]
@@ -125,14 +131,14 @@ def get_gw(
 
 def get_MLz_from_td(td, y):
     """
-    Calculates the lens mass [solar mass] from the given time delay [second] and source position [dimensionless].
+    Calculates the lens mass [solar mass = sec] from the given time delay [second] and source position [dimensionless].
 
     Args:
         td (float or ndarray): The time delay [second].
         y (float or ndarray): The source position of the lens [dimensionless].
 
     Returns:
-        float or ndarray: The calculated lens mass [solar mass].
+        float or ndarray: The calculated lens mass [solar mass = sec].
     """
     divisor = 2 * (
         y * np.sqrt(y**2 + 4)
@@ -143,10 +149,10 @@ def get_MLz_from_td(td, y):
 
 def get_td_from_MLz(MLz, y):
     """
-    Calculates the time delay [second] from the given lens mass [solar mass] and source position [dimensionless], based on equation 16b in Saif et al. 2023.
+    Calculates the time delay [second] from the given lens mass [solar mass = sec] and source position [dimensionless], based on equation 16b in Saif et al. 2023.
 
     Args:
-        MLz (float or ndarray): The lens mass [solar mass].
+        MLz (float or ndarray): The lens mass [solar mass = sec].
         y (float or ndarray): The source position of the lens [dimensionless].
 
     Returns:
@@ -209,10 +215,10 @@ def get_y_from_I(I):
 
 def get_fcut_from_mcz(mcz, eta=0.25):
     """
-    Calculates f_cut [Hz] from the given mcz [solar mass] and eta [dimensionless].
+    Calculates f_cut [Hz] from the given mcz [solar mass = sec] and eta [dimensionless].
 
     Args:
-        mcz (float): The chirp mass [solar mass].
+        mcz (float): The chirp mass [solar mass = sec].
         eta (float): The symmetric mass ratio [dimensionless]. Default is 0.25.
 
     Returns:
@@ -223,14 +229,14 @@ def get_fcut_from_mcz(mcz, eta=0.25):
 
 def get_mcz_from_fcut(fcut, eta=0.25):
     """
-    Calculates mcz [solar mass] from the given f_cut [Hz] and eta [dimensionless].
+    Calculates mcz [solar mass = sec] from the given f_cut [Hz] and eta [dimensionless].
 
     Args:
         fcut (float): The cutoff frequency at ISCO [Hz].
         eta (float): The symmetric mass ratio [dimensionless]. Default is 0.25.
 
     Returns:
-        float: The calculated chirp mass [solar mass].
+        float: The calculated chirp mass [solar mass = sec].
     """
     return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * fcut) / solar_mass
 
@@ -286,7 +292,7 @@ def get_lens_limits_for_RP_L(
     f_min=20,
 ) -> dict:
     """
-    Calculates the lower and upper limits of the lens mass [solar mass] and time delay [second] such that the number of modulation cycles in the lensed waveform is comparable to the number of precession cycles.
+    Calculates the lower and upper limits of the lens mass [solar mass = sec] and time delay [second] such that the number of modulation cycles in the lensed waveform is comparable to the number of precession cycles.
 
     Args:
         params (dict): A dictionary containing the precessing parameters.
@@ -297,8 +303,8 @@ def get_lens_limits_for_RP_L(
 
     Returns:
         dict: A dictionary containing the following keys:
-        - "MLz_min" (float): The minimum lens mass [solar mass].
-        - "MLz_max" (float): The maximum lens mass [solar mass].
+        - "MLz_min" (float): The minimum lens mass [solar mass = sec].
+        - "MLz_max" (float): The maximum lens mass [solar mass = sec].
         - "td_min" (float): The minimum time delay [second].
         - "td_max" (float): The maximum time delay [second].
 
