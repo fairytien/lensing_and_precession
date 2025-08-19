@@ -14,6 +14,21 @@ from modules.default_params_ver2 import *
 # import modules
 import numpy as np
 
+# Compatibility shim for NumPy 1.24+ where several aliases were removed
+if not hasattr(np, "asscalar"):
+    np.asscalar = lambda a: a.item()
+if not hasattr(np, "alen"):
+    np.alen = lambda a: len(a)
+for _name, _alias in (
+    ("float", float),
+    ("int", int),
+    ("bool", bool),
+    ("complex", complex),
+    ("object", object),
+):
+    if not hasattr(np, _name):
+        setattr(np, _name, _alias)
+
 error_handler = np.seterr(invalid="raise")
 from scipy.integrate import simps
 from scipy.optimize import fsolve
@@ -348,15 +363,16 @@ def pickle_data(data, dir: str, filename: str) -> str:
 def timer_decorator(func):
     def wrapper(*args, **kwargs):
         start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        total_time = end_time - start_time
-        hours, remainder = divmod(total_time, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        print(
-            f"Total time to run the script: {int(hours)}:{int(minutes)}:{round(seconds, 2)} (h:m:s)"
-        )
-        return result
+        try:
+            return func(*args, **kwargs)
+        finally:
+            end_time = time.time()
+            total_time = end_time - start_time
+            hours, remainder = divmod(total_time, 3600)
+            minutes, seconds = divmod(remainder, 60)
+            print(
+                f"Total time to run the script: {int(hours)}:{int(minutes)}:{round(seconds, 2)} (h:m:s)"
+            )
 
     return wrapper
 
@@ -520,23 +536,22 @@ def Sn(f_arr, f_min=20, delta_f=0.25, frequencySeries=True):
         The power spectral density of the aLIGO noise curve.
     """
 
-    Sn_val = np.zeros_like(f_arr)
-    for i in range(len(f_arr)):
-        if f_arr[i] < f_min:
-            Sn_val[i] = np.inf
-        else:
-            S0 = 1e-49
-            f0 = 215
-            Sn_temp = (
-                np.power(f_arr[i] / f0, -4.14)
-                - 5 * np.power(f_arr[i] / f0, -2)
-                + 111
-                * (
-                    (1 - np.power(f_arr[i] / f0, 2) + 0.5 * np.power(f_arr[i] / f0, 4))
-                    / (1 + 0.5 * np.power(f_arr[i] / f0, 2))
-                )
-            )
-            Sn_val[i] = Sn_temp * S0
+    # Vectorized implementation of the aLIGO PSD (0903.0338)
+    f_arr = np.asarray(f_arr)
+    S0 = 1e-49
+    f0 = 215.0
+    x = f_arr / f0
+
+    # Base PSD expression evaluated elementwise
+    Sn_temp = (
+        np.power(x, -4.14)
+        - 5.0 * np.power(x, -2.0)
+        + 111.0 * ((1.0 - x**2 + 0.5 * x**4) / (1.0 + 0.5 * x**2))
+    )
+    Sn_val = Sn_temp * S0
+
+    # Enforce infinite PSD below f_min
+    Sn_val = np.where(f_arr < f_min, np.inf, Sn_val)
 
     if frequencySeries:
         return FrequencySeries(Sn_val, delta_f=delta_f)

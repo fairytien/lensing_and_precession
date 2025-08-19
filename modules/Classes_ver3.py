@@ -29,7 +29,7 @@ try:
 except Exception:  # pragma: no cover - environment-specific safeguard
     error_handler = None
 
-from scipy.integrate import odeint
+from scipy.integrate import odeint, cumulative_trapezoid
 import scipy.special as sc
 import mpmath as mp
 from pycbc.types import FrequencySeries
@@ -454,36 +454,32 @@ class Precessing:
 
     ### get the delta phi_P
     def integrand_delta_phi(self, y, f):
-        """integrand for delta phi p (equations in Apostolatos 1994, and appendix of Evangelos in prep)"""
+        """Scalar integrand for delta phi P (legacy signature for ODE solvers)."""
+        # Delegate to vectorized implementation and return scalar
+        return self._integrand_delta_phi_vec(np.asarray(f)).item()
+
+    def _integrand_delta_phi_vec(self, f: np.ndarray) -> np.ndarray:
+        """Vectorized integrand for delta phi P over frequency array f."""
+        f = np.asarray(f)
         LdotN = self.LdotN(f)
         cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
         f_dot = self.f_dot(f)
 
         Omega_LJ = (
-            1000
+            1000.0
             * self.omega_tilde
-            * (f / self.f_cut()) ** (5 / 3)
+            * (f / self.f_cut()) ** (5.0 / 3.0)
             / (self.total_mass() / self.SOLMASS2SEC)
         )
 
-        # if self.theta_tilde == 0:  # non-precessing
-        #     integrand_delta_phi = 0
-        #     # not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
+        face_on = np.abs(1.0 - cos_i_JN) < NEAR_ZERO_THRESHOLD
 
-        if (
-            np.abs(1 - cos_i_JN) < NEAR_ZERO_THRESHOLD
-        ):  # face-on (precessing & non-precessing)
-            integrand_delta_phi = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
-
-        # elif LdotN == 1: # TODO: check this case
-        #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-        #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-        #     # a coordinate singularity!!!
-        #     integrand_delta_phi = 0
-
+        val = np.empty_like(f, dtype=float)
+        if face_on:
+            val = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
         else:
-            integrand_delta_phi = (
-                (LdotN / (1 - LdotN**2))
+            val = (
+                (LdotN / (1.0 - LdotN**2))
                 * Omega_LJ
                 * np.sin(self.theta_LJ(f))
                 * (
@@ -492,13 +488,14 @@ class Precessing:
                 )
                 / f_dot
             )
-
-        return integrand_delta_phi
+        return val
 
     def phase_delta_phi(self, f):
-        """integrate the delta_phi integrand"""
-        integral = odeint(self.integrand_delta_phi, 0, f)
-        return np.squeeze(integral)
+        """Integrate the delta_phi integrand using cumulative trapezoid (vectorized)."""
+        f = np.asarray(f)
+        integrand = self._integrand_delta_phi_vec(f)
+        integral = cumulative_trapezoid(integrand, f, initial=0.0)
+        return integral
 
     def Psi(self, f):
         """GW phase"""

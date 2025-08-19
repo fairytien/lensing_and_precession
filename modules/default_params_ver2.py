@@ -20,13 +20,13 @@ lens_params_0 = {
     "phi_S": 0.0,
     "theta_J": np.pi / 2,  # J == L (no precession)
     "phi_J": np.pi / 2,  # J == L (no precession)
-    "mcz": 10 * solar_mass,
-    "dist": 1.5 * giga_parsec,
+    "mcz": 10 * solar_mass,  # chirp mass, solar mass = sec
+    "dist": 1.5 * giga_parsec,  # luminosity distance, giga_parsec = sec
     "eta": 0.25,  # symmetric mass ratio, dimensionless
-    "t_c": 0.0,
-    "phi_c": 0.0,
-    "y": 0.25,
-    "MLz": 1e3 * solar_mass,
+    "t_c": 0.0,  # coalescence time, sec
+    "phi_c": 0.0,  # coalescence phase, dimensionless
+    "y": 0.25,  # source position, dimensionless
+    "MLz": 1e3 * solar_mass,  # lens mass, solar mass = sec
 }
 
 
@@ -37,7 +37,7 @@ lens_params_1 = {
     "phi_J": np.pi / 4,  # J == L (no precession)
     "mcz": 20 * solar_mass,
     "dist": 1.5 * giga_parsec,
-    "eta": 0.25,  # symmetric mass ratio, dimensionless
+    "eta": 0.25,
     "t_c": 0.0,
     "phi_c": 0.0,
     "y": 0.25,
@@ -64,9 +64,9 @@ RP_params_0 = {
     "eta": 0.25,
     "t_c": 0.0,
     "phi_c": 0.0,
-    "theta_tilde": 4.0,  # dimensionless
-    "omega_tilde": 2.0,  # dimensionless
-    "gamma_P": 0.0,
+    "theta_tilde": 4.0,  # precession amplitude, dimensionless
+    "omega_tilde": 2.0,  # precession frequency, dimensionless
+    "gamma_P": 0.0,  # initial precessing phase, dimensionless
 }
 
 
@@ -96,8 +96,8 @@ RP_params_1 = {
     "eta": 0.25,
     "t_c": 0.0,
     "phi_c": 0.0,
-    "theta_tilde": 4.0,  # dimensionless
-    "omega_tilde": 2.0,  # dimensionless
+    "theta_tilde": 4.0,
+    "omega_tilde": 2.0,
     "gamma_P": 0.0,
 }
 

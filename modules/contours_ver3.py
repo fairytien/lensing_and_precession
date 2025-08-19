@@ -36,10 +36,10 @@ def compute_RP_template(
 
 
 def create_RP_templates(t_params: dict, filename: str, npz=True) -> np.ndarray:
-    nx_pts = 41
+    nx_pts = 51
     ny_pts = 151
     nz_pts = 51
-    omega_arr = np.linspace(0, 4, nx_pts)
+    omega_arr = np.linspace(0, 5, nx_pts)
     theta_arr = np.linspace(0, 15, ny_pts)
     gamma_arr = np.linspace(0, 2 * np.pi, nz_pts)
 
