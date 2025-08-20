@@ -8,8 +8,8 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.Classes_v2 import *
-from modules.default_params_v2 import *
+from modules.Classes_v3 import *
+from modules.default_params_v3 import *
 
 # import modules
 import numpy as np
@@ -144,7 +144,7 @@ def get_MLz_from_td(td, y):
         y * np.sqrt(y**2 + 4)
         + 2 * np.log((np.sqrt(y**2 + 4) + y) / (np.sqrt(y**2 + 4) - y))
     )
-    return (td / divisor) / solar_mass
+    return (td / divisor) / SOLMASS2SEC
 
 
 def get_td_from_MLz(MLz, y):
@@ -161,7 +161,7 @@ def get_td_from_MLz(MLz, y):
     td_val = (
         2
         * MLz
-        * solar_mass
+        * SOLMASS2SEC
         * (
             y * np.sqrt(y**2 + 4)
             + 2 * np.log((np.sqrt(y**2 + 4) + y) / (np.sqrt(y**2 + 4) - y))
@@ -224,7 +224,7 @@ def get_fcut_from_mcz(mcz, eta=0.25):
     Returns:
         float: The calculated cutoff frequency at ISCO [Hz].
     """
-    return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * mcz * solar_mass)
+    return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * mcz * SOLMASS2SEC)
 
 
 def get_mcz_from_fcut(fcut, eta=0.25):
@@ -238,48 +238,66 @@ def get_mcz_from_fcut(fcut, eta=0.25):
     Returns:
         float: The calculated chirp mass [solar mass].
     """
-    return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * fcut) / solar_mass
+    return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * fcut) / SOLMASS2SEC
 
 
-def number_of_prec_cycles(params: dict, f_min=20) -> float:
+def number_of_prec_cycles(
+    mcz_msun: Union[float, np.ndarray],
+    omega_tilde: Union[float, np.ndarray],
+    f_min: float = 20,
+    eta: float = 0.25,
+) -> Union[float, np.ndarray]:
     """
-    Calculates the number of precession cycles between the minimum frequency and the cutoff frequency.
+    Vectorized calculation of the number of precession cycles between the minimum frequency and the cutoff frequency.
 
     Args:
-        params (dict): A dictionary containing the precessing parameters.
+        mcz_msun (float or np.ndarray): Chirp mass [solar masses].
+        omega_tilde (float or np.ndarray): Precession amplitude parameter.
         f_min (float, optional): The minimum frequency. Default is 20 Hz.
+        eta (float, optional): Symmetric mass ratio. Default is 0.25.
 
     Returns:
-        n_cycles (float): The number of precession cycles between the minimum frequency and the cutoff frequency.
+        n_cycles (float or np.ndarray): The number of precession cycles between the minimum frequency and the cutoff frequency.
     """
-
-    assert (
-        "theta_tilde" in params and "omega_tilde" in params
-    ), "params must be precessing parameters"
-    inst = Precessing(params)
-    f_cut = inst.f_cut()
-    phi_LJ_min = inst.phi_LJ(f_min)
-    phi_LJ_cut = inst.phi_LJ(f_cut)
-    n_cycles = (phi_LJ_cut - phi_LJ_min) / (2 * np.pi)
+    mcz_msun = np.asarray(mcz_msun)
+    omega_tilde = np.asarray(omega_tilde)
+    f_cut = get_fcut_from_mcz(mcz_msun, eta)
+    mcz_sec = mcz_msun * SOLMASS2SEC
+    M_sec = mcz_sec / (eta ** (3.0 / 5.0))
+    denom = (
+        (M_sec / SOLMASS2SEC)
+        * (np.pi ** (8.0 / 3.0))
+        * (mcz_sec ** (5.0 / 3.0))
+        * (f_cut ** (5.0 / 3.0))
+    )
+    A = (5000.0 / 96.0) / denom
+    # phi_LJ_min is always zero since (1/f_min - 1/f_min) = 0
+    phi_LJ_cut = (A * omega_tilde) * (1.0 / f_min - 1.0 / f_cut)
+    n_cycles = phi_LJ_cut / (2 * np.pi)
     return n_cycles
 
 
-def number_of_lens_cycles(params: dict, f_min=20) -> float:
+def number_of_lens_cycles(
+    mcz_msun: Union[float, np.ndarray],
+    td: Union[float, np.ndarray],
+    f_min: float = 20,
+    eta: float = 0.25,
+) -> Union[float, np.ndarray]:
     """
-    Calculates the number of modulation cycles in the lensed waveform between the minimum frequency and the cutoff frequency.
+    Vectorized calculation of the number of modulation cycles in the lensed waveform between the minimum frequency and the cutoff frequency.
 
     Args:
-        params (dict): A dictionary containing the lensing parameters.
+        mcz_msun (float or np.ndarray): Chirp mass in solar masses.
+        td (float or np.ndarray): Time delay in seconds.
         f_min (float, optional): The minimum frequency. Default is 20 Hz.
+        eta (float, optional): Symmetric mass ratio. Default is 0.25.
 
     Returns:
-        n_cycles (float): The number of modulation cycles in the lensed waveform between the minimum frequency and the cutoff frequency.
+        n_cycles (float or np.ndarray): The number of modulation cycles in the lensed waveform between the minimum frequency and the cutoff frequency.
     """
-
-    assert "MLz" in params and "y" in params, "params must be lensing parameters"
-    inst = LensingGeo(params)
-    f_cut = inst.f_cut()
-    td = inst.td()
+    mcz_msun = np.asarray(mcz_msun)
+    td = np.asarray(td)
+    f_cut = get_fcut_from_mcz(mcz_msun, eta)
     n_cycles = (f_cut - f_min) * td
     return n_cycles
 
@@ -316,12 +334,12 @@ def get_lens_limits_for_RP_L(
     if "gamma_P" not in params:
         raise ValueError("params must be precessing parameters")
 
-    mcz = params["mcz"] / solar_mass
+    mcz = params["mcz"] / SOLMASS2SEC
     eta = params["eta"]
     f_cut = get_fcut_from_mcz(mcz, eta)
 
     if lower == "min":
-        MLz_min = (1 / (8 * np.pi * f_min)) / solar_mass
+        MLz_min = (1 / (8 * np.pi * f_min)) / SOLMASS2SEC
         td_min = get_td_from_MLz(MLz_min, y)
     elif isinstance(lower, float):
         td_min = lower / (f_cut - f_min)
@@ -830,12 +848,12 @@ def optimize_mismatch_mcz(
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
     n_pts = 101
-    mcz_src = s_params_copy["mcz"] / solar_mass
+    mcz_src = s_params_copy["mcz"] / SOLMASS2SEC
     mcz_arr = np.linspace(mcz_src - 1, mcz_src + 1, n_pts)
 
     mismatch_dict = {
         mcz: mismatch(
-            {**t_params_copy, "mcz": mcz * solar_mass},
+            {**t_params_copy, "mcz": mcz * SOLMASS2SEC},
             s_params_copy,
             f_min,
             delta_f,

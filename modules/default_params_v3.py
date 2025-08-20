@@ -27,13 +27,13 @@ lens_params_0 = {
     "phi_S": 0.0,
     "theta_J": np.pi / 2,  # J == L (no precession)
     "phi_J": np.pi / 2,  # J == L (no precession)
-    "mcz": 10 * SOLMASS2SEC,  # chirp mass, solar mass = sec
-    "dist": 1.5 * GIGAPC2SEC,  # luminosity distance, gigaparsec = sec
+    "mcz": 10 * SOLMASS2SEC,  # chirp mass
+    "dist": 1.5 * GIGAPC2SEC,  # luminosity distance
     "eta": 0.25,  # symmetric mass ratio, dimensionless
     "t_c": 0.0,  # coalescence time, sec
     "phi_c": 0.0,  # coalescence phase, dimensionless
     "y": 0.25,  # source position, dimensionless
-    "MLz": 1e3 * SOLMASS2SEC,  # lens mass, solar mass = sec
+    "MLz": 1e3 * SOLMASS2SEC,  # lens mass
 }
 
 
