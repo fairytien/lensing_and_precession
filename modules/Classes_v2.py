@@ -304,8 +304,8 @@ class Precessing:
         return 1 / (6 ** (3 / 2) * np.pi * self.total_mass())
 
     def theta_LJ(self, f):
-        """theta_LJ_new"""
-        return 0.1 * self.theta_tilde * (f / self.f_cut()) ** (1 / 3)
+        """Equation 18b in Taman's draft"""
+        return (0.1 / (4 * self.eta)) * self.theta_tilde * (f / self.f_cut()) ** (1 / 3)
 
     def phi_LJ(self, f):
         """phi_LJ"""
