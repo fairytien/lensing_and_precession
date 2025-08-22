@@ -461,8 +461,13 @@ class Precessing:
     def _integrand_delta_phi_vec(self, f: np.ndarray) -> np.ndarray:
         """Vectorized integrand for delta phi P over frequency array f."""
         f = np.asarray(f)
+        # Precompute reused quantities
         LdotN = self.LdotN(f)
-        cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
+        cos_i_JN, sin_i_JN, *_ = self.precession_angles()
+        theta_LJ = self.theta_LJ(f)
+        phi_LJ = self.phi_LJ(f)
+        sin_t, cos_t = np.sin(theta_LJ), np.cos(theta_LJ)
+        sin_phi = np.sin(phi_LJ)
         f_dot = self.f_dot(f)
 
         Omega_LJ = (
@@ -473,22 +478,28 @@ class Precessing:
         )
 
         face_on = np.abs(1.0 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD
-
-        val = np.empty_like(f, dtype=float)
         if face_on:
-            val = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
+            return -Omega_LJ * cos_t / f_dot
+
+        aligned = np.isclose(np.abs(LdotN), 1.0, atol=1e-10)
+
+        # Generic (non face-on) expression (matches original formula, just factored)
+        base = (
+            (LdotN / (1.0 - LdotN**2))
+            * Omega_LJ
+            * sin_t
+            * (cos_t * sin_i_JN * sin_phi - sin_t * cos_i_JN)
+            / f_dot
+        )
+
+        if np.any(aligned):  # Check if any LdotN values are close to 1
+            # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
+            # very rare, L aligns with N only ONCE as it spirals out --> blows up???
+            # a coordinate singularity!!!
+            # For now, handle this case by setting those values to 0
+            return np.where(aligned, 0.0, base)
         else:
-            val = (
-                (LdotN / (1.0 - LdotN**2))
-                * Omega_LJ
-                * np.sin(self.theta_LJ(f))
-                * (
-                    np.cos(self.theta_LJ(f)) * sin_i_JN * np.sin(self.phi_LJ(f))
-                    - np.sin(self.theta_LJ(f)) * cos_i_JN
-                )
-                / f_dot
-            )
-        return val
+            return base
 
     def phase_delta_phi(self, f):
         """Integrate the delta_phi integrand using cumulative trapezoid (vectorized)."""

@@ -475,11 +475,11 @@ class Precessing:
         ):  # face-on (precessing & non-precessing)
             integrand_delta_phi = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
 
-        # elif LdotN == 1: # TODO: check this case
-        #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-        #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-        #     # a coordinate singularity!!!
-        #     integrand_delta_phi = 0
+        elif LdotN == 1:  # TODO: check this case
+            #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
+            #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
+            #     # a coordinate singularity!!!
+            integrand_delta_phi = 0
 
         else:
             integrand_delta_phi = (
