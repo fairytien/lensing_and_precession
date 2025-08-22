@@ -471,7 +471,7 @@ class Precessing:
         #     # not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
 
         if (
-            np.abs(1 - cos_i_JN) < NEAR_ZERO_THRESHOLD
+            np.abs(1 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD
         ):  # face-on (precessing & non-precessing)
             integrand_delta_phi = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
 

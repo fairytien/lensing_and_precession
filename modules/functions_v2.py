@@ -740,6 +740,13 @@ def optimize_mismatch_gammaP(
 
     gamma_arr = np.linspace(0, 2 * np.pi, 51)
 
+    # If psd is not provided, calculate it based on the source f_cut
+    if psd is None:
+        mcz_src_msun = s_params_copy["mcz"] / solar_mass
+        f_cut = get_fcut_from_mcz(mcz_src_msun)
+        f_arr = np.arange(f_min, f_cut, delta_f)
+        psd = Sn(f_arr)
+
     mismatch_dict = {
         gamma_P: mismatch(
             {**t_params_copy, "gamma_P": gamma_P},
@@ -830,8 +837,14 @@ def optimize_mismatch_mcz(
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
     n_pts = 101
-    mcz_src = s_params_copy["mcz"] / solar_mass
-    mcz_arr = np.linspace(mcz_src - 1, mcz_src + 1, n_pts)
+    mcz_src_msun = s_params_copy["mcz"] / solar_mass
+    mcz_arr_msun = np.linspace(mcz_src_msun - 1, mcz_src_msun + 1, n_pts)
+
+    # If psd is not provided, calculate it based on the source f_cut
+    if psd is None:
+        f_cut = get_fcut_from_mcz(mcz_src_msun)
+        f_arr = np.arange(f_min, f_cut, delta_f)
+        psd = Sn(f_arr)
 
     mismatch_dict = {
         mcz: mismatch(
@@ -844,12 +857,12 @@ def optimize_mismatch_mcz(
             prec_Class,
             use_opt_match,
         )
-        for mcz in mcz_arr
+        for mcz in mcz_arr_msun
     }
 
-    ep_arr = np.array([mismatch_dict[mcz]["mismatch"] for mcz in mcz_arr])
-    idx_arr = np.array([mismatch_dict[mcz]["index"] for mcz in mcz_arr])
-    phi_arr = np.array([mismatch_dict[mcz]["phi"] for mcz in mcz_arr])
+    ep_arr = np.array([mismatch_dict[mcz]["mismatch"] for mcz in mcz_arr_msun])
+    idx_arr = np.array([mismatch_dict[mcz]["index"] for mcz in mcz_arr_msun])
+    phi_arr = np.array([mismatch_dict[mcz]["phi"] for mcz in mcz_arr_msun])
 
     ep_min_idx = np.argmin(ep_arr)
     ep_max_idx = np.argmax(ep_arr)
@@ -857,11 +870,11 @@ def optimize_mismatch_mcz(
 
     results = {
         "ep_min": np.min(ep_arr),
-        "ep_min_mcz": mcz_arr[ep_min_idx],
+        "ep_min_mcz": mcz_arr_msun[ep_min_idx],
         "ep_min_idx": idx_arr[ep_min_idx],
         "ep_min_phi": phi_arr[ep_min_idx],
         "ep_max": np.max(ep_arr),
-        "ep_max_mcz": mcz_arr[ep_max_idx],
+        "ep_max_mcz": mcz_arr_msun[ep_max_idx],
         "ep_max_idx": idx_arr[ep_max_idx],
         "ep_max_phi": phi_arr[ep_max_idx],
         "ep_src": ep_arr[ep_src_idx],
@@ -884,7 +897,7 @@ def find_optimized_coalescence_params(
     get_updated_mismatch_results=False,
 ) -> dict:
     """
-    Finds the optimized time and phase of coalescence in the template parameters for the template waveform to match with the source waveform.
+    Finds the optimized time and phase of coalescence and gamma_P in the template parameters for the template waveform to match with the source waveform.
 
     Parameters
     ----------
@@ -918,6 +931,13 @@ def find_optimized_coalescence_params(
 
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
+    # If psd is not provided, calculate it based on the source f_cut
+    if psd is None:
+        mcz_src_msun = s_params_copy["mcz"] / solar_mass
+        f_cut = get_fcut_from_mcz(mcz_src_msun)
+        f_arr = np.arange(f_min, f_cut, delta_f)
+        psd = Sn(f_arr)
+    
     gammaP_results_dict = optimize_mismatch_gammaP(
         t_params_copy,
         s_params_copy,

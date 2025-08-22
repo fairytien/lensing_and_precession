@@ -23,17 +23,17 @@ YEAR2SEC = 31557600  # year -> seconds
 
 
 lens_params_0 = {
-    "theta_S": np.pi / 4,
-    "phi_S": 0.0,
-    "theta_J": np.pi / 2,  # J == L (no precession)
-    "phi_J": np.pi / 2,  # J == L (no precession)
-    "mcz": 10 * SOLMASS2SEC,  # chirp mass
-    "dist": 1.5 * GIGAPC2SEC,  # luminosity distance
-    "eta": 0.25,  # symmetric mass ratio, dimensionless
-    "t_c": 0.0,  # coalescence time, sec
-    "phi_c": 0.0,  # coalescence phase, dimensionless
-    "y": 0.25,  # source position, dimensionless
-    "MLz": 1e3 * SOLMASS2SEC,  # lens mass
+    "theta_S": np.pi / 4,  # sky location of BBH [rad]
+    "phi_S": 0.0,  # sky location of BBH [rad]
+    "theta_J": np.pi / 2,  # BBH orientation, J == L (no precession) [rad]
+    "phi_J": np.pi / 2,  # BBH orientation, J == L (no precession) [rad]
+    "mcz": 10 * SOLMASS2SEC,  # chirp mass [second]
+    "dist": 1.5 * GIGAPC2SEC,  # luminosity distance [second]
+    "eta": 0.25,  # symmetric mass ratio [dimensionless]
+    "t_c": 0.0,  # coalescence time [second]
+    "phi_c": 0.0,  # coalescence phase [rad]
+    "y": 0.25,  # source position [dimensionless]
+    "MLz": 1e3 * SOLMASS2SEC,  # lens mass [second]
 }
 
 
@@ -67,9 +67,9 @@ RP_params_0 = {
     "eta": 0.25,
     "t_c": 0.0,
     "phi_c": 0.0,
-    "theta_tilde": 4.0,  # precession amplitude, dimensionless
-    "omega_tilde": 2.0,  # precession frequency, dimensionless
-    "gamma_P": 0.0,  # initial precessing phase, dimensionless
+    "theta_tilde": 4.0,  # precession amplitude [dimensionless]
+    "omega_tilde": 2.0,  # precession frequency [dimensionless]
+    "gamma_P": 0.0,  # initial precessing phase [dimensionless]
 }
 
 

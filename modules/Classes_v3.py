@@ -52,19 +52,21 @@ class Lensing:
         assert type(self.params == dict), "Parameters should be a dictionary"
 
         # unlensed parameters
-        self.theta_S = params["theta_S"]
-        self.phi_S = params["phi_S"]
-        self.theta_J = params["theta_J"]  # J == L (no precession)
-        self.phi_J = params["phi_J"]  # J == L (no precession)
-        self.mcz = params["mcz"]
-        self.dist = params["dist"]
-        self.eta = params["eta"]
-        self.t_c = params["t_c"]
-        self.phi_c = params["phi_c"]
+        self.theta_S = params["theta_S"]  # sky location of BBH [rad]
+        self.phi_S = params["phi_S"]  # sky location of BBH [rad]
+        self.theta_J = params[
+            "theta_J"
+        ]  # BBH orientation, J == L (no precession) [rad]
+        self.phi_J = params["phi_J"]  # BBH orientation, J == L (no precession) [rad]
+        self.mcz = params["mcz"]  # chirp mass [second]
+        self.dist = params["dist"]  # luminosity distance [second]
+        self.eta = params["eta"]  # symmetric mass ratio [dimensionless]
+        self.t_c = params["t_c"]  # coalescence time [second]
+        self.phi_c = params["phi_c"]  # coalescence phase [rad]
 
         # lensed parameters
-        self.M_Lz = params["MLz"]
-        self.y = params["y"]
+        self.M_Lz = params["MLz"]  # lens mass [second]
+        self.y = params["y"]  # source position [dimensionless]
 
     def total_mass(self):
         """Total mass from chirp mass [seconds]"""
@@ -282,16 +284,16 @@ class Precessing:
         self.phi_S = params["phi_S"]
         self.theta_J = params["theta_J"]
         self.phi_J = params["phi_J"]
-        self.mcz = params["mcz"]
-        self.dist = params["dist"]
-        self.eta = params["eta"]
-        self.t_c = params["t_c"]
-        self.phi_c = params["phi_c"]
+        self.mcz = params["mcz"]  # chirp mass [second]
+        self.dist = params["dist"]  # luminosity distance [second]
+        self.eta = params["eta"]  # symmetric mass ratio [dimensionless]
+        self.t_c = params["t_c"]  # coalescence time [second]
+        self.phi_c = params["phi_c"]  # coalescence phase [rad]
 
         # regular precession parameters
-        self.theta_tilde = params["theta_tilde"]
-        self.omega_tilde = params["omega_tilde"]
-        self.gamma_P = params["gamma_P"]
+        self.theta_tilde = params["theta_tilde"]  # precession amplitude [dimensionless]
+        self.omega_tilde = params["omega_tilde"]  # precession frequency [dimensionless]
+        self.gamma_P = params["gamma_P"]  # initial precessing phase [dimensionless]
 
     def total_mass(self):
         """Total mass from chirp mass [seconds]"""
@@ -470,7 +472,7 @@ class Precessing:
             / (self.total_mass() / SOLMASS2SEC)
         )
 
-        face_on = np.abs(1.0 - cos_i_JN) < NEAR_ZERO_THRESHOLD
+        face_on = np.abs(1.0 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD
 
         val = np.empty_like(f, dtype=float)
         if face_on:

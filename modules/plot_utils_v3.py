@@ -4,16 +4,21 @@
 
 
 # import py scripts
-from modules.functions_v2 import *
-from modules.contours_v2 import *
+from modules.functions_v3 import (
+    set_to_params,
+    get_gw,
+    find_optimized_coalescence_params,
+    get_I_from_y,
+    get_td_from_MLz,
+)
+from modules.default_params_v3 import SOLMASS2SEC
 
 # import libraries
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import colors
 from fractions import Fraction
-import ipywidgets
-from ipywidgets import interact, interactive, fixed, interact_manual, SelectionSlider
+import numpy as np
 
 plt.rcParams["figure.dpi"] = 150
 
@@ -32,7 +37,7 @@ def set_default_plot_style():
     plt.rcParams["figure.titlesize"] = 24
 
 
-def format_angle_as_pi(angle: float, denom_thres: int = 50) -> str:
+def angle_to_pi_string(angle: float, denom_thres: int = 50) -> str:
     """
     Converts an angle in radians to a string in pi format.
 
@@ -79,13 +84,8 @@ def plot_standalone_waveform_comparison(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
     phase_shift: float = 0,
-    f_min=20,
-    delta_f=0.25,
-    psd=None,
-    lens_Class=LensingGeo,
-    prec_Class=Precessing,
-    use_opt_match=True,
-    get_updated_mismatch_results=False,
+    return_fig: bool = False,
+    **kwargs,
 ) -> None:
     """
     Plot a standalone, publication-ready comparison between a lensed source and its best-matching RP template.
@@ -94,8 +94,8 @@ def plot_standalone_waveform_comparison(
     - left: |h~(f)| (strain amplitude), log-scale
     - right: unwrapped phase difference Phi_s(f) - Phi_t(f) + `phase_shift`
 
-    Before plotting, it optimizes the RP template coalescence parameters against the source by calling ``find_optimized_coalescence_params()``, which:
-    1) scans the initial precession phase gamma_P to minimize mismatch,
+    Before plotting, it optimizes the RP template coalescence parameters against the source by calling `find_optimized_coalescence_params()`, which:
+    1) if `optimize_gammaP=True`, scans the initial precession phase gamma_P to minimize mismatch,
     2) adjusts the template time and phase of coalescence (t_c, phi_c).
 
     Parameters
@@ -108,21 +108,8 @@ def plot_standalone_waveform_comparison(
         Constant phase offset added when plotting the phase-difference curve.
         Useful to visually align curves; does not affect optimized mismatch.
         Default is 0.
-    f_min : float, optional
-        Lower frequency cutoff. Default is 20 Hz.
-    delta_f : float, optional
-        Frequency spacing in Hz used to sample the frequency-domain strain.
-        Default is 0.25 Hz.
-    psd : pycbc.types.FrequencySeries, optional
-        Detector PSD over the source frequency grid. If None, it is computed from the built-in aLIGO curve (arXiv:0903.0338) over the same frequencies.
-    lens_Class : type, optional
-        Class used to construct lensed waveforms. Default is `LensingGeo`.
-    prec_Class : type, optional
-        Class used to construct regularly-precessing waveforms. Default is `Precessing`.
-    use_opt_match : bool, optional
-        If True, use `pycbc.filter.optimized_match`; otherwise use `match`. Default is True.
-    get_updated_mismatch_results : bool, optional
-        If True, gets the updated mismatch results dictionary after the correct `t_c` and `phi_c` are updated in the template parameters. The `t_c` (index) and `phi_c` in the updated mismatch results should be ~0. This is useful for debugging but also slows down the function. Default is False.
+    **kwargs
+        Additional keyword arguments passed to `find_optimized_coalescence_params()` and `get_gw()` functions.
 
     Returns
     -------
@@ -136,13 +123,13 @@ def plot_standalone_waveform_comparison(
 
     Notes
     -----
-    - The suptitle prints key parameters: mcz, td, I, optimized (omega_tilde, theta_tilde), and epsilon (mismatch).
+    - The suptitle prints key parameters: mcz, td, I, optimized (omega_tilde, theta_tilde), gamma_P, and epsilon (mismatch).
     - For overlaying multiple templates on existing Axes, use `plot_compared_waveform_on_axes()`.
-    - This function prints debugging info (index, phase) that should be ~0 when `get_updated_mismatch_results=True`.
+    - This function prints debugging info (index, phase) that should be ~0 when `verify_optimization=True`.
 
     Examples
     --------
-    >>> plot_standalone_waveform_comparison(t_params, s_params, phase_shift=0.5)
+    >>> plot_standalone_waveform_comparison(t_params, s_params, phase_shift=0.5, use_opt_match=True, optimize_gammaP=True, verify_optimization=True)
     """
 
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(18, 6))
@@ -150,40 +137,30 @@ def plot_standalone_waveform_comparison(
 
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
-    # get optimized coalescence parameters
-    updated_params = find_optimized_coalescence_params(
-        t_params_copy,
-        s_params_copy,
-        f_min,
-        delta_f,
-        psd,
-        lens_Class,
-        prec_Class,
-        use_opt_match,
-        get_updated_mismatch_results,
+    # get optimized coalescence parameters (new return structure)
+    opt_coal_results = find_optimized_coalescence_params(
+        t_params_copy, s_params_copy, **kwargs
     )
-    s_params_copy = updated_params["updated_s_params"]
-    t_params_copy = updated_params["updated_t_params"]
-    epsilon = updated_params["updated_mismatch_results"]["mismatch"]
-    idx = updated_params["updated_mismatch_results"]["index"]
-    phi = updated_params["updated_mismatch_results"]["phi"]
+    t_params_copy = opt_coal_results["opt_t_params"]
 
-    print(
-        f"idx = {idx:.3g}, phi = {phi:.3g}, both should be ~0 if get_updated_mismatch_results is True"
-    )  # FOR DEBUGGING
+    # Filter kwargs for get_gw()
+    get_gw_kwargs = {
+        key: value
+        for key, value in kwargs.items()
+        if key in get_gw.__code__.co_varnames
+    }
 
     # source waveform
-    s_gw = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)
+    s_gw = get_gw(s_params_copy, **get_gw_kwargs)
     s_strain = np.abs(s_gw["strain"])
     s_phase = s_gw["phase"]
     s_farray = s_gw["f_array"]
-    lens_inst = lens_Class(s_params_copy)
-    td = lens_inst.td()
-    I = lens_inst.I()
+    I = get_I_from_y(s_params_copy["y"])
+    td = get_td_from_MLz(s_params_copy["MLz"] / SOLMASS2SEC, s_params_copy["y"])
     axes[0].plot(s_farray, s_strain, label="source", c="k", ls="-")
 
     # template waveform
-    t_gw = get_gw(t_params_copy, f_min, delta_f, lens_Class, prec_Class)
+    t_gw = get_gw(t_params_copy, **get_gw_kwargs)
     t_strain = np.abs(t_gw["strain"])
     t_phase = t_gw["phase"]
     t_farray = t_gw["f_array"]
@@ -212,22 +189,26 @@ def plot_standalone_waveform_comparison(
 
     # customize suptitle
     fig.suptitle(
-        r"{} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}, $\~\Omega$ = {:.3g}, $\~\theta$ = {:.3g}, $\epsilon = {:.3g}$".format(
+        r"{} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}, $\~\Omega$ = {:.3g}, $\~\theta$ = {:.3g}, $\gamma_P$ = {:.3g}, $\epsilon = {:.3g}$".format(
             r"$\mathcal{M}_{\rm s}$",
-            s_params_copy["mcz"] / solar_mass,
+            s_params_copy["mcz"] / SOLMASS2SEC,
             r"$M_{\odot}$",
             td * 1e3,
             I,
             t_params_copy["omega_tilde"],
             t_params_copy["theta_tilde"],
-            epsilon,
+            t_params_copy["gamma_P"],
+            opt_coal_results["ep_min"],
         ),
         fontsize=24,
         y=1.02,
     )
 
+    if return_fig:
+        return fig, axes
 
-def plot_compared_waveform_on_axes(
+
+def plot_template_on_axes(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
     axes: matplotlib.axes._axes.Axes,
@@ -270,24 +251,15 @@ def plot_compared_waveform_on_axes(
     -----
     - This function requires pre-existing axes and is designed to be called multiple times on the same plot.
     - For a complete standalone comparison plot, use `plot_standalone_waveform_comparison()`.
-    - The function prints debugging information including mismatch parameters.
     """
 
     t_params_copy, s_params_copy = set_to_params(t_params, s_params)
 
-    # get optimized coalescence parameters
-    updated_params = find_optimized_coalescence_params(
+    # Get optimized coalescence parameters
+    opt_coal_results = find_optimized_coalescence_params(
         t_params_copy, s_params_copy, **kwargs
     )
-    s_params_copy = updated_params["updated_s_params"]
-    t_params_copy = updated_params["updated_t_params"]
-    epsilon = updated_params["updated_mismatch_results"]["mismatch"]
-    idx = updated_params["updated_mismatch_results"]["index"]
-    phi = updated_params["updated_mismatch_results"]["phi"]
-
-    print(
-        f"idx = {idx:.3g}, phi = {phi:.3g}, both should be ~0 if get_updated_mismatch_results is True"
-    )  # FOR DEBUGGING
+    t_params_copy = opt_coal_results["opt_t_params"]
 
     # Filter kwargs for get_gw()
     get_gw_kwargs = {
@@ -311,23 +283,24 @@ def plot_compared_waveform_on_axes(
     phase_diff = np.unwrap(phase_diff + phase_shift)
     axes[1].plot(s_gw["f_array"], phase_diff, label=label, c=c, ls=ls)
 
-    # print out suptitle
     print(
-        r"mcz = {:.3g} solar masses, omega_tilde = {:.3g}, theta_tilde = {:.3g}, epsilon = {:.3g}".format(
-            s_params_copy["mcz"] / solar_mass,
+        r"mcz = {:.3g} solar masses, omega_tilde = {:.3g}, theta_tilde = {:.3g}, gamma_P = {:.3g}, epsilon = {:.3g}".format(
+            s_params_copy["mcz"] / SOLMASS2SEC,
             t_params_copy["omega_tilde"],
             t_params_copy["theta_tilde"],
-            epsilon,
+            t_params_copy["gamma_P"],
+            opt_coal_results["ep_min"],
         )
     )
 
 
-def plot_waveforms_paper(
+def plot_waveform_panels(
     data,
     axes: matplotlib.axes._axes.Axes,
     plot_local_min=False,
-    local_omega=0.0,
-    local_theta=0.0,
+    local_min_omega=0.0,
+    local_min_theta=0.0,
+    **kwargs,
 ) -> None:
     """
     Add a publication-style two-panel comparison on existing axes:
@@ -343,11 +316,13 @@ def plot_waveforms_paper(
     axes : matplotlib.axes._axes.Axes
         Length-2 array-like: `axes[0]` for strain, `axes[1]` for phase difference.
     plot_local_min : bool, optional
-        If True, overlay a local-min RP at (local_omega, local_theta). Default is False.
-    local_omega : float, optional
+        If True, overlay a local-min RP at (local_min_omega, local_min_theta). Default is False.
+    local_min_omega : float, optional
         Omega for the optional local minimum. Default is 0.0.
-    local_theta : float, optional
+    local_min_theta : float, optional
         Theta for the optional local minimum. Default is 0.0.
+    **kwargs
+        Additional keyword arguments passed to `find_optimized_coalescence_params()` and `get_gw()` functions.
 
     Returns
     -------
@@ -357,12 +332,11 @@ def plot_waveforms_paper(
     -----
     - Mutates `data['template_params']` in place to set (omega_tilde, theta_tilde, gamma_P).
     - Does not create a new Figure; styling can be added via `customize_2x1_axes()`.
-    - The function prints debugging information including mismatch parameters through `plot_compared_waveform_on_axes()`.
     """
 
     # plot source waveform
     s_params = data["source_params"]
-    s_gw = get_gw(s_params)
+    s_gw = get_gw(s_params, **kwargs)
     s_strain = np.abs(s_gw["strain"])
     axes[0].plot(s_gw["f_array"], s_strain, label="lensed", c="magenta", ls="-")
 
@@ -372,48 +346,48 @@ def plot_waveforms_paper(
     t_params["omega_tilde"] = 0
     t_params["theta_tilde"] = 0
     t_params["gamma_P"] = 0
-    plot_compared_waveform_on_axes(
+    plot_template_on_axes(
         t_params,
         s_params,
-        get_updated_mismatch_results=True,
         axes=axes,
         label="unlensed",
         c="k",
         ls="--",
+        **kwargs,
     )
 
     t_params = data["template_params"]
     t_params["omega_tilde"] = data["stats"]["ep_min_omega_tilde"]
     t_params["theta_tilde"] = data["stats"]["ep_min_theta_tilde"]
     t_params["gamma_P"] = data["stats"]["ep_min_gammaP"]
-    plot_compared_waveform_on_axes(
+    plot_template_on_axes(
         t_params,
         s_params,
-        get_updated_mismatch_results=True,
         axes=axes,
         label="best" if plot_local_min else "RP",
         c="k",
         ls="-",
+        **kwargs,
     )
 
     if plot_local_min:
         t_params = data["template_params"]
-        t_params["omega_tilde"] = local_omega
-        t_params["theta_tilde"] = local_theta
+        t_params["omega_tilde"] = local_min_omega
+        t_params["theta_tilde"] = local_min_theta
         t_params["gamma_P"] = data["gammaP_min_matrix"][
             np.where(
-                (data["omega_matrix"] == local_omega)
-                & (data["theta_matrix"] == local_theta)
+                (data["omega_matrix"] == local_min_omega)
+                & (data["theta_matrix"] == local_min_theta)
             )
         ]
-        plot_compared_waveform_on_axes(
+        plot_template_on_axes(
             t_params,
             s_params,
-            get_updated_mismatch_results=True,
             axes=axes,
             label="local",
             c="blue",
             ls="-.",
+            **kwargs,
         )
 
 
@@ -536,16 +510,16 @@ def plot_indiv_contour(
         )
 
     if title:
-        td = LensingGeo(src_params).td()
-        I = LensingGeo(src_params).I()
+        I = get_I_from_y(src_params["y"])
+        td = get_td_from_MLz(src_params["MLz"] / SOLMASS2SEC, src_params["y"])
         plt.title(
             r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-                format_angle_as_pi(src_params["theta_S"]),
-                format_angle_as_pi(src_params["phi_S"]),
-                format_angle_as_pi(src_params["theta_J"]),
-                format_angle_as_pi(src_params["phi_J"]),
+                angle_to_pi_string(src_params["theta_S"]),
+                angle_to_pi_string(src_params["phi_S"]),
+                angle_to_pi_string(src_params["theta_J"]),
+                angle_to_pi_string(src_params["phi_J"]),
                 r"$\mathcal{M}_{\rm s}$",
-                src_params["mcz"] / solar_mass,
+                src_params["mcz"] / SOLMASS2SEC,
                 r"$M_{\odot}$",
                 td * 1e3,
                 I,
@@ -623,12 +597,12 @@ def plot_indiv_contour_from_dict(
     if title:
         plt.title(
             r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-                format_angle_as_pi(src_params["theta_S"]),
-                format_angle_as_pi(src_params["phi_S"]),
-                format_angle_as_pi(src_params["theta_J"]),
-                format_angle_as_pi(src_params["phi_J"]),
+                angle_to_pi_string(src_params["theta_S"]),
+                angle_to_pi_string(src_params["phi_S"]),
+                angle_to_pi_string(src_params["theta_J"]),
+                angle_to_pi_string(src_params["phi_J"]),
                 r"$\mathcal{M}_{\rm s}$",
-                src_params["mcz"] / solar_mass,
+                src_params["mcz"] / SOLMASS2SEC,
                 r"$M_{\odot}$",
                 td * 1e3,
                 I,
