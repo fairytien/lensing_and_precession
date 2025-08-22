@@ -17,4 +17,4 @@ cd $SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python scripts/super_contour_fast_sys2_30.py
+srun python scripts/super_contour_cli.py --system sys2 --mcz 30 --fast --no-split

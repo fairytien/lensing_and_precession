@@ -34,7 +34,7 @@ import scipy.special as sc
 import mpmath as mp
 from pycbc.types import FrequencySeries
 
-NEAR_ZERO_THRESHOLD = 1e-8
+NEAR_ZERO_THRESHOLD = 1e-10
 
 ############################
 # Section 2: Lensing Class #
@@ -455,8 +455,11 @@ class Precessing:
     ### get the delta phi_P
     def integrand_delta_phi(self, y, f):
         """integrand for delta phi p (equations in Apostolatos 1994, and appendix of Evangelos in prep)"""
+        # Precompute reused quantities
         LdotN = self.LdotN(f)
-        cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
+        cos_i_JN, sin_i_JN, *_ = self.precession_angles()
+        theta_LJ = self.theta_LJ(f)
+        phi_LJ = self.phi_LJ(f)
         f_dot = self.f_dot(f)
 
         Omega_LJ = (
@@ -466,34 +469,34 @@ class Precessing:
             / (self.total_mass() / self.SOLMASS2SEC)
         )
 
-        # if self.theta_tilde == 0:  # non-precessing
-        #     integrand_delta_phi = 0
-        #     # not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
+        if self.theta_tilde == 0:  # non-precessing
+            return 0
+        # not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
 
+        # Face-on case (precessing & non-precessing)
+        if np.abs(1 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD:
+            return -Omega_LJ * np.cos(theta_LJ) / f_dot
+
+        # L and N aligned case (coordinate singularity)
         if (
-            np.abs(1 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD
-        ):  # face-on (precessing & non-precessing)
-            integrand_delta_phi = -Omega_LJ * np.cos(self.theta_LJ(f)) / f_dot
+            np.abs(np.abs(LdotN) - 1) < NEAR_ZERO_THRESHOLD
+        ):  # allow for tolerance near 1
+            # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
+            # very rare, L aligns with N only ONCE as it spirals out --> blows up???
+            # a coordinate singularity!!!
+            return 0
 
-        elif LdotN == 1:  # TODO: check this case
-            #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-            #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-            #     # a coordinate singularity!!!
-            integrand_delta_phi = 0
-
-        else:
-            integrand_delta_phi = (
-                (LdotN / (1 - LdotN**2))
-                * Omega_LJ
-                * np.sin(self.theta_LJ(f))
-                * (
-                    np.cos(self.theta_LJ(f)) * sin_i_JN * np.sin(self.phi_LJ(f))
-                    - np.sin(self.theta_LJ(f)) * cos_i_JN
-                )
-                / f_dot
+        # Generic (non face-on) expression
+        return (
+            (LdotN / (1 - LdotN**2))
+            * Omega_LJ
+            * np.sin(theta_LJ)
+            * (
+                np.cos(theta_LJ) * sin_i_JN * np.sin(phi_LJ)
+                - np.sin(theta_LJ) * cos_i_JN
             )
-
-        return integrand_delta_phi
+            / f_dot
+        )
 
     def phase_delta_phi(self, f):
         """integrate the delta_phi integrand"""
