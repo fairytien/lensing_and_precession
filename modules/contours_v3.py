@@ -191,7 +191,7 @@ def create_contours_td(
 
     for i in range(len(td_arr)):
         s_params["y"] = y
-        s_params["MLz"] = MLz_arr[i] * solar_mass
+        s_params["MLz"] = MLz_arr[i] * SOLMASS2SEC
         td = td_arr[i]
         results[td] = {}
         if what_template == "RP":
@@ -234,7 +234,7 @@ def create_contours_I(
 
     for i in range(len(I_arr)):
         s_params["y"] = y_arr[i]
-        s_params["MLz"] = MLz_arr[i] * solar_mass
+        s_params["MLz"] = MLz_arr[i] * SOLMASS2SEC
         I = I_arr[i]
         results[I] = {}
         if what_template == "RP":
