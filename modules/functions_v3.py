@@ -929,10 +929,11 @@ def optimize_mismatch_mcz(
 
 def optimize_mismatch_gammaP(
     t_params: dict,  # template parameters
-    s_params: dict,  # source parameters
-    f_min=20,
-    delta_f=0.25,
-    psd=None,
+    s_params: Optional[dict] = None,  # source parameters (ignored if s_strain provided)
+    s_strain: Optional[FrequencySeries] = None,  # precomputed source strain
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    psd: Optional[FrequencySeries] = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
     use_opt_match=True,
@@ -943,7 +944,6 @@ def optimize_mismatch_gammaP(
     coarse_points: int = 17,
     xatol: float = 1e-3,
     maxiter: int = 50,
-    s_strain: Optional[FrequencySeries] = None,
 ) -> dict:
     """
     Optimizes the mismatch between the precessing template and the signal by varying the initial precessing phase `gamma_P` of the template.
@@ -952,8 +952,10 @@ def optimize_mismatch_gammaP(
     ----------
     t_params : dict
         The parameters for the template waveform.
-    s_params : dict
-        The parameters for the source waveform.
+    s_params : dict, optional
+        The parameters for the source waveform. **Required only if `s_strain` is None.** If `s_strain` is provided, this parameter is ignored.
+    s_strain : FrequencySeries or None, optional
+        **Recommended for performance**: Precomputed source strain as a FrequencySeries. If provided, `s_params` is ignored and this strain is reused across all gamma_P evaluations, avoiding repeated waveform generation. If `psd` is also None, it will be constructed using `s_strain.delta_f`, `f_min`, and the inferred frequency array.
     f_min : float, optional
         The minimum frequency for the waveform. Default is 20 Hz.
     delta_f : float, optional
@@ -980,8 +982,16 @@ def optimize_mismatch_gammaP(
         Absolute error in gamma at which the bounded optimizer stops (two-stage only). Default is 1e-3.
     maxiter : int, optional
         Maximum iterations for the bounded optimizer (two-stage only). Default is 50.
-    s_strain : FrequencySeries or None, optional
-        Precomputed source strain as a FrequencySeries. If provided, `s_params` is ignored for waveform generation and this strain is reused across evaluations (recommended when calling repeatedly). If `psd` is also None, it will be constructed using `s_strain.delta_f`, `f_min`, and the inferred frequency array.
+
+    Examples
+    --------
+    # Standard usage with parameters (backward compatible)
+    result = optimize_mismatch_gammaP(t_params, s_params, f_min=20, delta_f=0.25)
+
+    # Efficient usage with precomputed strain (recommended when calling repeatedly)
+    s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)
+    psd = Sn(s_gw["f_array"], f_min=f_min, delta_f=delta_f)
+    result = optimize_mismatch_gammaP(t_params, None, s_gw["strain"], f_min=f_min, delta_f=delta_f, psd=psd)
 
     Returns
     -------
@@ -993,15 +1003,19 @@ def optimize_mismatch_gammaP(
         - "ep_min_phi" (float): The phase to rotate the complex waveform to get the minimum mismatch at `ep_min_gammaP`.
     """
 
-    t_params_copy, s_params_copy = set_to_params(t_params, s_params)
+    t_params_copy = copy.deepcopy(t_params)
 
     # condition that t_params must be precessing parameters and already contain gamma_P
     if "gamma_P" not in t_params_copy:
         raise ValueError("t_params must be precessing parameters")
 
+    # Validate that either s_params or s_strain is provided
+    if s_strain is None and s_params is None:
+        raise ValueError("Either s_params or s_strain must be provided")
+
     # Compute or reuse source strain once (and psd if not provided) for all gamma_P
     if s_strain is None:
-        s_gw = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)
+        s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)
         s_strain_local = s_gw["strain"]
         f_arr = s_gw["f_array"]
         psd_local = psd if psd is not None else Sn(f_arr, f_min=f_min, delta_f=delta_f)
@@ -1043,10 +1057,10 @@ def optimize_mismatch_gammaP(
 
         ep_min_idx = np.argmin(ep_arr)
         return {
-            "ep_min": ep_arr[ep_min_idx],
-            "ep_min_gammaP": gamma_arr[ep_min_idx],
-            "ep_min_idx": idx_arr[ep_min_idx],
-            "ep_min_phi": phi_arr[ep_min_idx],
+            "ep_min": float(ep_arr[ep_min_idx]),
+            "ep_min_gammaP": float(gamma_arr[ep_min_idx]),
+            "ep_min_idx": int(idx_arr[ep_min_idx]),
+            "ep_min_phi": float(phi_arr[ep_min_idx]),
         }
 
     # Two-stage search: coarse grid then bounded refinement around best coarse point
@@ -1190,12 +1204,12 @@ def find_optimized_coalescence_params(
         gammaP_results = optimize_mismatch_gammaP(
             t_params_copy,
             s_params_copy,
-            f_min,
-            delta_f,
-            psd,
-            lens_Class,
-            prec_Class,
-            use_opt_match,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd,
+            lens_Class=lens_Class,
+            prec_Class=prec_Class,
+            use_opt_match=use_opt_match,
             **kwargs,
         )
         # Get the optimized gamma_P to plot the optimized precessing template waveform

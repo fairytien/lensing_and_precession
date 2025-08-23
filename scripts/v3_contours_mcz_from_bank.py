@@ -21,22 +21,22 @@ def main(output_dir):
     y = get_y_from_I(I)
     MLz = get_MLz_from_td(td, y)
     lens_params["y"] = y
-    lens_params["MLz"] = MLz * solar_mass
+    lens_params["MLz"] = MLz * SOLMASS2SEC
 
-    for mcz in mcz_arr:
-        print(f"{mcz:.3g}")  # For tracking progress
+    for mcz_msun in mcz_arr:
+        print(f"{mcz_msun:.3g}")  # For tracking progress
 
         # Create RP template grid
-        RP_params["mcz"] = mcz * solar_mass
+        RP_params["mcz"] = mcz_msun * SOLMASS2SEC
         template_grid = create_RP_templates(
             RP_params,
-            output_dir + "/sys2_template_grid_mcz" + str(mcz) + ".npz",
+            output_dir + "/sys2_template_grid_mcz" + str(mcz_msun) + ".npz",
             npz=True,
         )
 
         # Create mismatch contour for each mcz value
-        lens_params["mcz"] = mcz * solar_mass
-        results[mcz] = create_mismatch_contour(template_grid, lens_params)
+        lens_params["mcz"] = mcz_msun * SOLMASS2SEC
+        results[mcz_msun] = create_mismatch_contour(template_grid, lens_params)
 
     filepath = pickle_data(results, "data", "sys2_contours_mcz")
 

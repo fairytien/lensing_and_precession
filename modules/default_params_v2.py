@@ -11,6 +11,7 @@ error_handler = np.seterr(invalid="raise")
 # Section 2: Lensing Parameters #
 #################################
 
+# The below constants are renamed to SOLMASS2SEC, GIGAPC2SEC, and YEAR2SEC in Classes_v3.py
 solar_mass = 4.92624076 * 1e-6  # [solar_mass] = sec
 giga_parsec = 1.02927125 * 1e17  # [giga_parsec] = sec
 year = 31557600  # [year] = sec

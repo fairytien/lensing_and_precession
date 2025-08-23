@@ -10,15 +10,15 @@ def main():
 
     # Assign parameters
     lens_params = set_to_location(loc_params["Taman"]["edgeon"], lens_params_1)[0]
-    # Get the mcz value from the environment variable
-    mcz = int(os.environ.get("MCZ_VALUE", 40))  # Default to 40 if not set
-    lens_params["mcz"] = mcz * solar_mass
+    # Get the mcz_msun value from the environment variable
+    mcz_msun = int(os.environ.get("MCZ_VALUE", 40))  # Default to 40 if not set
+    lens_params["mcz"] = mcz_msun * SOLMASS2SEC
     I = 0.5
     td = 0.03
     y = get_y_from_I(I)
     MLz = get_MLz_from_td(td, y)
     lens_params["y"] = y
-    lens_params["MLz"] = MLz * solar_mass
+    lens_params["MLz"] = MLz * SOLMASS2SEC
     print("Finished assigning parameters")
 
     # Load the RP template grid from the environment variable
@@ -37,7 +37,7 @@ def main():
     filepath = pickle_data(
         results,
         os.path.join(home_dir, "lensing_and_precession/data"),
-        "v3_sys2_indiv_contour_mcz" + str(mcz),
+        "v3_sys2_indiv_contour_mcz" + str(mcz_msun),
     )
 
 

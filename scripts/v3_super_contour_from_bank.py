@@ -10,9 +10,9 @@ def main():
 
     # Assign parameters
     lens_params = set_to_location(loc_params["Taman"]["edgeon"], lens_params_1)[0]
-    # Get the mcz value from the environment variable
-    mcz = int(os.environ.get("MCZ_VALUE", 40))  # Default to 40 if not set
-    lens_params["mcz"] = mcz * solar_mass
+    # Get the mcz_msun value from the environment variable
+    mcz_msun = int(os.environ.get("MCZ_VALUE", 40))  # Default to 40 if not set
+    lens_params["mcz"] = mcz_msun * SOLMASS2SEC
     td_arr = np.linspace(0.02, 0.06, 2)  # To be in geometric optics regime
     I_arr = np.linspace(0.1, 0.9, 2)
     print("Finished assigning parameters")
@@ -36,7 +36,7 @@ def main():
     filepath = pickle_data(
         results,
         os.path.join(home_dir, "lensing_and_precession/data"),
-        "v3_sys2_super_contour_mcz" + str(mcz),
+        "v3_sys2_super_contour_mcz" + str(mcz_msun),
     )
 
 

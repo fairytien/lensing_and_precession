@@ -122,9 +122,9 @@ def _parse_args():
     )
 
     parser.add_argument(
-        "--fast",
+        "--lores",
         action="store_true",
-        help="Use fast implementation (modules.contours_v2_fast).",
+        help="Use low-resolution implementation (modules.contours_v2_lores).",
     )
 
     return parser.parse_args()
@@ -179,8 +179,8 @@ def main():
 
     print("Finished assigning parameters")
 
-    if args.fast:
-        from modules.contours_v2_fast import (
+    if args.lores:
+        from modules.contours_v2_lores import (
             create_super_contour as create_super_contour_impl,
         )
     else:
@@ -190,7 +190,7 @@ def main():
 
     results = create_super_contour_impl(RP_params, lens_params, td_arr, I_arr)
 
-    fast_tag = "_fast" if args.fast else ""
+    fast_tag = "_lores" if args.lores else ""
     filename = (
         f"{args.output_prefix}_sys{sys_id}{fast_tag}_super_contour_mcz"
         + str(mcz)
