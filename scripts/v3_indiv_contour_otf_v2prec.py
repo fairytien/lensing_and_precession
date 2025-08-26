@@ -22,6 +22,7 @@ from modules.default_params_v3 import (
     RP_params_1,
     SOLMASS2SEC,
 )
+from modules.Classes_v2 import Precessing as PrecessingV2
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -107,6 +108,7 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
             coarse_points=coarse_points,
             xatol=xatol,
             maxiter=maxiter,
+            prec_Class=PrecessingV2,
         )
         return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
     else:
@@ -122,6 +124,7 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
             coarse_points=coarse_points,
             xatol=xatol,
             maxiter=maxiter,
+            prec_Class=PrecessingV2,
         )
         return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
 
@@ -245,9 +248,11 @@ def main(
         plt.figure(figsize=(7.5, 6))
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
-        plt.xlabel(r"$\tilde{\Omega}$")
-        plt.ylabel(r"$\tilde{\theta}$")
+        cbar.set_label(
+            r"$\\epsilon(\\tilde{h}_{\\mathrm{L}}, \\tilde{h}_{\\mathrm{RP}})$"
+        )
+        plt.xlabel(r"$\\tilde{\\Omega}$")
+        plt.ylabel(r"$\\tilde{\\theta}$")
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
         plt.savefig(fig_path, dpi=200)
@@ -259,7 +264,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Individual mismatch contour (L vs RP) over (omega_tilde, theta_tilde) with fixed mcz, td, I, and angles (v3)."
+            "Individual mismatch contour (L vs RP) over (omega_tilde, theta_tilde) with fixed mcz, td, I, and angles (v3, Precessing from Classes_v2)."
         )
     )
     parser.add_argument("--mcz_msun", type=float, default=20.0)

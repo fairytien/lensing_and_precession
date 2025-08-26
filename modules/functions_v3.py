@@ -93,12 +93,12 @@ def set_to_location(loc_dict: dict, *args):
 
 def get_gw(
     params: dict,
-    f_min=20,
-    delta_f=0.25,
+    f_min: float = 20,
+    delta_f: float = 0.25,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
     frequencySeries=True,
-):
+) -> dict:
     """
     Calculates the GW for a given set of parameters.
 
@@ -111,7 +111,7 @@ def get_gw(
 
     Returns:
         dict: A dictionary containing the following keys:
-        - "strain" (np.ndarray): The complex FrequencySeries strain.
+        - "strain" (np.ndarray or FrequencySeries): The complex strain.
         - "phase" (np.ndarray): The GW phase.
         - "f_array" (np.ndarray): The frequency array.
     """
@@ -128,7 +128,7 @@ def get_gw(
     return {"strain": strain, "phase": phase, "f_array": f_arr}
 
 
-def get_MLz_from_td(td, y):
+def get_MLz_from_td(td, y) -> Union[float, np.ndarray]:
     """
     Calculates the lens mass [solar mass] from the given time delay [second] and source position [dimensionless].
 
@@ -146,7 +146,7 @@ def get_MLz_from_td(td, y):
     return (td / divisor) / SOLMASS2SEC
 
 
-def get_td_from_MLz(MLz, y):
+def get_td_from_MLz(MLz, y) -> Union[float, np.ndarray]:
     """
     Calculates the time delay [second] from the given lens mass [solar mass] and source position [dimensionless], based on equation 16b in Saif et al. 2023.
 
@@ -218,30 +218,30 @@ def get_y_from_I(I: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     return y_roots
 
 
-def get_fcut_from_mcz(mcz, eta=0.25):
+def get_fcut_from_mcz(mcz, eta=0.25) -> Union[float, np.ndarray]:
     """
     Calculates f_cut [Hz] from the given mcz [solar mass] and eta [dimensionless].
 
     Args:
-        mcz (float): The chirp mass [solar mass].
+        mcz (float or np.ndarray): The chirp mass [solar mass].
         eta (float): The symmetric mass ratio [dimensionless]. Default is 0.25.
 
     Returns:
-        float: The calculated cutoff frequency at ISCO [Hz].
+        float or np.ndarray: The calculated cutoff frequency at ISCO [Hz].
     """
     return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * mcz * SOLMASS2SEC)
 
 
-def get_mcz_from_fcut(fcut, eta=0.25):
+def get_mcz_from_fcut(fcut, eta=0.25) -> Union[float, np.ndarray]:
     """
     Calculates mcz [solar mass] from the given f_cut [Hz] and eta [dimensionless].
 
     Args:
-        fcut (float): The cutoff frequency at ISCO [Hz].
+        fcut (float or np.ndarray): The cutoff frequency at ISCO [Hz].
         eta (float): The symmetric mass ratio [dimensionless]. Default is 0.25.
 
     Returns:
-        float: The calculated chirp mass [solar mass].
+        float or np.ndarray: The calculated chirp mass [solar mass].
     """
     return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * fcut) / SOLMASS2SEC
 
@@ -312,9 +312,9 @@ def get_lens_limits_for_RP_L(
     omega_tilde: float,
     lower: Union[str, float] = "min",
     upper: Union[str, float] = "max",
-    y=0.25,
-    f_min=20,
-    eta=0.25,
+    y: float = 0.25,
+    f_min: float = 20,
+    eta: float = 0.25,
 ) -> dict:
     """
     Calculates the lower and upper limits of the lens mass [solar mass] and time delay [second] such that the number of modulation cycles in the lensed waveform is comparable to the number of precession cycles.
@@ -508,7 +508,12 @@ def calculate_cosJN_params(params: dict) -> float:
     ) + np.cos(params["theta_J"]) * np.cos(params["theta_S"])
 
 
-def calculate_cosJN(phi_S, theta_S, phi_J, theta_J):
+def calculate_cosJN(
+    phi_S: Union[float, np.ndarray],
+    theta_S: Union[float, np.ndarray],
+    phi_J: Union[float, np.ndarray],
+    theta_J: Union[float, np.ndarray],
+) -> Union[float, np.ndarray]:
     """
     Calculates the cosine of the angle between the total angular momentum (J) of the BBH system and the line of sight (N).
 
@@ -527,7 +532,9 @@ def calculate_cosJN(phi_S, theta_S, phi_J, theta_J):
     ) * np.cos(theta_S)
 
 
-def find_FaceOn_coords(fix, fixed_phi, fixed_theta):
+def find_FaceOn_coords(
+    fix: str, fixed_phi: float, fixed_theta: float
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Finds the coordinate values where the BBH source is face-on (|cos(JN)| = 1 within error).
 
@@ -554,7 +561,9 @@ def find_FaceOn_coords(fix, fixed_phi, fixed_theta):
     return X[cond], Y[cond]
 
 
-def find_EdgeOn_coords(fix, fixed_phi, fixed_theta):
+def find_EdgeOn_coords(
+    fix: str, fixed_phi: float, fixed_theta: float
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Finds the coordinate values where the BBH source is edge-on (|cos(JN)| = 0 within error).
 
@@ -586,7 +595,12 @@ def find_EdgeOn_coords(fix, fixed_phi, fixed_theta):
 ##################
 
 
-def Sn(f_arr, f_min=20, delta_f=0.25, frequencySeries=True):
+def Sn(
+    f_arr: np.ndarray,
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    frequencySeries=True,
+) -> Union[np.ndarray, FrequencySeries]:
     """
     Calculates the power spectral density of the aLIGO noise curve based on arXiv:0903.0338.
 
@@ -631,12 +645,12 @@ def Sn(f_arr, f_min=20, delta_f=0.25, frequencySeries=True):
 
 def SNR(
     params: dict,
-    f_min=20,
-    delta_f=0.25,
-    psd=None,
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    psd: FrequencySeries = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
-):
+) -> float:
     """
     Calculates the Signal-to-Noise Ratio (SNR) for a given dictionary of parameters.
 
@@ -687,9 +701,9 @@ def SNR(
 def mismatch_from_params(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
-    f_min=20,
-    delta_f=0.25,
-    psd=None,
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    psd: FrequencySeries = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
     use_opt_match=True,
@@ -737,7 +751,7 @@ def mismatch_from_params(
 
     if psd is None:
         f_arr = s_gw["f_array"]
-        psd = Sn(f_arr)
+        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
 
     if compare_both:
         # Compute both `match` and `optimized_match`, take the one with the highest match (lowest mismatch)
@@ -773,23 +787,29 @@ def mismatch_from_params(
 
 
 def mismatch_from_strains(
-    t_strain: FrequencySeries,
-    s_strain: FrequencySeries,
-    psd: FrequencySeries,
-    use_opt_match: bool = True,
-    compare_both: bool = False,
+    t_strain: Union[np.ndarray, FrequencySeries],
+    s_strain: Union[np.ndarray, FrequencySeries],
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    psd: FrequencySeries = None,
+    use_opt_match=True,
+    compare_both=False,
 ) -> dict:
     """
     Calculates the mismatch between two input strain FrequencySeries using the provided PSD.
 
     Parameters
     ----------
-    t_strain : FrequencySeries
-        The template waveform as a FrequencySeries.
-    s_strain : FrequencySeries
-        The source waveform as a FrequencySeries.
-    psd : FrequencySeries
-        The power spectral density of the detector noise as a FrequencySeries.
+    t_strain : np.ndarray or FrequencySeries
+        The template waveform.
+    s_strain : np.ndarray or FrequencySeries
+        The source waveform.
+    f_min : float, optional
+        The minimum frequency for the waveform. Default is 20 Hz.
+    delta_f : float, optional
+        The frequency spacing between samples. Default is 0.25 Hz.
+    psd : FrequencySeries, optional
+        The power spectral density of the detector noise.
     use_opt_match : bool, optional
         If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
     compare_both : bool, optional
@@ -804,6 +824,16 @@ def mismatch_from_strains(
         - "phi" (float): The phase to rotate the complex source waveform to match with the template.
         - "match_method" (str, optional): The method used to obtain the result (`match` or `optimized_match`) if `compare_both` is True.
     """
+
+    if not isinstance(t_strain, FrequencySeries):
+        t_strain = FrequencySeries(t_strain, delta_f)
+    if not isinstance(s_strain, FrequencySeries):
+        s_strain = FrequencySeries(s_strain, delta_f)
+
+    # Get the psd from s_strain; Should provide psd to avoid recomputing it and save time
+    if psd is None:
+        f_arr = s_strain.sample_frequencies + f_min
+        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
 
     if compare_both:
         results = []
@@ -845,12 +875,13 @@ def mismatch_from_strains(
 def optimize_mismatch_mcz(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
-    f_min=20,
-    delta_f=0.25,
-    psd=None,
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    psd: FrequencySeries = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
     use_opt_match=True,
+    compare_both=False,
 ) -> dict:
     """
     Optimizes the mismatch between the unlensed template and the lensed signal by varying the chirp mass of the template.
@@ -873,6 +904,8 @@ def optimize_mismatch_mcz(
         A class representing the precessing waveform. Default is `Precessing`.
     use_opt_match : bool, optional
         If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
+    compare_both : bool, optional
+        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
 
     Returns
     -------
@@ -909,7 +942,13 @@ def optimize_mismatch_mcz(
             t_h.resize(len(s_h))
 
         res = mismatch_from_strains(
-            t_h, s_h, psd, use_opt_match=use_opt_match, compare_both=False
+            t_h,
+            s_h,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd,
+            use_opt_match=use_opt_match,
+            compare_both=compare_both,
         )
         ep_arr[i] = res["mismatch"]
         idx_arr[i] = res["index"]
@@ -929,18 +968,18 @@ def optimize_mismatch_mcz(
 
 def optimize_mismatch_gammaP(
     t_params: dict,  # template parameters
-    s_params: Optional[dict] = None,  # source parameters (ignored if s_strain provided)
-    s_strain: Optional[FrequencySeries] = None,  # precomputed source strain
+    s_params: dict = None,  # source parameters (ignored if s_strain provided)
+    s_strain: FrequencySeries = None,  # precomputed source strain
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: Optional[FrequencySeries] = None,
+    psd: FrequencySeries = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
     use_opt_match=True,
-    compare_both: bool = False,
+    compare_both=False,
     grid_points: int = 51,
-    gamma_grid: Optional[np.ndarray] = None,
-    two_stage: bool = False,
+    gamma_grid: np.ndarray = None,
+    two_stage=False,
     coarse_points: int = 17,
     xatol: float = 1e-3,
     maxiter: int = 50,
@@ -952,7 +991,7 @@ def optimize_mismatch_gammaP(
     ----------
     t_params : dict
         The parameters for the template waveform.
-    s_params : dict, optional
+    s_params : dict or None, optional
         The parameters for the source waveform. **Required only if `s_strain` is None.** If `s_strain` is provided, this parameter is ignored.
     s_strain : FrequencySeries or None, optional
         **Recommended for performance**: Precomputed source strain as a FrequencySeries. If provided, `s_params` is ignored and this strain is reused across all gamma_P evaluations, avoiding repeated waveform generation. If `psd` is also None, it will be constructed using `s_strain.delta_f`, `f_min`, and the inferred frequency array.
@@ -960,7 +999,7 @@ def optimize_mismatch_gammaP(
         The minimum frequency for the waveform. Default is 20 Hz.
     delta_f : float, optional
         The frequency spacing between samples. Default is 0.25 Hz.
-    psd : FrequencySeries, optional
+    psd : FrequencySeries or None, optional
         The power spectral density of the detector noise. If not provided, it will be calculated based on the aLIGO noise curve from arXiv:0903.0338, as a function of the source waveform's frequency range. Default is None.
     lens_Class : class, optional
         A class representing the lensed waveform. Default is `LensingGeo`.
@@ -969,7 +1008,7 @@ def optimize_mismatch_gammaP(
     use_opt_match : bool, optional
         If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
     compare_both : bool, optional
-        If True, computes both `match` and `optimized_match` and uses the better result. Forwarded to `mismatch_from_strains`. Default is False.
+        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
     grid_points : int, optional
         Number of points in the full-grid evaluation when `two_stage=False` and `gamma_grid` is not provided. Default is 51.
     gamma_grid : np.ndarray or None, optional
@@ -1021,10 +1060,13 @@ def optimize_mismatch_gammaP(
         psd_local = psd if psd is not None else Sn(f_arr, f_min=f_min, delta_f=delta_f)
     else:
         s_strain_local = s_strain
-        n_bins = len(s_strain_local)
-        df_src = s_strain_local.delta_f
-        f_arr = f_min + df_src * np.arange(n_bins)
-        psd_local = psd if psd is not None else Sn(f_arr, f_min=f_min, delta_f=df_src)
+        f_arr = s_strain_local.sample_frequencies + f_min
+        # honor the actual sampling of the provided source strain
+        psd_local = (
+            psd
+            if psd is not None
+            else Sn(f_arr, f_min=f_min, delta_f=s_strain_local.delta_f)
+        )
 
     if not two_stage:
         if gamma_grid is not None:
@@ -1049,7 +1091,13 @@ def optimize_mismatch_gammaP(
                 t_strain.resize(len(s_strain_local))
 
             res = mismatch_from_strains(
-                t_strain, s_strain_local, psd_local, use_opt_match, compare_both
+                t_strain,
+                s_strain_local,
+                f_min=f_min,
+                delta_f=delta_f,
+                psd=psd_local,
+                use_opt_match=use_opt_match,
+                compare_both=compare_both,
             )
             ep_arr[i] = res["mismatch"]
             idx_arr[i] = res["index"]
@@ -1080,7 +1128,13 @@ def optimize_mismatch_gammaP(
         if len(t_strain_local) != len(s_strain_local):
             t_strain_local.resize(len(s_strain_local))
         res_local = mismatch_from_strains(
-            t_strain_local, s_strain_local, psd_local, use_opt_match, compare_both
+            t_strain_local,
+            s_strain_local,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd_local,
+            use_opt_match=use_opt_match,
+            compare_both=compare_both,
         )
         return float(res_local["mismatch"])
 
@@ -1125,7 +1179,13 @@ def optimize_mismatch_gammaP(
     if len(t_strain_star) != len(s_strain_local):
         t_strain_star.resize(len(s_strain_local))
     res_star = mismatch_from_strains(
-        t_strain_star, s_strain_local, psd_local, use_opt_match, compare_both
+        t_strain_star,
+        s_strain_local,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd_local,
+        use_opt_match=use_opt_match,
+        compare_both=compare_both,
     )
 
     return {
@@ -1139,12 +1199,13 @@ def optimize_mismatch_gammaP(
 def find_optimized_coalescence_params(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
-    f_min=20,
-    delta_f=0.25,
-    psd=None,
+    f_min: float = 20,
+    delta_f: float = 0.25,
+    psd: FrequencySeries = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
     use_opt_match=True,
+    compare_both=False,
     optimize_gammaP=True,
     verify_optimization=False,
     **kwargs,
@@ -1170,6 +1231,8 @@ def find_optimized_coalescence_params(
         A class representing the precessing waveform. Default is `Precessing`.
     use_opt_match : bool, optional
         If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
+    compare_both : bool, optional
+        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
     optimize_gammaP : bool, optional
         If True, optimizes the initial precessing phase `gamma_P` before finding optimal `t_c` and `phi_c`. If False, skips `gamma_P` optimization and finds optimal `t_c` directly, and then finds optimal `phi_c`. Default is True.
     verify_optimization : bool, optional
@@ -1192,10 +1255,9 @@ def find_optimized_coalescence_params(
 
     # If psd is not provided, calculate it based on the source f_cut
     if psd is None:
-        mcz_src_msun = s_params_copy["mcz"] / SOLMASS2SEC
-        f_cut = get_fcut_from_mcz(mcz_src_msun)
+        f_cut = get_fcut_from_mcz(s_params_copy["mcz"] / SOLMASS2SEC)
         f_arr = np.arange(f_min, f_cut, delta_f)
-        psd = Sn(f_arr)
+        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
 
     if optimize_gammaP:
         if "gamma_P" not in t_params:
@@ -1210,6 +1272,7 @@ def find_optimized_coalescence_params(
             lens_Class=lens_Class,
             prec_Class=prec_Class,
             use_opt_match=use_opt_match,
+            compare_both=compare_both,
             **kwargs,
         )
         # Get the optimized gamma_P to plot the optimized precessing template waveform
@@ -1237,6 +1300,7 @@ def find_optimized_coalescence_params(
             lens_Class,
             prec_Class,
             use_opt_match,
+            compare_both,
         )
         ep_min_idx = initial_mismatch["index"]
         src_strain = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
@@ -1255,6 +1319,7 @@ def find_optimized_coalescence_params(
         lens_Class,
         prec_Class,
         use_opt_match,
+        compare_both,
     )
     phi = mismatch_results["phi"]
     t_params_copy["phi_c"] = phi
@@ -1270,6 +1335,7 @@ def find_optimized_coalescence_params(
             lens_Class,
             prec_Class,
             use_opt_match,
+            compare_both,
         )
         print(
             f"Verification results: index = {mismatch_results['index']:.3g}, phi = {mismatch_results['phi']:.3g}, both should be ~0 if optimization was successful"
