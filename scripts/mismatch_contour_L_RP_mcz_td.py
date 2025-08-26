@@ -9,7 +9,8 @@ import copy
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Reuse utilities and defaults
-from modules.contours_v2 import *  # noqa: F401,F403
+from modules.functions_v3 import *
+from modules.default_params_v3 import *
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -40,6 +41,8 @@ def _compute_cell_min_ep(
         f_min,
         delta_f,
         psd,
+        compare_both,
+        use_opt_match,
     ) = args
 
     # Set template parameters for this grid cell
@@ -47,28 +50,29 @@ def _compute_cell_min_ep(
     t_params["omega_tilde"] = omega_val
     t_params["theta_tilde"] = theta_val
 
-    # Optimize over gamma_P with and without optimized match, then take min
-    res_no_opt = optimize_mismatch_gammaP(
-        t_params,
-        s_params_base,
-        f_min=f_min,
-        delta_f=delta_f,
-        psd=psd,
-        use_opt_match=False,
-    )
-    res_opt = optimize_mismatch_gammaP(
-        t_params,
-        s_params_base,
-        f_min=f_min,
-        delta_f=delta_f,
-        psd=psd,
-        use_opt_match=True,
-    )
+    # If compare_both is enabled, use library to choose best match mode internally
+    if compare_both:
+        res = optimize_mismatch_gammaP(
+            t_params,
+            s_params_base,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd,
+            compare_both=True,
+        )
+        return res["ep_min"], res["ep_min_gammaP"]
 
-    if res_no_opt["ep_min"] <= res_opt["ep_min"]:
-        return res_no_opt["ep_min"], res_no_opt["ep_min_gammaP"]
-    else:
-        return res_opt["ep_min"], res_opt["ep_min_gammaP"]
+    # Otherwise, evaluate once using the chosen match mode
+    res = optimize_mismatch_gammaP(
+        t_params,
+        s_params_base,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        use_opt_match=use_opt_match,
+        compare_both=False,
+    )
+    return res["ep_min"], res["ep_min_gammaP"]
 
 
 def _compute_contour_for_mcz_td(
@@ -84,6 +88,8 @@ def _compute_contour_for_mcz_td(
     f_min: float,
     delta_f: float,
     n_workers: int,
+    compare_both: bool,
+    use_opt_match: bool,
 ) -> Dict[str, Any]:
     """
     For a single (mcz, td), compute the RP mismatch contour over
@@ -95,17 +101,35 @@ def _compute_contour_for_mcz_td(
     lens_params, RP_params = _build_params_for_location()
 
     # Set chirp mass for both source and template (convert Msun -> sec)
-    lens_params["mcz"] = RP_params["mcz"] = mcz_val * solar_mass
+    lens_params["mcz"] = RP_params["mcz"] = mcz_val * SOLMASS2SEC
 
     # Set lensing parameters from I and td
     y = get_y_from_I(I)
     lens_params["y"] = y
-    lens_params["MLz"] = get_MLz_from_td(td_val, y) * solar_mass
+    lens_params["MLz"] = get_MLz_from_td(td_val, y) * SOLMASS2SEC
 
     # Precompute PSD based on source strain once
     s_gw = get_gw(lens_params, f_min=f_min, delta_f=delta_f)
     f_arr = s_gw["f_array"]
-    psd = Sn(f_arr)
+    if len(f_arr) < 2:
+        # Not enough samples; return NaN grids
+        Z = np.full((theta_points, omega_points), np.nan, dtype=float)
+        G = np.full((theta_points, omega_points), np.nan, dtype=float)
+        return {
+            "omega_matrix": np.meshgrid(
+                np.linspace(omega_min, omega_max, omega_points),
+                np.linspace(theta_min, theta_max, theta_points),
+            )[0],
+            "theta_matrix": np.meshgrid(
+                np.linspace(omega_min, omega_max, omega_points),
+                np.linspace(theta_min, theta_max, theta_points),
+            )[1],
+            "epsilon_matrix": Z,
+            "gammaP_min_matrix": G,
+            "source_params": lens_params,
+            "template_params": RP_params,
+        }
+    psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
 
     # Build parameter grids
     omega_arr = np.linspace(omega_min, omega_max, omega_points)
@@ -125,6 +149,8 @@ def _compute_contour_for_mcz_td(
                     f_min,
                     delta_f,
                     psd,
+                    compare_both,
+                    use_opt_match,
                 )
             )
 
@@ -168,6 +194,8 @@ def _compute_scalar_min_for_mcz_td(
     f_min: float,
     delta_f: float,
     n_workers: int,
+    compare_both: bool,
+    use_opt_match: bool,
 ) -> tuple:
     """
     Compute the minimal mismatch across the RP grid for a single (mcz, td).
@@ -186,6 +214,8 @@ def _compute_scalar_min_for_mcz_td(
         f_min,
         delta_f,
         n_workers,
+        compare_both,
+        use_opt_match,
     )
 
     Z = contour["epsilon_matrix"]
@@ -223,6 +253,8 @@ def main(
     n_workers: int = None,
     parallel_mode: str = "grid",  # "grid" or "outer"
     outer_workers: int = None,
+    compare_both: bool = False,
+    use_opt_match: bool = True,
 ):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir, data_dir = _ensure_dirs(base_dir)
@@ -258,6 +290,8 @@ def main(
                         f_min,
                         delta_f,
                         1,  # avoid nested pools; do grid serially in worker
+                        compare_both,
+                        use_opt_match,
                     )
                 )
         if outer_workers is None:
@@ -297,6 +331,8 @@ def main(
                         f_min,
                         delta_f,
                         n_workers,
+                        compare_both,
+                        use_opt_match,
                     )
                 )
                 Zmap[i, j] = ep_min
@@ -390,6 +426,16 @@ if __name__ == "__main__":
         default=None,
         help="Number of worker processes when parallel_mode=outer (default: auto-detect)",
     )
+    parser.add_argument(
+        "--compare_both",
+        action="store_true",
+        help="Use both match and optimized_match internally and take the best.",
+    )
+    parser.add_argument(
+        "--use_opt_match",
+        action="store_true",
+        help="When compare_both is False, choose optimized_match (True) or match (False).",
+    )
 
     args = parser.parse_args()
     main(
@@ -410,4 +456,6 @@ if __name__ == "__main__":
         n_workers=args.n_workers,
         parallel_mode=args.parallel_mode,
         outer_workers=args.outer_workers,
+        compare_both=args.compare_both,
+        use_opt_match=args.use_opt_match,
     )

@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Reuse utilities and defaults
-from modules.contours_ver3 import *  # noqa: F401,F403
+from modules.functions_v3 import *
+from modules.default_params_v3 import *
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -26,7 +27,7 @@ def _compute_mismatch_for_mcz(args):
     Compute mismatch for a single mcz value across all time delays.
     This function is designed to be used with multiprocessing.
     """
-    mcz, td_arr, y, f_min, delta_f = args
+    mcz, td_arr, y, f_min, delta_f, compare_both = args
 
     # Build fresh parameter dictionaries for this process
     lens_params, NP_params = set_to_location(
@@ -34,38 +35,33 @@ def _compute_mismatch_for_mcz(args):
     )  # Location shouldn't matter for lensed and unlensed waveforms
 
     # Set chirp mass for both source and template (convert Msun -> sec)
-    lens_params["mcz"] = NP_params["mcz"] = mcz * solar_mass
+    lens_params["mcz"] = NP_params["mcz"] = mcz * SOLMASS2SEC
 
     # Precompute PSD for this mcz once (depends on mcz via f_cut)
     f_cut = get_fcut_from_mcz(mcz, lens_params["eta"])  # mcz in Msun
+    if f_cut <= f_min + delta_f:
+        # Not enough bandwidth above f_min; return NaNs for this row
+        return np.full(len(td_arr), np.nan, dtype=float)
     f_array = np.arange(f_min, f_cut, delta_f)
-    psd = Sn(f_array)
+    psd = Sn(f_array, f_min=f_min, delta_f=delta_f)
 
     # Compute mismatch for all time delays for this mcz
     mismatch_row = np.zeros(len(td_arr))
 
     for j, td in enumerate(td_arr):
         lens_params["y"] = y
-        lens_params["MLz"] = get_MLz_from_td(td, y) * solar_mass
+        lens_params["MLz"] = get_MLz_from_td(td, y) * SOLMASS2SEC
 
         # Mismatch: NP template vs Lensed source
-        res_no_opt = mismatch(
-            NP_params,
-            lens_params,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            use_opt_match=False,
-        )
-        res_opt = mismatch(
+        res = mismatch_from_params(
             NP_params,
             lens_params,
             f_min=f_min,
             delta_f=delta_f,
             psd=psd,
             use_opt_match=True,
+            compare_both=compare_both,
         )
-        res = {"mismatch": min(res_no_opt["mismatch"], res_opt["mismatch"])}
         mismatch_row[j] = float(res["mismatch"])  # ensure JSON/pickle friendly
 
     return mismatch_row
@@ -76,7 +72,7 @@ def _compute_mismatch_for_mcz_optimized(args):
     Compute optimized mismatch for a single mcz value across all time delays.
     This function optimizes over template mcz for each (source_mcz, td) pair.
     """
-    mcz, td_arr, y, f_min, delta_f = args
+    mcz, td_arr, y, f_min, delta_f, compare_both = args
 
     # Build fresh parameter dictionaries for this process
     lens_params, NP_params = set_to_location(
@@ -84,23 +80,32 @@ def _compute_mismatch_for_mcz_optimized(args):
     )  # Location shouldn't matter for lensed and unlensed waveforms
 
     # Set source chirp mass (convert Msun -> sec)
-    lens_params["mcz"] = mcz * solar_mass
+    lens_params["mcz"] = mcz * SOLMASS2SEC
 
     # Precompute PSD for this mcz once (depends on mcz via f_cut)
     f_cut = get_fcut_from_mcz(mcz, lens_params["eta"])  # mcz in Msun
+    if f_cut <= f_min + delta_f:
+        # Not enough bandwidth above f_min; return NaNs for this row
+        return np.full(len(td_arr), np.nan, dtype=float)
     f_array = np.arange(f_min, f_cut, delta_f)
-    psd = Sn(f_array)
+    psd = Sn(f_array, f_min=f_min, delta_f=delta_f)
 
     # Compute mismatch for all time delays for this mcz
     mismatch_row = np.zeros(len(td_arr))
 
     for j, td in enumerate(td_arr):
         lens_params["y"] = y
-        lens_params["MLz"] = get_MLz_from_td(td, y) * solar_mass
+        lens_params["MLz"] = get_MLz_from_td(td, y) * SOLMASS2SEC
 
         # Optimize mismatch over template mcz: NP template vs Lensed source
         opt_ep_results = optimize_mismatch_mcz(
-            NP_params, lens_params, f_min=f_min, delta_f=delta_f, psd=psd
+            NP_params,
+            lens_params,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd,
+            use_opt_match=True,
+            compare_both=compare_both,
         )
         mismatch_row[j] = float(opt_ep_results["ep_min"])  # ensure JSON/pickle friendly
 
@@ -122,6 +127,7 @@ def main(
     n_processes: int = None,
     optimize_mcz: bool = False,
     tag: str = "",
+    compare_both: bool = False,
 ):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir, data_dir = _ensure_dirs(base_dir)
@@ -141,7 +147,7 @@ def main(
     print(f"Using {n_processes} processes for computation")
 
     # Prepare arguments for parallel computation
-    args_list = [(mcz, td_arr, y, f_min, delta_f) for mcz in mcz_arr]
+    args_list = [(mcz, td_arr, y, f_min, delta_f, compare_both) for mcz in mcz_arr]
 
     # Choose computation function based on optimization option
     if optimize_mcz:
@@ -214,6 +220,13 @@ if __name__ == "__main__":
     parser.add_argument("--td_max_ms", type=float, default=70.0)
     parser.add_argument("--td_points", type=int, default=51)
     parser.add_argument("--no_plot", action="store_true")
+    parser.add_argument("--f_min", type=float, default=20.0)
+    parser.add_argument("--delta_f", type=float, default=0.25)
+    parser.add_argument(
+        "--compare_both",
+        action="store_true",
+        help="Use both match and optimized_match internally and take the best.",
+    )
     parser.add_argument(
         "--n_processes",
         type=int,
@@ -245,4 +258,5 @@ if __name__ == "__main__":
         n_processes=args.n_processes,
         optimize_mcz=args.optimize_mcz,
         tag=args.tag,
+        compare_both=args.compare_both,
     )
