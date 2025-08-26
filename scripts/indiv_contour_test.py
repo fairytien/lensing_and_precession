@@ -1,8 +1,8 @@
 import sys, os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from modules.contours_ver2 import *
-from modules.default_params_ver1 import *
+from modules.contours_v2 import *
+from modules.default_params_v1 import *
 
 
 @timer_decorator

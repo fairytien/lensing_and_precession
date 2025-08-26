@@ -1,12 +1,24 @@
+# NOTE: This module is built to experiment with vectorization of lensing waveform calculations.
+
+#############################
+# Section 1: Import Modules #
+#############################
+
+
 import numpy as np
 
 error_handler = np.seterr(invalid="raise")
 from pycbc.types import FrequencySeries
-from modules.default_params_ver2 import *
+from modules.default_params_v2 import *
 
 NEAR_ZERO_THRESHOLD = 1e-8
 
-# ONLY APPLICABLE FOR ARRAYS OF PARAMETERS, NOT SINGLE VALUES
+
+#################################
+# Section 2: Lensing Functions  #
+#################################
+
+# NOTE: These functions are only applicable for arrays of parameters, not single values.
 
 
 def L_total_mass(mcz=20 * solar_mass, eta=0.25, **kwargs):

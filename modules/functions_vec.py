@@ -1,3 +1,5 @@
+# NOTE: This module is built to experiment with vectorization of waveform and mismatch calculations.
+
 #############################
 # Section 1: Import Modules #
 #############################
