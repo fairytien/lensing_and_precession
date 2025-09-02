@@ -1,5 +1,5 @@
 import sys, os, argparse
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, List
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
@@ -22,7 +22,7 @@ from modules.default_params_v3 import (
     RP_params_1,
     SOLMASS2SEC,
 )
-from modules.Classes_v2 import Precessing as P2
+from modules.Classes_v4 import Precessing as P4
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -89,14 +89,24 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
         coarse_points,
         xatol,
         maxiter,
+        ivp_method,
     ) = args
 
     t_params = copy.deepcopy(t_params_base)
     t_params["omega_tilde"] = float(omega_val)
     t_params["theta_tilde"] = float(theta_val)
 
+    # Define a fixed-method wrapper so get_gw calls parent strain with the chosen solver
+    class P4Fixed(P4):
+        def strain(self, f, delta_f=delta_f, frequencySeries=True):
+            return super().strain(
+                f,
+                delta_f=delta_f,
+                frequencySeries=frequencySeries,
+                ivp_method=ivp_method,
+            )
+
     if compare_both:
-        # Use new API to compare match and optimized_match internally
         res = optimize_mismatch_gammaP(
             t_params,
             s_params,
@@ -108,7 +118,7 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
             coarse_points=coarse_points,
             xatol=xatol,
             maxiter=maxiter,
-            prec_Class=P2,
+            prec_Class=P4Fixed,
         )
         return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
     else:
@@ -124,7 +134,7 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
             coarse_points=coarse_points,
             xatol=xatol,
             maxiter=maxiter,
-            prec_Class=P2,
+            prec_Class=P4Fixed,
         )
         return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
 
@@ -155,6 +165,7 @@ def main(
     coarse_points: int = 17,
     xatol: float = 1e-3,
     maxiter: int = 50,
+    ivp_method: str = "RK45",
 ):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir, data_dir = _ensure_dirs(base_dir)
@@ -193,6 +204,7 @@ def main(
                     int(coarse_points),
                     float(xatol),
                     int(maxiter),
+                    ivp_method,
                 )
             )
 
@@ -231,11 +243,13 @@ def main(
             "phi_J": phi_J,
         },
         "compare_both": compare_both,
+        "ivp_method": ivp_method,
     }
 
     base_name = (
-        f"v2_indiv_mismatch_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
+        f"v4_indiv_mismatch_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
         f"thetaS{round(theta_S,3)}_phiS{round(phi_S,3)}_thetaJ{round(theta_J,3)}_phiJ{round(phi_J,3)}"
+        f"_ivp{ivp_method}"
     )
     if tag:
         base_name = f"{base_name}_{tag}"
@@ -262,7 +276,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Individual mismatch contour (L vs RP) over (omega_tilde, theta_tilde) with fixed mcz, td, I, and angles (v3, Precessing from Classes_v2)."
+            "Individual mismatch contour (L vs RP) over (omega_tilde, theta_tilde) with fixed mcz, td, I, and angles (v4, Precessing from Classes_v4)."
         )
     )
     parser.add_argument("--mcz_msun", type=float, default=20.0)
@@ -293,6 +307,13 @@ if __name__ == "__main__":
     parser.add_argument("--coarse_points", type=int, default=17)
     parser.add_argument("--xatol", type=float, default=1e-3)
     parser.add_argument("--maxiter", type=int, default=50)
+    parser.add_argument(
+        "--ivp_method",
+        type=str,
+        default="RK45",
+        choices=["RK45", "RK23", "DOP853", "Radau", "BDF", "LSODA"],
+        help="solve_ivp method for Classes_v4 Precessing phase integration",
+    )
 
     args = parser.parse_args()
     main(
@@ -320,4 +341,5 @@ if __name__ == "__main__":
         coarse_points=args.coarse_points,
         xatol=args.xatol,
         maxiter=args.maxiter,
+        ivp_method=args.ivp_method,
     )

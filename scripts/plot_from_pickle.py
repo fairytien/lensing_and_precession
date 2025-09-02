@@ -7,6 +7,7 @@ import numpy as np
 
 # Use non-interactive backend for cluster environments
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
@@ -28,10 +29,24 @@ def derive_fig_path_from_pickle(pickle_path: str, tag: str | None = None) -> str
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Render contour plot from saved pickle output (v2prec)")
-    parser.add_argument("--pkl", required=True, help="Path to saved pickle file produced by v3_indiv_contour_otf_v2prec.py")
-    parser.add_argument("--fig", default=None, help="Optional output figure path (.pdf). If omitted, derived from pickle name.")
-    parser.add_argument("--tag", default="v2prec", help="Optional tag appended to derived figure basename (default: v2prec)")
+    parser = argparse.ArgumentParser(
+        description="Render contour plot from saved pickle output (v2prec)"
+    )
+    parser.add_argument(
+        "--pkl",
+        required=True,
+        help="Path to saved pickle file produced by v3_indiv_contour_otf_v2prec.py",
+    )
+    parser.add_argument(
+        "--fig",
+        default=None,
+        help="Optional output figure path (.pdf). If omitted, derived from pickle name.",
+    )
+    parser.add_argument(
+        "--tag",
+        default="v2prec",
+        help="Optional tag appended to derived figure basename (default: v2prec)",
+    )
     args = parser.parse_args()
 
     pickle_path = os.path.abspath(args.pkl)
@@ -46,14 +61,22 @@ def main() -> None:
     Z = out["epsilon_matrix"]
 
     # Validate shapes
-    if not (isinstance(X, np.ndarray) and isinstance(Y, np.ndarray) and isinstance(Z, np.ndarray)):
-        raise ValueError("omega_matrix, theta_matrix, epsilon_matrix must be numpy arrays")
+    if not (
+        isinstance(X, np.ndarray)
+        and isinstance(Y, np.ndarray)
+        and isinstance(Z, np.ndarray)
+    ):
+        raise ValueError(
+            "omega_matrix, theta_matrix, epsilon_matrix must be numpy arrays"
+        )
     if X.shape != Y.shape or X.shape != Z.shape:
         raise ValueError(f"Mismatched shapes: X{X.shape}, Y{Y.shape}, Z{Z.shape}")
 
-    fig_path = args.fig if args.fig else derive_fig_path_from_pickle(pickle_path, tag=args.tag)
+    fig_path = (
+        args.fig if args.fig else derive_fig_path_from_pickle(pickle_path, tag=args.tag)
+    )
 
-    plt.figure(figsize=(7.5, 6))
+    plt.figure(figsize=(8, 6))
     cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
     cbar = plt.colorbar(cf)
     cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
@@ -66,5 +89,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-

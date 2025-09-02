@@ -359,7 +359,7 @@ def main(
     pkl_path = pickle_data(
         results,
         data_dir,
-        "mismatch_contour_L_RP_mcz_td_Taman_edgeon",
+        "contour_L_RP_mcz_td_Taman_edgeon",
     )
 
     # Plot mcz (y) vs td (x) contour of minimal mismatch
@@ -376,7 +376,7 @@ def main(
         plt.tight_layout()
         fig_path = os.path.join(
             fig_dir,
-            f"mismatch_contour_L_RP_mcz_td_I{I}.pdf",
+            f"contour_L_RP_mcz_td_I{I}.pdf",
         )
         plt.savefig(fig_path, dpi=200)
         print("Figure saved as", fig_path)

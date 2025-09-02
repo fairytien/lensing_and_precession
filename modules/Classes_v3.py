@@ -481,7 +481,7 @@ class Precessing:
         if face_on:
             return -Omega_LJ * cos_t / f_dot
 
-        aligned = np.isclose(np.abs(LdotN), 1.0, atol=1e-10)
+        # aligned = np.isclose(np.abs(LdotN), 1.0, atol=1e-10)
 
         # Generic (non face-on) expression (matches original formula, just factored)
         base = (
@@ -492,14 +492,16 @@ class Precessing:
             / f_dot
         )
 
-        if np.any(aligned):  # Check if any LdotN values are close to 1
-            # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-            # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-            # a coordinate singularity!!!
-            # For now, handle this case by setting those values to 0
-            return np.where(aligned, 0.0, base)
-        else:
-            return base
+        # if np.any(aligned):  # Check if any LdotN values are close to 1
+        #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
+        #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
+        #     # a coordinate singularity!!!
+        #     # For now, handle this case by setting those values to 0
+        #     # return np.where(aligned, 0.0, base)
+        # else:
+        #     return base
+
+        return base
 
     def phase_delta_phi(self, f):
         """Integrate the delta_phi integrand using cumulative trapezoid (vectorized)."""

@@ -476,13 +476,13 @@ class Precessing:
             return -Omega_LJ * np.cos(theta_LJ) / f_dot
 
         # L and N aligned case (coordinate singularity)
-        if (
-            np.abs(np.abs(LdotN) - 1) < NEAR_ZERO_THRESHOLD
-        ):  # allow for tolerance near 1
-            # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-            # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-            # a coordinate singularity!!!
-            return 0
+        # if (
+        #     np.abs(np.abs(LdotN) - 1) < NEAR_ZERO_THRESHOLD
+        # ):  # allow for tolerance near 1
+        #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
+        #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
+        #     # a coordinate singularity!!!
+        #     # return 0
 
         # Generic (non face-on) expression
         return (

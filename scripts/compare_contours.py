@@ -15,29 +15,28 @@ def load_pickle_data(filepath):
 
 
 def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
-    """Create comparison contours (2 to 6 datasets) with a unified color scale.
+    """Create comparison contours (2+ datasets) with a unified color scale.
 
     Parameters
     ----------
     paths : list[str]
-        List of pickle file paths. Length must be between 2 and 6.
+        List of pickle file paths. Length must be >= 2.
     labels : list[str] | None
-        Optional list of panel titles, same length as paths. Defaults to A..F.
+        Optional list of panel titles, same length as paths. Defaults to 1..N.
     tag : str | None
         Optional tag appended to output filename (preceded by underscore).
     outdir : str
         Directory to save output figure.
     """
 
-    if not isinstance(paths, (list, tuple)) or len(paths) < 2 or len(paths) > 6:
-        raise ValueError("paths must be a list of 2 to 6 pickle file paths")
+    if not isinstance(paths, (list, tuple)) or len(paths) < 2:
+        raise ValueError("paths must be a list of at least 2 pickle file paths")
     for p in paths:
         if not os.path.exists(p):
             raise FileNotFoundError(f"Pickle not found: {p}")
 
-    default_labels = ["A", "B", "C", "D", "E", "F"]
     if labels is None:
-        labels = default_labels[: len(paths)]
+        labels = [f"{i+1}" for i in range(len(paths))]
     if len(labels) != len(paths):
         raise ValueError("labels length must match paths length")
 
@@ -55,17 +54,11 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
     for lab, ep in zip(labels, epsilons):
         print(f"{lab} epsilon range: {float(ep.min()):.6f} to {float(ep.max()):.6f}")
 
-    # Determine subplot grid
+    # Determine subplot grid: up to 3 columns per row
     n = len(paths)
-    if n <= 3:
-        rows, cols = 1, n
-        figsize = (5 * n, 5)
-    elif n == 4:
-        rows, cols = 2, 2
-        figsize = (10, 8)
-    else:  # 5 or 6
-        rows, cols = 2, 3
-        figsize = (15, 8)
+    cols = min(3, n)
+    rows = int(np.ceil(n / 3.0))
+    figsize = (5 * cols, 5 * rows)
 
     fig, axes = plt.subplots(rows, cols, figsize=figsize, constrained_layout=True)
     axes = np.array(axes).reshape(-1)
@@ -90,7 +83,7 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
             pass
         contour_handles.append(cf)
 
-    # Hide any unused axes (e.g., n=5 with 2x3 layout)
+    # Hide any unused axes
     for j in range(n, len(axes)):
         axes[j].axis("off")
 
@@ -121,12 +114,12 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
 
 def _parse_args():
     parser = argparse.ArgumentParser(
-        description="Compare 2 to 6 mismatch contour datasets with a unified color scale."
+        description="Compare 2+ mismatch contour datasets with a unified color scale."
     )
     parser.add_argument(
         "--paths",
         nargs="+",
-        help="List of 2 to 6 pickle files to compare (overrides --a/--b)",
+        help="List of 2+ pickle files to compare (overrides --a/--b)",
     )
     # Backwards-compat flags for exactly two inputs
     parser.add_argument(
@@ -142,7 +135,7 @@ def _parse_args():
     parser.add_argument(
         "--labels",
         nargs="+",
-        help="Optional list of labels (same length as --paths). Defaults to A..F",
+        help="Optional list of labels (same length as --paths). Defaults to 1..N",
     )
     parser.add_argument(
         "--tag",
@@ -166,12 +159,12 @@ if __name__ == "__main__":
     else:
         # Fallback to legacy two-input mode
         if not args.path_a or not args.path_b:
-            raise SystemExit("Provide either --paths (2-6 files) or both --a and --b")
+            raise SystemExit("Provide either --paths (2+ files) or both --a and --b")
         labels = None
         if args.labels:
             labels = args.labels[:2]
         else:
-            labels = ["A", "B"]
+            labels = ["1", "2"]
         create_comparison_contours(
             [args.path_a, args.path_b], labels=labels, tag=args.tag, outdir=args.outdir
         )

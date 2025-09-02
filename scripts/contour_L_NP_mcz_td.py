@@ -176,7 +176,7 @@ def main(
     }
 
     filename_suffix = f"I{I}_opt_mcz" if optimize_mcz else f"I{I}"
-    base_name = f"mismatch_contour_L_NP_mcz_td_{filename_suffix}"
+    base_name = f"contour_L_NP_mcz_td_{filename_suffix}"
     if tag:
         base_name = f"{base_name}_{tag}"
     pkl_path = pickle_data(results, data_dir, base_name)
