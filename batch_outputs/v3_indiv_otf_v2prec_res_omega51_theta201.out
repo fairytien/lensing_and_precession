@@ -1,0 +1,84 @@
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+Using 128 workers over a 201x51 grid
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:501: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f)
+Results saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/v3_indiv_mismatch_L_RP_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_res_omega51_theta201_2025-08-26_15-37-54.pkl
+Total time to run the script: 0:2:48.38 (h:m:s)
+Traceback (most recent call last):
+  File "/work/10000/fairytien33/ls6/lensing_and_precession/scripts/v3_indiv_contour_otf_v2prec.py", line 300, in <module>
+    main(
+  File "/work/10000/fairytien33/ls6/lensing_and_precession/modules/functions_v3.py", line 397, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/work/10000/fairytien33/ls6/lensing_and_precession/scripts/v3_indiv_contour_otf_v2prec.py", line 256, in main
+    plt.tight_layout()
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/pyplot.py", line 2599, in tight_layout
+    gcf().tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad, rect=rect)
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/figure.py", line 3540, in tight_layout
+    engine.execute(self)
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/layout_engine.py", line 183, in execute
+    kwargs = get_tight_layout_figure(
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/_tight_layout.py", line 266, in get_tight_layout_figure
+    kwargs = _auto_adjust_subplotpars(fig, renderer,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/_tight_layout.py", line 82, in _auto_adjust_subplotpars
+    bb += [martist._get_tightbbox_for_layout_only(ax, renderer)]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/artist.py", line 1411, in _get_tightbbox_for_layout_only
+    return obj.get_tightbbox(*args, **{**kwargs, "for_layout_only": True})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/_api/deprecation.py", line 454, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/axes/_base.py", line 4395, in get_tightbbox
+    ba = martist._get_tightbbox_for_layout_only(axis, renderer)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/artist.py", line 1411, in _get_tightbbox_for_layout_only
+    return obj.get_tightbbox(*args, **{**kwargs, "for_layout_only": True})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/axis.py", line 1352, in get_tightbbox
+    bb = self.label.get_window_extent(renderer)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/text.py", line 956, in get_window_extent
+    bbox, info, descent = self._get_layout(self._renderer)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/text.py", line 381, in _get_layout
+    w, h, d = _get_text_metrics_with_cache(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/text.py", line 69, in _get_text_metrics_with_cache
+    return _get_text_metrics_with_cache_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/text.py", line 77, in _get_text_metrics_with_cache_impl
+    return renderer_ref().get_text_width_height_descent(text, fontprop, ismath)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/backends/backend_agg.py", line 217, in get_text_width_height_descent
+    self.mathtext_parser.parse(s, self.dpi, prop)
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/mathtext.py", line 79, in parse
+    return self._parse_cached(s, dpi, prop, antialiased)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/mathtext.py", line 100, in _parse_cached
+    box = self._parser.parse(s, fontset, fontsize, dpi)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home1/10000/fairytien33/miniconda3/envs/fairytien_gw/lib/python3.12/site-packages/matplotlib/_mathtext.py", line 2165, in parse
+    raise ValueError("\n" + ParseException.explain(err, 0)) from None
+ValueError: 
+$\\tilde{\\Omega}$
+^
+ParseException: Expected end of text, found '$'  (at char 0), (line:1, col:1)
+srun: error: c307-005: task 0: Exited with exit code 1

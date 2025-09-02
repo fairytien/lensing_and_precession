@@ -231,7 +231,7 @@ def main(
     }
 
     base_name = (
-        f"v3_indiv_mismatch_L_RP_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
+        f"v3_indiv_mismatch_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
         f"thetaS{round(theta_S,3)}_phiS{round(phi_S,3)}_thetaJ{round(theta_J,3)}_phiJ{round(phi_J,3)}"
     )
     if tag:

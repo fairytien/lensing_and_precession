@@ -401,11 +401,11 @@ if __name__ == "__main__":
     parser.add_argument("--td_max_ms", type=float, default=60.0)
     parser.add_argument("--td_points", type=int, default=41)
     parser.add_argument("--omega_min", type=float, default=0.0)
-    parser.add_argument("--omega_max", type=float, default=5.0)
-    parser.add_argument("--omega_points", type=int, default=31)
+    parser.add_argument("--omega_max", type=float, default=6.0)
+    parser.add_argument("--omega_points", type=int, default=61)
     parser.add_argument("--theta_min", type=float, default=0.0)
     parser.add_argument("--theta_max", type=float, default=15.0)
-    parser.add_argument("--theta_points", type=int, default=61)
+    parser.add_argument("--theta_points", type=int, default=151)
     parser.add_argument("--no_plot", action="store_true")
     parser.add_argument(
         "--n_workers",

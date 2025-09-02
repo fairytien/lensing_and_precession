@@ -234,7 +234,7 @@ def main(
     }
 
     base_name = (
-        f"v3_indiv_mismatch_L_RP_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
+        f"v2_indiv_mismatch_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
         f"thetaS{round(theta_S,3)}_phiS{round(phi_S,3)}_thetaJ{round(theta_J,3)}_phiJ{round(phi_J,3)}"
     )
     if tag:
@@ -248,11 +248,9 @@ def main(
         plt.figure(figsize=(7.5, 6))
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(
-            r"$\\epsilon(\\tilde{h}_{\\mathrm{L}}, \\tilde{h}_{\\mathrm{RP}})$"
-        )
-        plt.xlabel(r"$\\tilde{\\Omega}$")
-        plt.ylabel(r"$\\tilde{\\theta}$")
+        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
+        plt.xlabel(r"$\tilde{\Omega}$")
+        plt.ylabel(r"$\tilde{\theta}$")
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
         plt.savefig(fig_path, dpi=200)
