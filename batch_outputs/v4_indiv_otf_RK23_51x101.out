@@ -1,0 +1,11 @@
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+Using 128 workers over a 101x51 grid
+srun: Job step aborted: Waiting up to 32 seconds for job step to finish.
+slurmstepd: error: *** JOB 2600360 ON c303-006 CANCELLED AT 2025-09-02T16:25:30 DUE TO TIME LIMIT ***
+slurmstepd: error: *** STEP 2600360.0 ON c303-006 CANCELLED AT 2025-09-02T16:25:30 DUE TO TIME LIMIT ***
+srun: got SIGCONT
+srun: forcing job termination
+srun: error: c303-006: task 0: Terminated

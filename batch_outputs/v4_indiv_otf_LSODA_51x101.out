@@ -1,0 +1,9 @@
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+Using 128 workers over a 101x51 grid
+Results saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/v4_indiv_mismatch_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_ivpLSODA_res_51x101_2025-09-02_16-19-49.pkl
+Figure saved as /work/10000/fairytien33/ls6/lensing_and_precession/figures/v4_indiv_mismatch_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_ivpLSODA_res_51x101.pdf
+Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/v4_indiv_mismatch_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_ivpLSODA_res_51x101_2025-09-02_16-19-49.pkl
+Total time to run the script: 0:2:29.46 (h:m:s)
