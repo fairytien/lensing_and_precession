@@ -195,7 +195,7 @@ def main(
 
     if n_workers is None:
         n_workers = min(cpu_count(), len(jobs))
-    print(f"Using {n_workers} workers over a {theta_points}x{omega_points} grid")
+    print(f"Using {n_workers} workers over a {omega_points}x{theta_points} grid")
 
     # Parallel compute
     with Pool(n_workers) as pool:
@@ -231,7 +231,7 @@ def main(
     }
 
     base_name = (
-        f"v3_indiv_mismatch_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
+        f"v3_indiv_contour_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
         f"thetaS{round(theta_S,3)}_phiS{round(phi_S,3)}_thetaJ{round(theta_J,3)}_phiJ{round(phi_J,3)}"
     )
     if tag:
@@ -242,7 +242,6 @@ def main(
     if not no_plot:
         import matplotlib.pyplot as plt
 
-        plt.figure(figsize=(7.5, 6))
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
         cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")

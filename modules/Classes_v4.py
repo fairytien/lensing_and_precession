@@ -21,9 +21,9 @@ class Precessing(_PrecessingV3):
     def phase_delta_phi(
         self,
         f,
-        ivp_method: Union[str, Sequence[str]] = "RK45",
-        rtol: float = 1e-8,
-        atol: float = 1e-10,
+        ivp_method: Union[str, Sequence[str]] = "LSODA",
+        rtol: float = 1e-3,
+        atol: float = 1e-6,
         max_step: float = np.inf,
     ) -> Union[np.ndarray, Dict[str, np.ndarray]]:
         """Compute delta phi_P using solve_ivp.
@@ -100,8 +100,8 @@ class Precessing(_PrecessingV3):
         delta_f=0.25,
         frequencySeries=True,
         ivp_method: str = "RK45",
-        rtol: float = 1e-8,
-        atol: float = 1e-10,
+        rtol: float = 1e-3,
+        atol: float = 1e-6,
         max_step: float = np.inf,
     ):
         """precessing GW with selectable ODE solver for phase_delta_phi

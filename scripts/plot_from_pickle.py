@@ -30,12 +30,12 @@ def derive_fig_path_from_pickle(pickle_path: str, tag: str | None = None) -> str
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Render contour plot from saved pickle output (v2prec)"
+        description="Render contour plot from saved pickle output.",
     )
     parser.add_argument(
         "--pkl",
         required=True,
-        help="Path to saved pickle file produced by v3_indiv_contour_otf_v2prec.py",
+        help="Path to saved pickle file produced by script.",
     )
     parser.add_argument(
         "--fig",
@@ -44,8 +44,8 @@ def main() -> None:
     )
     parser.add_argument(
         "--tag",
-        default="v2prec",
-        help="Optional tag appended to derived figure basename (default: v2prec)",
+        default="",
+        help="Optional tag appended to derived figure basename (default: empty).",
     )
     args = parser.parse_args()
 
@@ -76,7 +76,6 @@ def main() -> None:
         args.fig if args.fig else derive_fig_path_from_pickle(pickle_path, tag=args.tag)
     )
 
-    plt.figure(figsize=(8, 6))
     cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
     cbar = plt.colorbar(cf)
     cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
