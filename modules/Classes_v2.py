@@ -452,7 +452,18 @@ class Precessing:
 
     ### get the delta phi_P
     def integrand_delta_phi(self, y, f):
-        """integrand for delta phi p (equations in Apostolatos 1994, and appendix of Evangelos in prep)"""
+        """
+        Integrand for delta phi_P (precession phase correction).
+
+        This function is designed to be used as the right-hand side for ODE integrators such as `scipy.integrate.odeint`, which require the signature `func(y, f)`. The integrand is based on equations from Apostolatos 1994 and the appendix of Taman (in preparation). Handles special cases for non-precessing, face-on, and generic precessing binaries.
+
+        Args:
+            y: Dummy variable for ODE integrator compatibility (ignored).
+            f: Frequency at which to evaluate the integrand.
+
+        Returns:
+            Value of the integrand at frequency f.
+        """
         # Precompute reused quantities
         LdotN = self.LdotN(f)
         cos_i_JN, sin_i_JN, *_ = self.precession_angles()
@@ -496,9 +507,25 @@ class Precessing:
             / f_dot
         )
 
-    def phase_delta_phi(self, f):
-        """integrate the delta_phi integrand"""
-        integral = odeint(self.integrand_delta_phi, 0, f)
+    def phase_delta_phi(self, f, rtol=None, atol=None):
+        """
+        Integrate the delta_phi integrand over the given frequency array.
+
+        Args:
+            f (array-like): Array of frequencies at which to compute the integral.
+            rtol (float, optional): Relative tolerance for odeint. If None, uses odeint default.
+            atol (float, optional): Absolute tolerance for odeint. If None, uses odeint default.
+
+        Returns:
+            np.ndarray: Integrated phase difference delta_phi at each frequency in f.
+        """
+        kwargs = {}
+        if rtol is not None:
+            kwargs["rtol"] = rtol
+        if atol is not None:
+            kwargs["atol"] = atol
+
+        integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
         return np.squeeze(integral)
 
     def Psi(self, f):
