@@ -57,6 +57,12 @@ def main() -> None:
             "to this many points before plotting."
         ),
     )
+    parser.add_argument(
+        "--levels",
+        type=int,
+        default=100,
+        help="Number of contour levels for plotting (default: 100).",
+    )
     args = parser.parse_args()
 
     pickle_path = os.path.abspath(args.pkl)
@@ -107,17 +113,29 @@ def main() -> None:
         if not tag:
             tag = f"theta{idx.size}"
 
+    # Add levels tag if not default
+    if args.levels != 100:
+        levels_tag = f"levels{args.levels}"
+        tag = f"{tag}_{levels_tag}" if tag else levels_tag
+
     fig_path = (
         args.fig
         if args.fig
         else derive_fig_path_from_pickle(pickle_path, tag=tag if tag else None)
     )
 
-    cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
+    cf = plt.contourf(X, Y, Z, levels=args.levels, cmap="jet")
     cbar = plt.colorbar(cf)
     cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
     plt.xlabel(r"$\tilde{\Omega}$")
     plt.ylabel(r"$\tilde{\theta}$")
+
+    # Set aspect ratio to be rectangular based on the number of omega vs theta points
+    omega_range = X.max() - X.min()
+    theta_range = Y.max() - Y.min()
+    aspect_ratio = (omega_range / X.shape[1]) / (theta_range / X.shape[0])
+    plt.gca().set_aspect(aspect_ratio)
+
     plt.tight_layout()
     plt.savefig(fig_path, dpi=200)
     print("Figure saved as", fig_path)

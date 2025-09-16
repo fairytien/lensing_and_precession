@@ -98,7 +98,15 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
 
     # Define a fixed-method wrapper so get_gw calls parent strain with the chosen solver
     class P4Fixed(P4):
-        def strain(self, f, delta_f=delta_f, frequencySeries=True, ivp_method=ivp_method, rtol=1e-3, atol=1e-6):
+        def strain(
+            self,
+            f,
+            delta_f=delta_f,
+            frequencySeries=True,
+            ivp_method=ivp_method,
+            rtol=1e-5,
+            atol=1e-7,
+        ):
             return super().strain(
                 f,
                 delta_f=delta_f,

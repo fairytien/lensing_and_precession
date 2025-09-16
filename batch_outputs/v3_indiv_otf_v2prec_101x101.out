@@ -1,0 +1,57 @@
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.bool` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v3.py:23: FutureWarning: In the future `np.object` will be defined as the corresponding NumPy scalar.
+  if not hasattr(np, _name):
+Using 128 workers over a 101x101 grid
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:528: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+Results saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/v2_indiv_contour_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_res_101x101_2025-09-16_15-58-43.pkl
+Figure saved as /work/10000/fairytien33/ls6/lensing_and_precession/figures/v2_indiv_contour_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_res_101x101.pdf
+Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/v2_indiv_contour_mcz20_td22ms_I0.6_thetaS1.047_phiS0.785_thetaJ0.524_phiJ1.047_res_101x101_2025-09-16_15-58-43.pkl
+Total time to run the script: 0:2:44.16 (h:m:s)

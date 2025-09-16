@@ -1041,7 +1041,7 @@ def optimize_mismatch_gammaP(
     prec_Class=Precessing,
     use_opt_match=True,
     compare_both=False,
-    grid_points: int = 51,
+    grid_points: int = 101,
     gamma_grid: np.ndarray = None,
     two_stage=False,
     coarse_points: int = 17,
