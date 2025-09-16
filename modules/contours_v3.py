@@ -16,7 +16,7 @@ from multiprocessing import Pool, cpu_count
 
 
 def compute_RP_template(
-    t_params: dict,
+    tpl_params: dict,
     omega_grid: np.ndarray,
     theta_grid: np.ndarray,
     gamma_grid: np.ndarray,
@@ -25,23 +25,22 @@ def compute_RP_template(
 ) -> tuple[tuple, np.ndarray]:
 
     # Compute the template based on t_params
-    t_params_copy = copy.deepcopy(t_params)
-    t_params_copy["omega_tilde"] = omega_grid[idx]
-    t_params_copy["theta_tilde"] = theta_grid[idx]
-    t_params_copy["gamma_P"] = gamma_grid[idx]
+    tpl_params_copy = copy.deepcopy(tpl_params)
+    tpl_params_copy["omega_tilde"] = omega_grid[idx]
+    tpl_params_copy["theta_tilde"] = theta_grid[idx]
+    tpl_params_copy["gamma_P"] = gamma_grid[idx]
 
-    template = get_gw(t_params_copy, frequencySeries=False, **kwargs)["strain"]
+    template = get_gw(tpl_params_copy, frequencySeries=False, **kwargs)["strain"]
 
     return idx, template
 
 
-def create_RP_templates(t_params: dict, filename: str, npz=True) -> np.ndarray:
-    nx_pts = 51
-    ny_pts = 151
-    nz_pts = 51
-    omega_arr = np.linspace(0, 5, nx_pts)
-    theta_arr = np.linspace(0, 15, ny_pts)
-    gamma_arr = np.linspace(0, 2 * np.pi, nz_pts)
+def create_RP_templates(
+    tpl_params: dict, n_omega: int, n_theta: int, n_gamma: int, filename: str, npz=True
+) -> np.ndarray:
+    omega_arr = np.linspace(0, 6, n_omega)
+    theta_arr = np.linspace(0, 15, n_theta)
+    gamma_arr = np.linspace(0, 2 * np.pi, n_gamma, endpoint=False)
 
     # Create a 3D meshgrid
     omega_grid, theta_grid, gamma_grid = np.meshgrid(
@@ -49,16 +48,16 @@ def create_RP_templates(t_params: dict, filename: str, npz=True) -> np.ndarray:
     )
 
     # Initialize an empty grid to store the templates
-    template_grid = np.empty((nx_pts, ny_pts, nz_pts), dtype=object)
+    template_grid = np.empty((n_omega, n_theta, n_gamma), dtype=object)
 
     # Create a list of indices to parallelize the computation
-    idx_list = list(np.ndindex(nx_pts, ny_pts, nz_pts))
+    idx_list = list(np.ndindex(n_omega, n_theta, n_gamma))
 
     # Use Pool to parallelize the computation
     with Pool(cpu_count()) as pool:  # Use maximum number of cores
         results = pool.starmap(
             compute_RP_template,
-            [(t_params, omega_grid, theta_grid, gamma_grid, idx) for idx in idx_list],
+            [(tpl_params, omega_grid, theta_grid, gamma_grid, idx) for idx in idx_list],
         )
     # Store the results in the template grid
     for idx, template in results:
@@ -66,7 +65,7 @@ def create_RP_templates(t_params: dict, filename: str, npz=True) -> np.ndarray:
 
     if npz:
         np.savez_compressed(
-            filename, template_grid=template_grid, template_params=t_params
+            filename, template_grid=template_grid, template_params=tpl_params
         )
 
     return template_grid

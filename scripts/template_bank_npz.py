@@ -1,7 +1,7 @@
 import sys, os, argparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from modules.contours_ver3 import *
+from modules.contours_v3 import *
 
 
 @timer_decorator
@@ -14,7 +14,7 @@ def main(output_dir):
     # Assign parameters
     RP_params = set_to_location(loc_params["Taman"]["edgeon"], RP_params_1)[0]
     mcz = 40
-    RP_params["mcz"] = mcz * solar_mass
+    RP_params["mcz"] = mcz * SOLMASS2SEC
 
     results = create_RP_templates(
         RP_params, output_dir + "/sys2_template_grid_mcz" + str(mcz) + ".npz", npz=True

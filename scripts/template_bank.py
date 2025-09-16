@@ -11,7 +11,7 @@ def main():
     # Assign parameters
     RP_params = set_to_location(loc_params["Taman"]["edgeon"], RP_params_1)[0]
     mcz = 20
-    RP_params["mcz"] = mcz * solar_mass
+    RP_params["mcz"] = mcz * SOLMASS2SEC
 
     results = create_RP_templates(
         RP_params, "sys2_template_grid_mcz" + str(mcz), npz=False

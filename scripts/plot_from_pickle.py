@@ -2,6 +2,7 @@ import os
 import re
 import argparse
 import pickle
+from typing import Optional
 
 import numpy as np
 
@@ -12,7 +13,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 
-def derive_fig_path_from_pickle(pickle_path: str, tag: str | None = None) -> str:
+def derive_fig_path_from_pickle(pickle_path: str, tag: Optional[str] = None) -> str:
     data_dir = os.path.dirname(pickle_path)
     root_dir = os.path.dirname(data_dir)
     figures_dir = os.path.join(root_dir, "figures")
@@ -47,6 +48,15 @@ def main() -> None:
         default="",
         help="Optional tag appended to derived figure basename (default: empty).",
     )
+    parser.add_argument(
+        "--theta_points",
+        type=int,
+        default=None,
+        help=(
+            "If set and smaller than the stored grid, subsample the theta dimension (rows) "
+            "to this many points before plotting."
+        ),
+    )
     args = parser.parse_args()
 
     pickle_path = os.path.abspath(args.pkl)
@@ -72,8 +82,35 @@ def main() -> None:
     if X.shape != Y.shape or X.shape != Z.shape:
         raise ValueError(f"Mismatched shapes: X{X.shape}, Y{Y.shape}, Z{Z.shape}")
 
+    # Optional theta subsampling (reduce number of rows)
+    tag = args.tag
+    if (
+        args.theta_points is not None
+        and isinstance(X, np.ndarray)
+        and args.theta_points > 0
+        and args.theta_points < X.shape[0]
+    ):
+        n_theta_orig = X.shape[0]
+        idx = np.linspace(0, n_theta_orig - 1, args.theta_points, dtype=int)
+        idx = np.unique(idx)
+        if idx.size < args.theta_points:
+            # In rare cases of duplicates due to rounding, pad by adding missing indices
+            missing = args.theta_points - idx.size
+            extra = np.setdiff1d(np.arange(n_theta_orig), idx)[:missing]
+            idx = np.sort(np.concatenate([idx, extra]))
+        print(
+            f"Subsampling theta dimension from {n_theta_orig} to {idx.size} rows for plotting."
+        )
+        X = X[idx, :]
+        Y = Y[idx, :]
+        Z = Z[idx, :]
+        if not tag:
+            tag = f"theta{idx.size}"
+
     fig_path = (
-        args.fig if args.fig else derive_fig_path_from_pickle(pickle_path, tag=args.tag)
+        args.fig
+        if args.fig
+        else derive_fig_path_from_pickle(pickle_path, tag=tag if tag else None)
     )
 
     cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")

@@ -203,3 +203,13 @@ loc_params["Tien"] = {
         "phi_J": np.pi / 4,
     },
 }
+
+
+loc_params["Ben"] = {
+    "random": {
+        "theta_S": np.pi / 3,
+        "phi_S": np.pi / 4,
+        "theta_J": np.pi / 6,
+        "phi_J": np.pi / 3,
+    }
+}

@@ -8,20 +8,14 @@ from typing import List
 import numpy as np
 import matplotlib.pyplot as plt
 
+from modules.functions_v3 import mcz_for_n_lens_cycles
+
 
 SOLMASS2SEC = 4.92624076e-6
 
 
 def f_cut_from_mcz(mcz_msun: np.ndarray, eta: float = 0.25) -> np.ndarray:
     return (eta ** (3.0 / 5.0)) / ((6.0**1.5) * math.pi * mcz_msun * SOLMASS2SEC)
-
-
-def mcz_for_n_cycles(
-    td_s: np.ndarray, n_cycles: float, f_min: float = 20.0, eta: float = 0.25
-) -> np.ndarray:
-    # f_cut = f_min + n/td => mcz = eta^(3/5) / [6^(3/2) * pi * solar_mass * (f_min + n/td)]
-    denom = f_min + (n_cycles / td_s)
-    return (eta ** (3.0 / 5.0)) / ((6.0**1.5) * math.pi * SOLMASS2SEC * denom)
 
 
 def mcz_trough_for_n(td_s: float, n_trough: int, eta: float = 0.25) -> float:
@@ -133,8 +127,8 @@ def main():
     TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
 
     # Compute 1-cycle and 2-cycle lines
-    mcz_1cyc = mcz_for_n_cycles(td_arr, 1.0, f_min=args.f_min, eta=args.eta)
-    mcz_2cyc = mcz_for_n_cycles(td_arr, 2.0, f_min=args.f_min, eta=args.eta)
+    mcz_1cyc = mcz_for_n_lens_cycles(1.0, td_arr, f_min=args.f_min, eta=args.eta)
+    mcz_2cyc = mcz_for_n_lens_cycles(2.0, td_arr, f_min=args.f_min, eta=args.eta)
 
     # Deprecated: Minima peak lines are no longer computed or plotted
 

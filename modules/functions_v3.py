@@ -307,6 +307,70 @@ def number_of_lens_cycles(
     return n_cycles
 
 
+def mcz_for_n_lens_cycles(
+    n_cycles: float, td: Union[float, np.ndarray], f_min: float = 20, eta: float = 0.25
+) -> Union[float, np.ndarray]:
+    # f_cut = f_min + n/td => mcz = eta^(3/5) / [6^(3/2) * pi * solar_mass * (f_min + n/td)]
+    f_cut = f_min + (n_cycles / td)
+    return get_mcz_from_fcut(f_cut, eta)
+
+
+def mcz_for_n_prec_cycles(
+    n_cycles: float,
+    omega_tilde: Union[float, np.ndarray],
+    f_min: float = 20,
+    eta: float = 0.25,
+) -> Union[float, np.ndarray]:
+    """
+    Invert number_of_prec_cycles to obtain the chirp mass (in solar masses) that
+    yields the requested number of precession cycles between f_min and f_cut.
+
+    Uses the analytic simplification of number_of_prec_cycles where the dependence
+    on mcz appears only via a linear term in 1/f_cut and a 1/mcz factor, leading to:
+
+        n_prec = C(eta, f_min) * (1/(f_min * mcz) - K(eta)) * omega_tilde
+
+    which can be inverted for mcz as:
+
+        mcz = 1.0 / ( f_min * (n_prec/(C*omega_tilde) + K) )
+
+    where
+        K(eta) = 6^(3/2) * pi * SOLMASS2SEC / eta^(3/5)
+        C(eta) = (5000/96) * 6^(5/2) / (2 * pi^2 * eta^(2/5))
+
+    Args:
+        n_cycles: Desired number of precession cycles (scalar or ndarray)
+        omega_tilde: Precession amplitude parameter (scalar or ndarray)
+        f_min: Lower frequency cutoff [Hz] (default: 20)
+        eta: Symmetric mass ratio (default: 0.25)
+
+    Returns:
+        float or np.ndarray: Chirp mass in solar masses producing the given
+        number of precession cycles for the provided omega_tilde.
+    """
+    n_cycles = np.asarray(n_cycles, dtype=float)
+    omega_tilde = np.asarray(omega_tilde, dtype=float)
+
+    # Constants derived from number_of_prec_cycles
+    K = (6 ** (3.0 / 2.0)) * np.pi * SOLMASS2SEC / (eta ** (3.0 / 5.0))
+    C = ((5000.0 / 96.0) * (6 ** (5.0 / 2.0))) / (
+        2.0 * (np.pi**2) * (eta ** (2.0 / 5.0))
+    )
+
+    # Avoid division by zero for omega_tilde = 0 (no precession => n_cycles should be 0)
+    if np.any(omega_tilde == 0):
+        raise ValueError("omega_tilde must be non-zero to invert n_prec → mcz")
+
+    denom = f_min * (n_cycles / (C * omega_tilde) + K)
+    if np.any(denom <= 0):
+        raise ValueError(
+            "Requested n_cycles and omega_tilde lead to non-physical mcz (denominator ≤ 0)"
+        )
+
+    mcz_msun = 1.0 / denom
+    return mcz_msun
+
+
 def get_lens_limits_for_RP_L(
     mcz_msun: float,
     omega_tilde: float,

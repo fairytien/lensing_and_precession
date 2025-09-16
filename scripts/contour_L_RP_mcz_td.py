@@ -1,5 +1,5 @@
 import sys, os, argparse
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, Dict, Any, List, Optional
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Reuse utilities and defaults
 from modules.functions_v3 import *
 from modules.default_params_v3 import *
+from modules.Classes_v2 import Precessing as P2
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -21,12 +22,30 @@ def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
     return fig_dir, data_dir
 
 
-def _build_params_for_location() -> Tuple[dict, dict]:
-    # Set sky location to Taman edge-on for both lensed source and RP templates
-    # Returns deep copies that we can safely mutate
+def _build_params_for_location(
+    theta_J: Optional[float] = None,
+    phi_J: Optional[float] = None,
+    theta_S: Optional[float] = None,
+    phi_S: Optional[float] = None,
+) -> Tuple[dict, dict]:
+    # Default to Taman edge-on, then apply any user overrides
     lens_p, rp_p = set_to_location(
         loc_params["Taman"]["edgeon"], lens_params_1, RP_params_1
     )
+
+    if theta_J is not None:
+        lens_p["theta_J"] = theta_J
+        rp_p["theta_J"] = theta_J
+    if phi_J is not None:
+        lens_p["phi_J"] = phi_J
+        rp_p["phi_J"] = phi_J
+    if theta_S is not None:
+        lens_p["theta_S"] = theta_S
+        rp_p["theta_S"] = theta_S
+    if phi_S is not None:
+        lens_p["phi_S"] = phi_S
+        rp_p["phi_S"] = phi_S
+
     return lens_p, rp_p
 
 
@@ -58,6 +77,7 @@ def _compute_cell_min_ep(
             f_min=f_min,
             delta_f=delta_f,
             psd=psd,
+            prec_Class=P2,
             compare_both=True,
         )
         return res["ep_min"], res["ep_min_gammaP"]
@@ -69,6 +89,7 @@ def _compute_cell_min_ep(
         f_min=f_min,
         delta_f=delta_f,
         psd=psd,
+        prec_Class=P2,
         use_opt_match=use_opt_match,
         compare_both=False,
     )
@@ -79,6 +100,10 @@ def _compute_contour_for_mcz_td(
     mcz_val: float,
     td_val: float,
     I: float,
+    theta_J: Optional[float],
+    phi_J: Optional[float],
+    theta_S: Optional[float],
+    phi_S: Optional[float],
     omega_min: float,
     omega_max: float,
     omega_points: int,
@@ -94,11 +119,14 @@ def _compute_contour_for_mcz_td(
     """
     For a single (mcz, td), compute the RP mismatch contour over
     (omega_tilde, theta_tilde), optimizing over gamma_P and taking the
-    min between use_opt_match=False/True.
+    min between use_opt_match=False/True. Orientation angles may be overridden; if
+    not provided, defaults to Taman edge-on.
     """
 
     # Build fresh parameter dictionaries for this task
-    lens_params, RP_params = _build_params_for_location()
+    lens_params, RP_params = _build_params_for_location(
+        theta_J=theta_J, phi_J=phi_J, theta_S=theta_S, phi_S=phi_S
+    )
 
     # Set chirp mass for both source and template (convert Msun -> sec)
     lens_params["mcz"] = RP_params["mcz"] = mcz_val * SOLMASS2SEC
@@ -185,6 +213,10 @@ def _compute_scalar_min_for_mcz_td(
     mcz_val: float,
     td_val: float,
     I: float,
+    theta_J: Optional[float],
+    phi_J: Optional[float],
+    theta_S: Optional[float],
+    phi_S: Optional[float],
     omega_min: float,
     omega_max: float,
     omega_points: int,
@@ -205,6 +237,10 @@ def _compute_scalar_min_for_mcz_td(
         mcz_val,
         td_val,
         I,
+        theta_J,
+        phi_J,
+        theta_S,
+        phi_S,
         omega_min,
         omega_max,
         omega_points,
@@ -235,6 +271,10 @@ def _compute_scalar_min_for_mcz_td(
 @timer_decorator
 def main(
     I: float = 0.5,
+    theta_J: Optional[float] = None,
+    phi_J: Optional[float] = None,
+    theta_S: Optional[float] = None,
+    phi_S: Optional[float] = None,
     mcz_min: float = 10.0,
     mcz_max: float = 90.0,
     mcz_points: int = 81,
@@ -281,6 +321,10 @@ def main(
                         mcz,
                         td,
                         I,
+                        theta_J,
+                        phi_J,
+                        theta_S,
+                        phi_S,
                         omega_min,
                         omega_max,
                         omega_points,
@@ -322,6 +366,10 @@ def main(
                         mcz,
                         td,
                         I,
+                        theta_J,
+                        phi_J,
+                        theta_S,
+                        phi_S,
                         omega_min,
                         omega_max,
                         omega_points,
@@ -341,11 +389,12 @@ def main(
                 Gmap[i, j] = gamma_best
 
     # Package results and save
+    custom_orient = any(v is not None for v in (theta_J, phi_J, theta_S, phi_S))
     results: Dict[str, Any] = {
         "mcz_arr": mcz_arr,
         "td_arr": td_arr,
         "I": I,
-        "location": "Taman.edgeon",
+        "location": "custom" if custom_orient else "Taman.edgeon",
         "template": "RP",
         "omega_range": (omega_min, omega_max, omega_points),
         "theta_range": (theta_min, theta_max, theta_points),
@@ -394,6 +443,30 @@ if __name__ == "__main__":
     parser.add_argument(
         "--I", type=float, default=0.5, help="Flux ratio I (default: 0.5)"
     )
+    parser.add_argument(
+        "--theta_J",
+        type=float,
+        default=None,
+        help=("Override J polar angle [rad]. If omitted, use Taman edge-on."),
+    )
+    parser.add_argument(
+        "--phi_J",
+        type=float,
+        default=None,
+        help=("Override J azimuthal angle [rad]. If omitted, use Taman edge-on."),
+    )
+    parser.add_argument(
+        "--theta_S",
+        type=float,
+        default=None,
+        help=("Override sky polar angle [rad]. If omitted, use Taman edge-on."),
+    )
+    parser.add_argument(
+        "--phi_S",
+        type=float,
+        default=None,
+        help=("Override sky azimuthal angle [rad]. If omitted, use Taman edge-on."),
+    )
     parser.add_argument("--mcz_min", type=float, default=10.0)
     parser.add_argument("--mcz_max", type=float, default=90.0)
     parser.add_argument("--mcz_points", type=int, default=81)
@@ -440,6 +513,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     main(
         I=args.I,
+        theta_J=args.theta_J,
+        phi_J=args.phi_J,
+        theta_S=args.theta_S,
+        phi_S=args.phi_S,
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         mcz_points=args.mcz_points,
