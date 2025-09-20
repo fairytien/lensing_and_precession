@@ -7,6 +7,8 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 import numpy as np
+from typing import Optional
+
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed
 if not hasattr(np, "asscalar"):
@@ -507,25 +509,20 @@ class Precessing:
             / f_dot
         )
 
-    def phase_delta_phi(self, f, rtol=None, atol=None):
+    def phase_delta_phi(self, f, rtol=1.49012e-8, atol=1.49012e-8):
         """
         Integrate the delta_phi integrand over the given frequency array.
 
         Args:
             f (array-like): Array of frequencies at which to compute the integral.
-            rtol (float, optional): Relative tolerance for odeint. If None, uses odeint default.
-            atol (float, optional): Absolute tolerance for odeint. If None, uses odeint default.
+            rtol (float, optional): Relative tolerance for odeint. Default is 1.49012e-8.
+            atol (float, optional): Absolute tolerance for odeint. Default is 1.49012e-8.
 
         Returns:
             np.ndarray: Integrated phase difference delta_phi at each frequency in f.
         """
-        kwargs = {}
-        if rtol is not None:
-            kwargs["rtol"] = rtol
-        if atol is not None:
-            kwargs["atol"] = atol
 
-        integral = odeint(self.integrand_delta_phi, 0, f, **kwargs)
+        integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
         return np.squeeze(integral)
 
     def Psi(self, f):

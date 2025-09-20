@@ -14,8 +14,7 @@ class Precessing(_PrecessingV3):
     """Precessing class v4 (solve_ivp-only variant).
 
     Computes phase_delta_phi exclusively with SciPy's solve_ivp.
-    Accepts a single method name or a list of method names and returns either
-    a single array or a dict of arrays keyed by method.
+    Accepts a single method name or a list of method names and returns either a single array or a dict of arrays keyed by method.
     """
 
     def phase_delta_phi(

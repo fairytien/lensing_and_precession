@@ -12,45 +12,43 @@ from .Classes_v3 import Precessing as _PrecessingV3
 class Precessing(_PrecessingV3):
     """Precessing class v5 (quad-based integrator).
 
-    Computes ``phase_delta_phi`` using SciPy's adaptive quadrature ``scipy.integrate.quad``.
+    Computes `phase_delta_phi` using SciPy's adaptive quadrature `scipy.integrate.quad`.
     Integration is performed piecewise between successive points of the provided
     frequency array and accumulated to build the cumulative phase.
 
     Notes
     -----
-    - The integrand is taken from ``self.integrand_delta_phi(y, f)`` with the first
+    - The integrand is taken from `self.integrand_delta_phi(y, f)` with the first
       argument ignored (set to 0.0) since the integrand does not depend on the
       integrated value in this model.
-    - ``quad`` tolerances map to ``epsrel`` (relative) and ``epsabs`` (absolute).
-      If these are left as ``None``, SciPy's defaults are used.
+    - `quad` tolerances map to `epsrel` (relative) and `epsabs` (absolute).
+      If these are left as "default", SciPy's defaults are used.
     """
 
     def phase_delta_phi(
         self,
         f,
-        epsrel: Optional[float] = None,
-        epsabs: Optional[float] = None,
-        limit: Optional[int] = None,
+        epsrel: Optional[float] = "default",
+        epsabs: Optional[float] = "default",
+        limit: Optional[int] = "default",
     ):
         """Compute delta phi_P using adaptive quadrature (quad).
 
         Parameters
         ----------
         f : array-like
-            Strictly increasing frequency array where the cumulative integral
-            is evaluated.
+            Strictly increasing frequency array where the cumulative integral is evaluated.
         epsrel : float, optional
-            Relative error tolerance for ``quad``. If ``None``, uses SciPy's default.
+            Relative error tolerance for `quad`. If "default", uses SciPy's default.
         epsabs : float, optional
-            Absolute error tolerance for ``quad``. If ``None``, uses SciPy's default.
+            Absolute error tolerance for `quad`. If "default", uses SciPy's default.
         limit : int, optional
-            An upper bound on the number of subintervals used by ``quad``. If
-            ``None``, SciPy's default is used.
+            An upper bound on the number of subintervals used by `quad`. If "default", SciPy's default is used.
 
         Returns
         -------
         np.ndarray
-            Cumulative integral values with the same shape as ``f``.
+            Cumulative integral values with the same shape as `f`.
         """
         f = np.asarray(f)
         if f.ndim != 1:
@@ -65,11 +63,11 @@ class Precessing(_PrecessingV3):
             return float(self.integrand_delta_phi(0.0, float(freq)))
 
         quad_kwargs = {}
-        if epsrel is not None:
+        if epsrel != "default":
             quad_kwargs["epsrel"] = epsrel
-        if epsabs is not None:
+        if epsabs != "default":
             quad_kwargs["epsabs"] = epsabs
-        if limit is not None:
+        if limit != "default":
             quad_kwargs["limit"] = int(limit)
 
         # Vectorized approach: use numpy.vectorize for quad calls
