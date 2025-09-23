@@ -224,8 +224,6 @@ def build_and_save_bank(
         theta_max,
         theta_pts,
         gamma_pts,
-        f_min,
-        delta_f,
         orientation_tag,
         prefix=bank_prefix,
     )

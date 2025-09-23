@@ -153,8 +153,6 @@ def main(
             theta_max,
             theta_pts,
             gamma_pts,
-            f_min,
-            delta_f,
             tag,
             prefix=bank_prefix,
         )
@@ -191,8 +189,6 @@ def main(
                 mcz_msun=mcz,
                 td_min_ms=td_min_ms,
                 td_max_ms=td_max_ms,
-                f_min=f_min,
-                delta_f=delta_f,
                 orientation_tag=tag,
             )
             with h5py.File(mm_out_path, "w") as mmh5:
@@ -291,8 +287,6 @@ def main(
         td_max_ms=td_max_ms,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
-        f_min=f_min,
-        delta_f=delta_f,
         orientation_tag=tag,
     )
     with h5py.File(summary_path, "w") as h5:
