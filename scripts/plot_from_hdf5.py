@@ -5,18 +5,12 @@ from typing import Optional
 import numpy as np
 import h5py
 
+# Ensure project root is on path
+import sys
 
-def _default_fig_path(repo_root: str, td_ms: np.ndarray, mcz: np.ndarray) -> str:
-    td_min_ms = float(np.min(td_ms))
-    td_max_ms = float(np.max(td_ms))
-    mcz_min = float(np.min(mcz))
-    mcz_max = float(np.max(mcz))
-    fig_dir = os.path.join(repo_root, "figures")
-    os.makedirs(fig_dir, exist_ok=True)
-    return os.path.join(
-        fig_dir,
-        f"contour_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun_min_mismatch.pdf",
-    )
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from modules.filenames import contour_td_mcz_filename
 
 
 def main(
@@ -27,6 +21,7 @@ def main(
     levels: int,
     show: bool,
     td_decimals: int,
+    end_tag: Optional[str] = None,
 ) -> None:
     # Input validation
     if not os.path.isfile(input_h5):
@@ -63,7 +58,39 @@ def main(
         print("Warning: epsilon_min contains infinite values")
 
     if output_path is None:
-        output_path = _default_fig_path(repo_root, td_ms, mcz)
+        # Use centralized filename builder with orientation tag
+        td_min_ms = float(np.min(td_ms))
+        td_max_ms = float(np.max(td_ms))
+        mcz_min = float(np.min(mcz))
+        mcz_max = float(np.max(mcz))
+        fig_dir = os.path.join(repo_root, "figures")
+
+        # Extract orientation tag from filename
+        input_basename = os.path.basename(input_h5)
+        # Try to extract tag from filename like "best_match_td20-22ms_mcz10-12Msun_f20_df1.00_Taman_faceon.h5"
+        if "_" in input_basename:
+            parts = input_basename.replace(".h5", "").split("_")
+            if len(parts) >= 2:
+                # Last two parts should be author_orientation (e.g., "Taman_faceon")
+                orientation_tag = "_".join(parts[-2:])
+            else:
+                orientation_tag = "unknown"
+        else:
+            orientation_tag = "unknown"
+
+        # Append end_tag if provided
+        if end_tag is not None:
+            orientation_tag = f"{orientation_tag}_{end_tag}"
+
+        output_path = contour_td_mcz_filename(
+            fig_dir=fig_dir,
+            td_min_ms=td_min_ms,
+            td_max_ms=td_max_ms,
+            mcz_min=mcz_min,
+            mcz_max=mcz_max,
+            orientation_tag=orientation_tag,
+            ext="pdf",
+        )
     else:
         # Only create directory if output_path has one
         output_dir = os.path.dirname(output_path)
@@ -77,7 +104,9 @@ def main(
     ax = fig.add_subplot(111)
     cf = ax.contourf(TD, MCZ, Z, levels=levels, cmap=cmap)
     cbar = fig.colorbar(cf, ax=ax)
-    cbar.set_label(r"$\epsilon(\tilde{h}_L, \tilde{h}_P)$")
+    cbar.set_label(
+        r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$"
+    )
     ax.set_xlabel(r"$\Delta t_d$ [ms]")
     ax.set_ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
@@ -121,6 +150,12 @@ if __name__ == "__main__":
         default=0,
         help="Number of decimal places for time-delay x-axis ticks (default: 0, i.e., integers)",
     )
+    p.add_argument(
+        "--end_tag",
+        type=str,
+        default=None,
+        help="Optional suffix to append to the orientation tag extracted from input filename.",
+    )
     args = p.parse_args()
 
     main(
@@ -131,4 +166,5 @@ if __name__ == "__main__":
         levels=args.levels,
         show=args.show,
         td_decimals=args.td_decimals,
+        end_tag=args.end_tag,
     )
