@@ -31,6 +31,7 @@ from modules.filenames import (
 from modules.match_utils import cast_to_match_precision, ensure_same_length
 from modules.bank_io import open_bank_readonly
 import logging
+from modules.cluster_utils import get_env_int, chunk_bounds
 
 
 # Globals for worker processes
@@ -141,6 +142,8 @@ def main(
     save_full_mismatch: bool,
     results_dir: str,
     no_plot: bool,
+    mcz_chunk_index: Optional[int] = None,
+    mcz_chunk_count: Optional[int] = None,
 ):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir = os.path.join(base_dir, "figures")
@@ -173,8 +176,29 @@ def main(
         default_orientation="edgeon",
     )
 
+    # Resolve chunking from CLI or SLURM env vars
+    env_idx = get_env_int("SLURM_ARRAY_TASK_ID")
+    env_cnt = get_env_int("SLURM_ARRAY_TASK_COUNT")
+    if mcz_chunk_index is None:
+        mcz_chunk_index = env_idx
+    if mcz_chunk_count is None:
+        mcz_chunk_count = env_cnt
+    if (
+        mcz_chunk_index is not None
+        and mcz_chunk_count is not None
+        and mcz_chunk_count > 1
+    ):
+        start, end = chunk_bounds(mcz_pts, mcz_chunk_count, mcz_chunk_index)
+        sel = range(start, end)
+        logging.info(
+            f"Chunking mcz across {mcz_chunk_count} chunks: running indices [{start}:{end})"
+        )
+    else:
+        sel = range(mcz_pts)
+
     # Loop over mcz values
-    for i, mcz in enumerate(mcz_arr):
+    for i in sel:
+        mcz = float(mcz_arr[i])
         logging.info(
             f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz:.1f} Msun (omega {omega_min:.0f}-{omega_max:.0f}, theta {theta_min:.0f}-{theta_max:.0f})"
         )
@@ -437,6 +461,18 @@ if __name__ == "__main__":
         ),
     )
     p.add_argument("--no_plot", action="store_true")
+    p.add_argument(
+        "--mcz_chunk_index",
+        type=int,
+        default=None,
+        help="Chunk index for mcz splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
+    )
+    p.add_argument(
+        "--mcz_chunk_count",
+        type=int,
+        default=None,
+        help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
+    )
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)
     # Repoint choices on orient_preset action
@@ -477,4 +513,6 @@ if __name__ == "__main__":
         save_full_mismatch=args.save_full_mismatch,
         results_dir=args.results_dir,
         no_plot=args.no_plot,
+        mcz_chunk_index=args.mcz_chunk_index,
+        mcz_chunk_count=args.mcz_chunk_count,
     )

@@ -17,6 +17,7 @@ from modules.functions_v3 import timer_decorator
 # set_orientation is used internally by resolve_orientation; no direct import needed here
 from modules.default_params_v3 import orient_params
 import logging
+from modules.cluster_utils import get_env_int, chunk_bounds
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
@@ -44,6 +45,8 @@ def main(
     bank_prefix: str,
     n_workers: Optional[int],
     dtype: str,
+    mcz_chunk_index: Optional[int],
+    mcz_chunk_count: Optional[int],
 ):
     # Base RP params and orientation/tag handling via shared helper
     base_params, tag = resolve_orientation(
@@ -59,7 +62,30 @@ def main(
     )
 
     mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
-    for i, mcz in enumerate(mcz_arr):
+
+    # Resolve chunking from CLI or SLURM env vars
+    env_idx = get_env_int("SLURM_ARRAY_TASK_ID")
+    env_cnt = get_env_int("SLURM_ARRAY_TASK_COUNT")
+    if mcz_chunk_index is None:
+        mcz_chunk_index = env_idx
+    if mcz_chunk_count is None:
+        mcz_chunk_count = env_cnt
+
+    if (
+        mcz_chunk_index is not None
+        and mcz_chunk_count is not None
+        and mcz_chunk_count > 1
+    ):
+        start, end = chunk_bounds(mcz_pts, mcz_chunk_count, mcz_chunk_index)
+        sel = range(start, end)
+        logging.info(
+            f"Chunking mcz across {mcz_chunk_count} chunks: running indices [{start}:{end})"
+        )
+    else:
+        sel = range(mcz_pts)
+
+    for i in sel:
+        mcz = float(mcz_arr[i])
         logging.info(
             f"[{i+1}/{len(mcz_arr)}] Building bank for mcz={mcz:.1f} Msun with omega {omega_min:.0f}-{omega_max:.0f} x{omega_pts}, theta {theta_min:.0f}-{theta_max:.0f} x{theta_pts}, gamma x{gamma_pts}"
         )
@@ -131,6 +157,18 @@ if __name__ == "__main__":
         default="complex128",
         help="Data type for stored complex strain arrays.",
     )
+    p.add_argument(
+        "--mcz_chunk_index",
+        type=int,
+        default=None,
+        help="Chunk index for mcz splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
+    )
+    p.add_argument(
+        "--mcz_chunk_count",
+        type=int,
+        default=None,
+        help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
+    )
 
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)
@@ -164,4 +202,6 @@ if __name__ == "__main__":
         bank_prefix=args.bank_prefix,
         n_workers=args.n_workers,
         dtype=args.dtype,
+        mcz_chunk_index=args.mcz_chunk_index,
+        mcz_chunk_count=args.mcz_chunk_count,
     )
