@@ -21,11 +21,14 @@ from modules.functions_v3 import (
     get_fcut_from_mcz,
 )
 from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
-from modules.template_bank import (
+from modules.orientation import resolve_orientation, allowed_orient_presets
+from modules.filenames import (
     bank_filename,
-    resolve_orientation,
-    allowed_orient_presets,
+    mismatch_cubes_filename,
+    best_match_filename,
+    contour_td_mcz_filename,
 )
+import logging
 
 
 # Globals for worker processes
@@ -107,6 +110,8 @@ def main(
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
 
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
     # Axes arrays
     mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
     td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_pts)
@@ -133,7 +138,7 @@ def main(
 
     # Loop over mcz values
     for i, mcz in enumerate(mcz_arr):
-        print(
+        logging.info(
             f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz:.1f} Msun (omega {omega_min:.0f}-{omega_max:.0f}, theta {theta_min:.0f}-{theta_max:.0f})"
         )
 
@@ -181,9 +186,14 @@ def main(
             psd = Sn(s_f, f_min=f_min, delta_f=delta_f)
 
             # Prepare HDF5 output for mismatch cubes (per-mcz)
-            mm_out_path = os.path.join(
+            mm_out_path = mismatch_cubes_filename(
                 results_dir,
-                f"mismatch_cubes_mcz{mcz:.0f}Msun_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_f{int(f_min)}_df{delta_f:.2f}_{tag}.h5",
+                mcz_msun=mcz,
+                td_min_ms=td_min_ms,
+                td_max_ms=td_max_ms,
+                f_min=f_min,
+                delta_f=delta_f,
+                orientation_tag=tag,
             )
             with h5py.File(mm_out_path, "w") as mmh5:
                 mmh5.create_dataset("mcz", data=np.array([mcz], dtype=np.float64))
@@ -272,12 +282,18 @@ def main(
                     Tmap[i, j] = float(theta_arr[idx[0]])
                     Gmap[i, j] = float(Ggrid[idx])
 
-        print(f"Saved mismatch data: {mm_out_path}")
+        logging.info(f"Saved mismatch data: {mm_out_path}")
 
     # Save best-match results across all mcz
-    summary_path = os.path.join(
+    summary_path = best_match_filename(
         results_dir,
-        f"best_match_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun_f{int(f_min)}_df{delta_f:.2f}_{tag}.h5",
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        f_min=f_min,
+        delta_f=delta_f,
+        orientation_tag=tag,
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("mcz", data=mcz_arr.astype(np.float64))
@@ -291,7 +307,7 @@ def main(
         h5.attrs["phi_J"] = np.nan if phi_J is None else float(phi_J)
         h5.attrs["theta_S"] = np.nan if theta_S is None else float(theta_S)
         h5.attrs["phi_S"] = np.nan if phi_S is None else float(phi_S)
-    print(f"Saved best-match results: {summary_path}")
+    logging.info(f"Saved best-match results: {summary_path}")
 
     # Plot contour of minimal mismatch
     if not no_plot:
@@ -301,16 +317,23 @@ def main(
         plt.figure(figsize=(8, 6))
         cf = plt.contourf(TD, MCZ, Zmap, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_L, \tilde{h}_P)$")
+        cbar.set_label(
+            r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$"
+        )
         plt.xlabel(r"$\Delta t_d$ [ms]")
         plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
         plt.tight_layout()
-        fig_path = os.path.join(
+        fig_path = contour_td_mcz_filename(
             fig_dir,
-            f"contour_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun_min_mismatch.pdf",
+            td_min_ms=td_min_ms,
+            td_max_ms=td_max_ms,
+            mcz_min=mcz_min,
+            mcz_max=mcz_max,
+            orientation_tag=tag,
+            ext="pdf",
         )
         plt.savefig(fig_path, dpi=200)
-        print(f"Figure saved as {fig_path}")
+        logging.info(f"Figure saved as {fig_path}")
 
 
 if __name__ == "__main__":

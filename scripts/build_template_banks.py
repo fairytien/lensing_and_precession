@@ -9,15 +9,15 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.template_bank import (
-    build_and_save_bank,
-    resolve_orientation,
-    allowed_orient_presets,
-)
+from modules.template_bank import build_and_save_bank
+from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.default_params_v3 import RP_params_1
 
 # set_orientation is used internally by resolve_orientation; no direct import needed here
 from modules.default_params_v3 import orient_params
+import logging
+
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 def main(
@@ -57,7 +57,7 @@ def main(
 
     mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
     for i, mcz in enumerate(mcz_arr):
-        print(
+        logging.info(
             f"[{i+1}/{len(mcz_arr)}] Building bank for mcz={mcz:.1f} Msun with omega {omega_min:.0f}-{omega_max:.0f} x{omega_pts}, theta {theta_min:.0f}-{theta_max:.0f} x{theta_pts}, gamma x{gamma_pts}"
         )
         out_path = build_and_save_bank(
@@ -77,7 +77,7 @@ def main(
             bank_prefix,
             n_workers,
         )
-        print(f"Saved: {out_path}")
+        logging.info(f"Saved: {out_path}")
 
 
 if __name__ == "__main__":

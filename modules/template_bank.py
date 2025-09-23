@@ -14,9 +14,15 @@ try:
 except Exception:
     pass
 
-from modules.functions_v3 import get_gw, set_orientation
+from modules.functions_v3 import get_gw
 from modules.default_params_v3 import SOLMASS2SEC
 from modules.Classes_v2 import Precessing as P2
+from modules.filenames import bank_filename
+from modules.orientation import (
+    resolve_orientation,
+    orientation_tag,
+    allowed_orient_presets,
+)
 
 
 def _grid_arrays(
@@ -172,24 +178,7 @@ def load_bank_hdf5(
     return omega, theta, gamma, bank, attrs
 
 
-def bank_filename(
-    bank_dir: str,
-    mcz_msun: float,
-    omega_min: float,
-    omega_max: float,
-    omega_pts: int,
-    theta_min: float,
-    theta_max: float,
-    theta_pts: int,
-    gamma_pts: int,
-    f_min: float,
-    delta_f: float,
-    orientation_tag: str,
-    prefix: str = "rp_bank",
-) -> str:
-    os.makedirs(bank_dir, exist_ok=True)
-    name = f"{prefix}_mcz{mcz_msun:.0f}_omega{omega_min:.0f}-{omega_max:.0f}_theta{theta_min:.0f}-{theta_max:.0f}_o{omega_pts}xt{theta_pts}xg{gamma_pts}_f{int(f_min)}_df{delta_f:.2f}_{orientation_tag}.h5"
-    return os.path.join(bank_dir, name)
+# bank_filename now imported from modules.filenames
 
 
 def build_and_save_bank(
@@ -243,75 +232,4 @@ def build_and_save_bank(
     return save_bank_hdf5(path, omega_arr, theta_arr, gamma_arr, meta, bank)
 
 
-def orientation_tag(
-    theta_J: Optional[float],
-    phi_J: Optional[float],
-    theta_S: Optional[float],
-    phi_S: Optional[float],
-) -> str:
-    vals = [theta_J, phi_J, theta_S, phi_S]
-    if any(v is not None for v in vals):
-
-        def fmt(x):
-            return "nan" if x is None else f"{float(x):.3f}"
-
-        return f"custom_thetaJ{fmt(theta_J)}_phiJ{fmt(phi_J)}_thetaS{fmt(theta_S)}_phiS{fmt(phi_S)}"
-    return "Taman_edgeon"
-
-
-def resolve_orientation(
-    orient_preset: Optional[str],
-    theta_J: Optional[float],
-    phi_J: Optional[float],
-    theta_S: Optional[float],
-    phi_S: Optional[float],
-    base_params: Dict,
-    orient_params: Dict,
-    default_author: str = "Taman",
-    default_orientation: str = "edgeon",
-) -> Tuple[Dict, str]:
-    """
-    Resolve orientation parameters and filename tag based on either a preset
-    (e.g., "Taman_edgeon") or explicit angle overrides.
-    When a preset is provided, explicit angles are ignored.
-
-    Returns (params, tag).
-    """
-    if orient_preset:
-        try:
-            author, orientation = orient_preset.split("_", 1)
-            preset = orient_params[author][orientation]
-        except Exception as exc:  # pragma: no cover - robust CLI validation
-            raise ValueError(
-                f"Invalid orient_preset '{orient_preset}'. Use one of the allowed choices."
-            ) from exc
-        params = set_orientation(preset, base_params)[0]
-        if any(v is not None for v in (theta_J, phi_J, theta_S, phi_S)):
-            print(
-                "[info] orient_preset provided; ignoring explicit angle overrides for tag and params."
-            )
-        return params, orient_preset
-
-    # No preset: start from default, then apply any explicit angles and tag by angles
-    params = set_orientation(
-        orient_params[default_author][default_orientation], base_params
-    )[0]
-    if theta_J is not None:
-        params["theta_J"] = theta_J
-    if phi_J is not None:
-        params["phi_J"] = phi_J
-    if theta_S is not None:
-        params["theta_S"] = theta_S
-    if phi_S is not None:
-        params["phi_S"] = phi_S
-
-    # For tag, reflect only explicit overrides; default None yields preset-like tag
-    tag = orientation_tag(theta_J, phi_J, theta_S, phi_S)
-    return params, tag
-
-
-def allowed_orient_presets(_orient_params: Dict) -> list:
-    # Return sorted list like 'Author_orientation'
-    return sorted(
-        [f"{author}_{name}" for author, sub in _orient_params.items() for name in sub]
-    )
+# orientation helpers moved to modules.orientation
