@@ -1,13 +1,12 @@
-import os
-import argparse
+import os, argparse, sys
 from typing import Optional
 
 import numpy as np
 import h5py
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 
 # Ensure project root is on path
-import sys
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.filenames import contour_td_mcz_filename
@@ -21,6 +20,7 @@ def main(
     levels: int,
     show: bool,
     td_decimals: int,
+    mcz_decimals: int,
     end_tag: Optional[str] = None,
 ) -> None:
     # Input validation
@@ -30,6 +30,10 @@ def main(
         raise ValueError(f"levels must be positive, got {levels}")
     if dpi <= 0:
         raise ValueError(f"dpi must be positive, got {dpi}")
+    if td_decimals < 0:
+        raise ValueError(f"td_decimals must be non-negative, got {td_decimals}")
+    if mcz_decimals < 0:
+        raise ValueError(f"mcz_decimals must be non-negative, got {mcz_decimals}")
 
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -40,9 +44,9 @@ def main(
         if missing:
             raise KeyError(f"Missing required datasets in {input_h5}: {missing}")
 
-        mcz = np.array(h5["mcz"], dtype=float)  # (mcz_pts,)
-        td_s = np.array(h5["td"], dtype=float)  # (td_pts,) in seconds
-        Z = np.array(h5["epsilon_min"], dtype=float)  # (mcz_pts, td_pts)
+        mcz = np.array(h5["mcz"], dtype=np.float64)  # (mcz_pts,)
+        td_s = np.array(h5["td"], dtype=np.float64)  # (td_pts,) in seconds
+        Z = np.array(h5["epsilon_min"], dtype=np.float64)  # (mcz_pts, td_pts)
 
     td_ms = td_s * 1e3
 
@@ -56,6 +60,8 @@ def main(
         print("Warning: epsilon_min contains NaN values")
     if np.any(np.isinf(Z)):
         print("Warning: epsilon_min contains infinite values")
+    if np.all(Z == Z.flat[0]):
+        print("Warning: epsilon_min appears to be constant")
 
     if output_path is None:
         # Use centralized filename builder with orientation tag
@@ -97,11 +103,11 @@ def main(
         if output_dir:
             os.makedirs(output_dir, exist_ok=True)
 
-    import matplotlib.pyplot as plt
-
+    # Create meshgrid for contour plotting
     TD, MCZ = np.meshgrid(td_ms, mcz)
-    fig = plt.figure(figsize=(8, 6))
-    ax = fig.add_subplot(111)
+
+    # Create figure and plot
+    fig, ax = plt.subplots(figsize=(8, 6))
     cf = ax.contourf(TD, MCZ, Z, levels=levels, cmap=cmap)
     cbar = fig.colorbar(cf, ax=ax)
     cbar.set_label(
@@ -110,20 +116,27 @@ def main(
     ax.set_xlabel(r"$\Delta t_d$ [ms]")
     ax.set_ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
-    # Format x-axis ticks with specified decimal precision
-    if td_decimals >= 0:
-        import matplotlib.ticker as ticker
+    # TODO: Ensure square aspect ratio for the contour plot (excluding colorbar)
 
+    # Format axis ticks with specified decimal precision
+    if td_decimals >= 0:
         ax.xaxis.set_major_formatter(
             ticker.FuncFormatter(lambda x, p: f"{x:.{td_decimals}f}")
         )
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
 
+    if mcz_decimals >= 0:
+        ax.yaxis.set_major_formatter(
+            ticker.FuncFormatter(lambda x, p: f"{x:.{mcz_decimals}f}")
+        )
+    # Save and display
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     print(f"Saved plot: {output_path}")
 
     if show:
         plt.show()
+    else:
+        plt.close(fig)  # Clean up memory
 
 
 if __name__ == "__main__":
@@ -151,6 +164,12 @@ if __name__ == "__main__":
         help="Number of decimal places for time-delay x-axis ticks (default: 1, e.g., 1.0ms)",
     )
     p.add_argument(
+        "--mcz_decimals",
+        type=int,
+        default=1,
+        help="Number of decimal places for chirp mass y-axis ticks (default: 1, e.g., 20.0 Msun)",
+    )
+    p.add_argument(
         "--end_tag",
         type=str,
         default=None,
@@ -166,5 +185,6 @@ if __name__ == "__main__":
         levels=args.levels,
         show=args.show,
         td_decimals=args.td_decimals,
+        mcz_decimals=args.mcz_decimals,
         end_tag=args.end_tag,
     )
