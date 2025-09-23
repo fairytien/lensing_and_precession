@@ -5,7 +5,7 @@
 #SBATCH -t 00:05:00 # Walltime (shorter for test runs)
 #SBATCH -p development # Queue name where job is submitted (faster queue)
 #SBATCH -o batch_outputs/build_template_banks_test.out # Output file
-#SBATCH --mail-type=BEGIN, FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
+#SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
 cd $SLURM_SUBMIT_DIR
