@@ -8,82 +8,31 @@
 #SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-cd $SLURM_SUBMIT_DIR
-
-# Activate conda environment
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate fairytien_gw
-
-# Configurable parameters via environment variables (with sensible defaults)
-ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}
-
-I=${I:-0.5}
-
-MCZ_MIN=${MCZ_MIN:-10}
-MCZ_MAX=${MCZ_MAX:-80}
-MCZ_PTS=${MCZ_PTS:-71}
-
-TD_MIN_MS=${TD_MIN_MS:-20}
-TD_MAX_MS=${TD_MAX_MS:-70}
-TD_PTS=${TD_PTS:-51}
-
-OMEGA_MIN=${OMEGA_MIN:-0}
-OMEGA_MAX=${OMEGA_MAX:-6}
-OMEGA_PTS=${OMEGA_PTS:-61}
-
-THETA_MIN=${THETA_MIN:-0}
-THETA_MAX=${THETA_MAX:-15}
-THETA_PTS=${THETA_PTS:-151}
-
-GAMMA_PTS=${GAMMA_PTS:-101}
-
-F_MIN=${F_MIN:-20}
-DELTA_F=${DELTA_F:-0.25}
-
-BANK_DIR=${BANK_DIR:-$SLURM_SUBMIT_DIR/data/template_banks}
-BANK_PREFIX=${BANK_PREFIX:-rp_bank}
-RESULTS_DIR=${RESULTS_DIR:-$SLURM_SUBMIT_DIR/data/contours}
-
-# Optional flags
-COMPARE_BOTH=${COMPARE_BOTH:-false}
-USE_OPT_MATCH=${USE_OPT_MATCH:-false}
-SAVE_FULL_MISMATCH=${SAVE_FULL_MISMATCH:-false}
-NO_PLOT=${NO_PLOT:-false}
-
-# Build command with conditional flags
-CMD="srun python scripts/contour_td_mcz_from_banks.py \
-  --I $I \
-  --orient_preset \"$ORIENT_PRESET\" \
-  --mcz_min $MCZ_MIN --mcz_max $MCZ_MAX --mcz_pts $MCZ_PTS \
-  --td_min_ms $TD_MIN_MS --td_max_ms $TD_MAX_MS --td_pts $TD_PTS \
-  --omega_min $OMEGA_MIN --omega_max $OMEGA_MAX --omega_pts $OMEGA_PTS \
-  --theta_min $THETA_MIN --theta_max $THETA_MAX --theta_pts $THETA_PTS \
-  --gamma_pts $GAMMA_PTS \
-  --f_min $F_MIN --delta_f $DELTA_F \
-  --bank_dir \"$BANK_DIR\" --bank_prefix \"$BANK_PREFIX\" \
-  --results_dir \"$RESULTS_DIR\""
-
-# Add optional flags if enabled
-if [[ "$COMPARE_BOTH" == "true" ]]; then
-  CMD="$CMD --compare_both"
+# Activate your conda environment for this project
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+  source "$HOME/miniconda3/etc/profile.d/conda.sh"
+fi
+if command -v conda >/dev/null 2>&1; then
+  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
 fi
 
-if [[ "$USE_OPT_MATCH" == "true" ]]; then
-  CMD="$CMD --use_opt_match"
-fi
+# Change to submission directory or PROJECT_ROOT if provided
+PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
+cd "$PROJECT_ROOT"
 
-if [[ "$SAVE_FULL_MISMATCH" == "true" ]]; then
-  CMD="$CMD --save_full_mismatch"
-fi
+NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
-if [[ "$NO_PLOT" == "true" ]]; then
-  CMD="$CMD --no_plot"
-fi
-
-# Optional override for worker count (defaults to auto inside the script)
-if [[ -n "$N_WORKERS" ]]; then
-  CMD="$CMD --n_workers $N_WORKERS"
-fi
-
-# Execute the command
-eval $CMD
+python scripts/contour_td_mcz_from_banks.py \
+  --I 0.5 \
+  --orient_preset edgeon \
+  --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
+  --td_min_ms 20 --td_max_ms 70 --td_pts 51 \
+  --omega_min 0 --omega_max 6 --omega_pts 61 \
+  --theta_min 0 --theta_max 15 --theta_pts 151 \
+  --gamma_pts 101 \
+  --f_min 20 --delta_f 0.25 \
+  --n_workers ${NWORKERS} \
+  --use_opt_match \
+  --results_dir ./data/contours \
+  --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
+  --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}

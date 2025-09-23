@@ -4,15 +4,24 @@
 #SBATCH -N 1 # Number of nodes
 #SBATCH -t 00:05:00 # Walltime (shorter for test runs)
 #SBATCH -p development # Queue name where job is submitted (faster queue)
-#SBATCH -o batch_outputs/contour_td_mcz_from_banks_test.out # Output file
+#SBATCH --array=0-2 # Test with 3 chunks
+#SBATCH -o batch_outputs/contour_td_mcz_from_banks_test_%A_%a.out # Output file
 #SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-cd $SLURM_SUBMIT_DIR
+# Activate your conda environment for this project
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+  source "$HOME/miniconda3/etc/profile.d/conda.sh"
+fi
+if command -v conda >/dev/null 2>&1; then
+  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
+fi
 
-# Activate conda environment
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate fairytien_gw
+# Change to submission directory or PROJECT_ROOT if provided
+PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
+cd "$PROJECT_ROOT"
+
+NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
 # Test run parameters (smaller grids for quick testing)
 ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}
@@ -51,7 +60,7 @@ SAVE_FULL_MISMATCH=${SAVE_FULL_MISMATCH:-false}
 NO_PLOT=${NO_PLOT:-false}
 
 # Build command with conditional flags
-CMD="srun python scripts/contour_td_mcz_from_banks.py \
+CMD="python scripts/contour_td_mcz_from_banks.py \
   --I $I \
   --orient_preset \"$ORIENT_PRESET\" \
   --mcz_min $MCZ_MIN --mcz_max $MCZ_MAX --mcz_pts $MCZ_PTS \
@@ -61,7 +70,10 @@ CMD="srun python scripts/contour_td_mcz_from_banks.py \
   --gamma_pts $GAMMA_PTS \
   --f_min $F_MIN --delta_f $DELTA_F \
   --bank_dir \"$BANK_DIR\" --bank_prefix \"$BANK_PREFIX\" \
-  --results_dir \"$RESULTS_DIR\""
+  --results_dir \"$RESULTS_DIR\" \
+  --n_workers ${NWORKERS} \
+  --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
+  --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}"
 
 # Add optional flags if enabled
 if [[ "$COMPARE_BOTH" == "true" ]]; then
@@ -78,11 +90,6 @@ fi
 
 if [[ "$NO_PLOT" == "true" ]]; then
   CMD="$CMD --no_plot"
-fi
-
-# Optional override for worker count (defaults to auto inside the script)
-if [[ -n "$N_WORKERS" ]]; then
-  CMD="$CMD --n_workers $N_WORKERS"
 fi
 
 # Execute the command

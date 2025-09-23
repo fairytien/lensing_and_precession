@@ -4,67 +4,37 @@
 #SBATCH -N 1 # Number of nodes
 #SBATCH -t 04:00:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
+#SBATCH --ntasks-per-node=128 # Number of tasks per node
+#SBATCH --array=0-9 # Number of chunks
 #SBATCH -o batch_outputs/build_template_banks.out # Output file
 #SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-cd $SLURM_SUBMIT_DIR
-
-# Activate conda environment
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate fairytien_gw
-
-# Use the Python from the activated conda environment
-PYTHON_EXEC=${PYTHON_EXEC:-"$CONDA_PREFIX/bin/python"}
-
-# Configurable parameters via environment variables (with sensible defaults)
-ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}
-
-MCZ_MIN=${MCZ_MIN:-10}
-MCZ_MAX=${MCZ_MAX:-80}
-MCZ_PTS=${MCZ_PTS:-71}
-
-OMEGA_MIN=${OMEGA_MIN:-0}
-OMEGA_MAX=${OMEGA_MAX:-6}
-OMEGA_PTS=${OMEGA_PTS:-61}
-
-THETA_MIN=${THETA_MIN:-0}
-THETA_MAX=${THETA_MAX:-15}
-THETA_PTS=${THETA_PTS:-151}
-
-GAMMA_PTS=${GAMMA_PTS:-101}
-
-F_MIN=${F_MIN:-20}
-DELTA_F=${DELTA_F:-0.25}
-
-BANK_DIR=${BANK_DIR:-$SLURM_SUBMIT_DIR/data/template_banks}
-BANK_PREFIX=${BANK_PREFIX:-rp_bank}
-
-# Data type for complex arrays (complex128 or complex64)
-DTYPE=${DTYPE:-complex128}
-
-# Optional override for worker count (defaults to auto inside the script)
-if [[ -z "$N_WORKERS" ]]; then
-  srun "$PYTHON_EXEC" scripts/build_template_banks.py \
-    --orient_preset "$ORIENT_PRESET" \
-    --mcz_min $MCZ_MIN --mcz_max $MCZ_MAX --mcz_pts $MCZ_PTS \
-    --omega_min $OMEGA_MIN --omega_max $OMEGA_MAX --omega_pts $OMEGA_PTS \
-    --theta_min $THETA_MIN --theta_max $THETA_MAX --theta_pts $THETA_PTS \
-    --gamma_pts $GAMMA_PTS \
-    --f_min $F_MIN --delta_f $DELTA_F \
-    --bank_dir "$BANK_DIR" --bank_prefix "$BANK_PREFIX" \
-    --dtype "$DTYPE"
-else
-  srun "$PYTHON_EXEC" scripts/build_template_banks.py \
-    --orient_preset "$ORIENT_PRESET" \
-    --mcz_min $MCZ_MIN --mcz_max $MCZ_MAX --mcz_pts $MCZ_PTS \
-    --omega_min $OMEGA_MIN --omega_max $OMEGA_MAX --omega_pts $OMEGA_PTS \
-    --theta_min $THETA_MIN --theta_max $THETA_MAX --theta_pts $THETA_PTS \
-    --gamma_pts $GAMMA_PTS \
-    --f_min $F_MIN --delta_f $DELTA_F \
-    --bank_dir "$BANK_DIR" --bank_prefix "$BANK_PREFIX" \
-    --n_workers $N_WORKERS \
-    --dtype "$DTYPE"
+# Activate your conda environment for this project
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+  source "$HOME/miniconda3/etc/profile.d/conda.sh"
 fi
+if command -v conda >/dev/null 2>&1; then
+  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
+fi
+
+# Change to submission directory or PROJECT_ROOT if provided
+PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
+cd "$PROJECT_ROOT"
+
+# Tune n_workers to available cores per node; default to a conservative value
+NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
+
+python scripts/build_template_banks.py \
+  --orient_preset edgeon \
+  --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
+  --omega_min 0 --omega_max 6 --omega_pts 61 \
+  --theta_min 0 --theta_max 15 --theta_pts 151 \
+  --gamma_pts 101 \
+  --f_min 20 --delta_f 0.25 \
+  --n_workers ${NWORKERS} \
+  --dtype complex64 \
+  --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
+  --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}
 
 
