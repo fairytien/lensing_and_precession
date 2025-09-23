@@ -30,12 +30,13 @@ def mismatch_cubes_filename(
     td_max_ms: float,
     orientation_tag: str,
 ) -> str:
-    os.makedirs(results_dir, exist_ok=True)
+    mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
+    os.makedirs(mismatch_dir, exist_ok=True)
     name = (
         f"mismatch_cubes_mcz{mcz_msun:.0f}Msun_td{td_min_ms:.0f}-{td_max_ms:.0f}ms"
         f"_{orientation_tag}.h5"
     )
-    return os.path.join(results_dir, name)
+    return os.path.join(mismatch_dir, name)
 
 
 def best_match_filename(
@@ -46,12 +47,13 @@ def best_match_filename(
     mcz_max: float,
     orientation_tag: str,
 ) -> str:
-    os.makedirs(results_dir, exist_ok=True)
+    best_match_dir = os.path.join(results_dir, "best_match")
+    os.makedirs(best_match_dir, exist_ok=True)
     name = (
         f"best_match_td{td_min_ms:.0f}-{td_max_ms:.0f}ms"
         f"_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun_{orientation_tag}.h5"
     )
-    return os.path.join(results_dir, name)
+    return os.path.join(best_match_dir, name)
 
 
 def contour_td_mcz_filename(
