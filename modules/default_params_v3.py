@@ -213,3 +213,6 @@ loc_params["Ben"] = {
         "phi_J": np.pi / 3,
     }
 }
+
+# Backward compatibility - deprecated in favor of orient_params
+orient_params = loc_params

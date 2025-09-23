@@ -12,7 +12,7 @@ def main(output_dir):
     print("Number of cores: ", cpu_count())
 
     # Assign parameters
-    RP_params = set_to_location(loc_params["Taman"]["edgeon"], RP_params_1)[0]
+    RP_params = set_orientation(orient_params["Taman"]["edgeon"], RP_params_1)[0]
     mcz = 40
     RP_params["mcz"] = mcz * SOLMASS2SEC
 

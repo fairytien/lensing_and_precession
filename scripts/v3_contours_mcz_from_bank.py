@@ -13,8 +13,8 @@ def main(output_dir):
     # Assign parameters
     results = {}
     mcz_arr = np.round(np.linspace(10, 90, 81), 2)
-    lens_params, RP_params = set_to_location(
-        loc_params["Taman"]["edgeon"], lens_params_1, RP_params_1
+    lens_params, RP_params = set_orientation(
+        orient_params["Taman"]["edgeon"], lens_params_1, RP_params_1
     )
     I = 0.5
     td = 0.03

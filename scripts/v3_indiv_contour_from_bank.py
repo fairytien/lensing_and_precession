@@ -9,7 +9,7 @@ def main():
     print("Number of cores: ", cpu_count())
 
     # Assign parameters
-    lens_params = set_to_location(loc_params["Taman"]["edgeon"], lens_params_1)[0]
+    lens_params = set_orientation(orient_params["Taman"]["edgeon"], lens_params_1)[0]
     # Get the mcz_msun value from the environment variable
     mcz_msun = int(os.environ.get("MCZ_VALUE", 40))  # Default to 40 if not set
     lens_params["mcz"] = mcz_msun * SOLMASS2SEC

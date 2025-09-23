@@ -30,8 +30,8 @@ def _compute_mismatch_for_mcz(args):
     mcz, td_arr, y, f_min, delta_f, compare_both = args
 
     # Build fresh parameter dictionaries for this process
-    lens_params, NP_params = set_to_location(
-        loc_params["Taman"]["edgeon"], lens_params_1, NP_params_1
+    lens_params, NP_params = set_orientation(
+        orient_params["Taman"]["edgeon"], lens_params_1, NP_params_1
     )  # Location shouldn't matter for lensed and unlensed waveforms
 
     # Set chirp mass for both source and template (convert Msun -> sec)
@@ -75,8 +75,8 @@ def _compute_mismatch_for_mcz_optimized(args):
     mcz, td_arr, y, f_min, delta_f, compare_both = args
 
     # Build fresh parameter dictionaries for this process
-    lens_params, NP_params = set_to_location(
-        loc_params["Taman"]["edgeon"], lens_params_1, NP_params_1
+    lens_params, NP_params = set_orientation(
+        orient_params["Taman"]["edgeon"], lens_params_1, NP_params_1
     )  # Location shouldn't matter for lensed and unlensed waveforms
 
     # Set source chirp mass (convert Msun -> sec)

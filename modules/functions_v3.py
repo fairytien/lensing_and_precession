@@ -65,28 +65,28 @@ def set_to_params(*args):
     return tuple(args_copy)
 
 
-def set_to_location(loc_dict: dict, *args):
+def set_orientation(orient_dict: dict, *args):
     """
-    Sets the location of each argument in `args` to the values specified in `loc_dict`.
+    Sets the angular orientation of each argument in `args` to the values specified in `orient_dict`.
 
     Args:
-        loc_dict (dict): A dictionary containing the location values to set for each argument.
+        orient_dict (dict): A dictionary containing the angular orientation values to set for each argument.
         *args: One or more dictionaries representing the arguments to modify.
 
     Returns:
         tuple: A tuple containing the modified versions of each argument in `args`.
 
     Example:
-        >>> params, _ = set_to_location(loc_params["Taman"]["edgeon"], params)
+        >>> params, _ = set_orientation(orient_params["Taman"]["edgeon"], params)
     """
 
     args_copy = [copy.deepcopy(arg) for arg in args]
 
     for arg_copy in args_copy:
-        arg_copy["theta_J"] = loc_dict["theta_J"]
-        arg_copy["phi_J"] = loc_dict["phi_J"]
-        arg_copy["theta_S"] = loc_dict["theta_S"]
-        arg_copy["phi_S"] = loc_dict["phi_S"]
+        arg_copy["theta_J"] = orient_dict["theta_J"]
+        arg_copy["phi_J"] = orient_dict["phi_J"]
+        arg_copy["theta_S"] = orient_dict["theta_S"]
+        arg_copy["phi_S"] = orient_dict["phi_S"]
 
     return tuple(args_copy)
 
