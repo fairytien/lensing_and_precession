@@ -1,3 +1,9 @@
+"""Build RP template banks across an mcz grid with streaming HDF5 output.
+
+Streams templates directly to HDF5 to avoid high RAM usage and supports
+SLURM-style chunking via CLI or environment variables.
+"""
+
 import os
 import argparse
 from typing import Optional

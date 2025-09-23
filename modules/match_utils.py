@@ -1,3 +1,5 @@
+"""Utilities for matched filtering and worker processes."""
+
 import numpy as np
 import h5py
 from typing import Callable, Tuple
@@ -70,6 +72,22 @@ def init_mismatch_worker(
     gamma_arr,
     gamma_chunk,
 ):
+    """Initializer for multiprocessing workers used in mismatch computation.
+
+    Sets module-level globals for the worker process, opens the HDF5 bank
+    read-only, and registers an atexit handler to close the file. The source
+    strain is cast to complex128 to harmonize precision with PSD and templates.
+
+    Args:
+        s_strain: Complex frequency-domain source strain array.
+        psd: Frequency-domain PSD array (compatible with delta_f and frequency grid).
+        delta_f: Frequency spacing in Hz.
+        compare_both: If True, compare both lensed parities when computing mismatch.
+        use_opt_match: If True, use optimal match configuration in mismatch routine.
+        bank_path: Path to the HDF5 bank file to read templates from.
+        gamma_arr: 1D array of gamma values corresponding to bank axis 2.
+        gamma_chunk: Optional int for gamma tiling size per worker iteration.
+    """
     import atexit
 
     global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
@@ -86,6 +104,20 @@ def init_mismatch_worker(
 
 
 def mismatch_gamma_job(args: tuple) -> tuple:
+    """Compute mismatches for a single (theta=row=r, omega=col=c) across gamma.
+
+    Expects that `init_mismatch_worker` was called in this worker to populate
+    globals: source strain, PSD, delta_f, bank handles, gamma chunk size, etc.
+
+    Args:
+        args: Tuple (r, c) of integer indices into (theta, omega) axes.
+
+    Returns:
+        Tuple (r, c, ep_vec, best_ep, best_gamma) where:
+            - ep_vec: 1D float32 array of mismatches for all gamma at (r, c)
+            - best_ep: minimal mismatch value over gamma (float)
+            - best_gamma: gamma value achieving minimal mismatch (float)
+    """
     r, c = args
     n_gamma = _BANK_DSET.shape[2]
     ep_vec = np.empty(n_gamma, dtype=np.float32)

@@ -1,3 +1,13 @@
+"""Chunking heuristics for HDF5 datasets and in-memory iteration.
+
+choose_bank_chunks(...) returns per-axis chunk sizes for the 4D bank dataset
+optimized for access pattern bank[r, c, :, :].
+
+choose_gamma_chunk(n_gamma) returns an in-memory gamma tile size for iteration
+balanced between I/O and RAM.
+"""
+
+
 def choose_bank_chunks(
     theta_pts: int, omega_pts: int, gamma_pts: int, n_freq: int
 ) -> tuple:

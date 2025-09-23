@@ -1,3 +1,10 @@
+"""Plot mismatch contour from a best_match HDF5 produced by the pipeline.
+
+Loads mcz×td epsilon minima from best_match_*.h5 and renders a contour plot.
+Allows formatting (tick decimals, colormap, levels) and either displays or
+saves to figures directory using centralized filename logic.
+"""
+
 import os, argparse, sys
 from typing import Optional
 

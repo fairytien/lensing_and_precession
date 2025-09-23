@@ -1,3 +1,9 @@
+"""Centralized filename builders for banks, mismatch cubes, and figures.
+
+These helpers ensure consistent naming across the pipeline so downstream tools
+can locate outputs deterministically.
+"""
+
 import os
 
 
@@ -14,6 +20,10 @@ def bank_filename(
     orientation_tag: str,
     prefix: str = "rp_bank",
 ) -> str:
+    """Build the HDF5 path for a single 4D bank at fixed mcz and orientation.
+
+    Returns a path under bank_dir; the directory is created if missing.
+    """
     os.makedirs(bank_dir, exist_ok=True)
     name = (
         f"{prefix}_mcz{mcz_msun:.0f}_omega{omega_min:.0f}-{omega_max:.0f}"
@@ -30,6 +40,10 @@ def mismatch_cubes_filename(
     td_max_ms: float,
     orientation_tag: str,
 ) -> str:
+    """Build the HDF5 path for per-mcz mismatch cube outputs.
+
+    Returns a path under results_dir/mismatch_cubes; creates directories.
+    """
     mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
     os.makedirs(mismatch_dir, exist_ok=True)
     name = (
@@ -47,6 +61,10 @@ def best_match_filename(
     mcz_max: float,
     orientation_tag: str,
 ) -> str:
+    """Build the HDF5 path for the aggregated best-match outputs across all mcz.
+
+    Returns a path under results_dir/best_match; creates directories.
+    """
     best_match_dir = os.path.join(results_dir, "best_match")
     os.makedirs(best_match_dir, exist_ok=True)
     name = (
@@ -65,6 +83,10 @@ def contour_td_mcz_filename(
     orientation_tag: str,
     ext: str = "pdf",
 ) -> str:
+    """Build the figure path for the final mismatch contour over (td, mcz).
+
+    Returns a path under fig_dir; creates directories.
+    """
     os.makedirs(fig_dir, exist_ok=True)
     name = (
         f"contour_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_"

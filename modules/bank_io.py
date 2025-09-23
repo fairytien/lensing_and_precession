@@ -1,3 +1,14 @@
+"""HDF5 I/O helpers for template banks and mismatch cubes.
+
+Provides:
+- open_bank_readonly(path) -> (h5, omega, theta, gamma, bank, attrs)
+- create_bank_writer(path, shape, dtype, chunking, dset_attrs)
+- create_mismatch_cube(path, td_pts, theta_arr, omega_arr, gamma_arr, mcz, td_arr, save_full_mismatch)
+
+Design goals: streaming-friendly writes, gzip compression, shuffle filter, and
+fletcher32 checksums for robustness.
+"""
+
 import os
 from contextlib import contextmanager
 from typing import Tuple, Dict, Any

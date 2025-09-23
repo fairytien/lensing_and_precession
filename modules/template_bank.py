@@ -1,3 +1,10 @@
+"""Template bank construction with streaming HDF5 writes.
+
+Provides helpers to build RP template banks for a fixed mcz and a high-level
+build_and_save_bank that streams directly into an HDF5 dataset to avoid
+materializing the full 4D bank in memory.
+"""
+
 import os
 import copy
 from typing import Tuple, Optional, Dict
@@ -31,6 +38,11 @@ def _grid_arrays(
     theta_pts: int,
     gamma_pts: int,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Create 1D grids for omega, theta, and gamma.
+
+    Returns (omega_arr, theta_arr, gamma_arr) with lengths (omega_pts, theta_pts,
+    gamma_pts). Gamma is uniform on [0, 2π).
+    """
     omega_arr = np.linspace(float(omega_min), float(omega_max), int(omega_pts))
     theta_arr = np.linspace(float(theta_min), float(theta_max), int(theta_pts))
     gamma_arr = np.linspace(0.0, 2.0 * np.pi, int(gamma_pts), endpoint=False)
@@ -38,6 +50,10 @@ def _grid_arrays(
 
 
 def _template_job(args: tuple) -> tuple:
+    """Worker job: build one template strain for given (r, c, k) and params.
+
+    Returns ((r, c, k), strain) with strain as complex array (frequency domain).
+    """
     (r, c, k, omega_val, theta_val, gamma_val, base_params, f_min, delta_f) = args
     t_params = copy.deepcopy(base_params)
     t_params["omega_tilde"] = float(omega_val)
@@ -139,6 +155,10 @@ def save_bank_hdf5(
     freq_meta: Dict[str, float],
     bank: np.ndarray,
 ) -> str:
+    """Write a complete bank and its axes to HDF5 with compression/checksums.
+
+    freq_meta should include keys like 'f_min' and 'delta_f'. Returns filepath.
+    """
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with h5py.File(filepath, "w") as h5:
         h5.create_dataset("omega", data=np.asarray(omega_arr, dtype=np.float64))
@@ -168,6 +188,11 @@ def save_bank_hdf5(
 def load_bank_hdf5(
     filepath: str,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, float]]:
+    """Load bank arrays and attributes from HDF5.
+
+    Returns (omega, theta, gamma, bank, attrs) where bank has shape
+    (theta, omega, gamma, n_freq).
+    """
     with h5py.File(filepath, "r") as h5:
         omega = np.array(h5["omega"])  # (omega_pts,)
         theta = np.array(h5["theta"])  # (theta_pts,)
@@ -198,6 +223,11 @@ def build_and_save_bank(
     n_workers: Optional[int] = None,
     dtype: str = "complex128",
 ) -> str:
+    """Stream-build a 4D bank for a given mcz and write directly to HDF5.
+
+    Avoids holding the full bank in RAM by writing each computed template
+    in-place. Returns the output HDF5 path.
+    """
     # Prepare parameters
     params = copy.deepcopy(base_rp_params)
     params["mcz"] = float(mcz_msun) * SOLMASS2SEC

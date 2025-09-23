@@ -1,3 +1,10 @@
+"""Aggregate per-mcz mismatch cubes into one best-match HDF5 and plot.
+
+Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
+(theta, omega), stacks over mcz, writes a combined best_match_*.h5, and
+optionally generates the final contour figure.
+"""
+
 import os
 import argparse
 import glob

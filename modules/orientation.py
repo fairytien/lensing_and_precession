@@ -1,3 +1,10 @@
+"""Orientation utilities for parameter resolution and tagging.
+
+Provides helpers to:
+- Build a stable orientation tag from explicit angles
+- Resolve an orientation preset (author_orientation) into parameters and tag
+"""
+
 from typing import Optional, Dict, Tuple
 import logging
 
@@ -10,6 +17,12 @@ def orientation_tag(
     theta_S: Optional[float],
     phi_S: Optional[float],
 ) -> str:
+    """Return a filename-safe tag from explicit angles or default preset tag.
+
+    If any angle is provided, produce a deterministic string including their
+    values (with 'nan' for missing angles). Otherwise return a default
+    'Author_orientation' tag.
+    """
     vals = [theta_J, phi_J, theta_S, phi_S]
     if any(v is not None for v in vals):
 
@@ -34,11 +47,11 @@ def resolve_orientation(
     default_author: str = "Taman",
     default_orientation: str = "edgeon",
 ) -> Tuple[Dict, str]:
-    """
-    Resolve orientation parameters and filename tag based on either a preset
-    (e.g., "Taman_edgeon") or explicit angle overrides. When a preset is
-    provided, explicit angles are ignored.
+    """Resolve orientation parameters and filename tag.
 
+    If orient_preset is provided (e.g., 'Taman_edgeon'), use it to set params
+    and tag. If not, start from defaults and apply overrides from explicit
+    angles, and build a tag from those angles.
     Returns (params, tag).
     """
     if orient_preset:
@@ -74,7 +87,7 @@ def resolve_orientation(
 
 
 def allowed_orient_presets(_orient_params: Dict) -> list:
-    # Return sorted list like 'Author_orientation'
+    """Return a sorted list of preset names as 'Author_orientation'."""
     return sorted(
         [f"{author}_{name}" for author, sub in _orient_params.items() for name in sub]
     )

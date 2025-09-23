@@ -1,3 +1,11 @@
+"""Compute mismatch maps across (mcz, td) using prebuilt RP template banks.
+
+This script streams templates directly from HDF5, computes per-(theta, omega)
+minima across gamma in parallel, writes per-mcz mismatch cubes incrementally,
+and builds a consolidated best-match file. Designed for array-job chunking and
+low-memory operation.
+"""
+
 import os
 import argparse
 from typing import Optional
