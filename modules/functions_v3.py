@@ -16,6 +16,9 @@ import numpy as np
 from numpy.lib import NumpyVersion
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed
+# astropy still expects np.asscalar to exist
+if not hasattr(np, "asscalar"):
+    np.asscalar = lambda a: a.item()
 if not hasattr(np, "alen"):
     np.alen = lambda a: len(a)
 if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
