@@ -130,7 +130,9 @@ def main(
 
     # Loop over mcz values
     for i, mcz in enumerate(mcz_arr):
-        print(f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz:.1f} Msun")
+        print(
+            f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz:.1f} Msun (omega {omega_min:.0f}-{omega_max:.0f}, theta {theta_min:.0f}-{theta_max:.0f})"
+        )
 
         # Bank path (must have been created already)
         bank_path = bank_filename(
@@ -269,10 +271,10 @@ def main(
 
         print(f"Saved mismatch data: {mm_out_path}")
 
-    # Save summary across all mcz
+    # Save best-match results across all mcz
     summary_path = os.path.join(
         results_dir,
-        f"summary_contour_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun_f{int(f_min)}_df{delta_f:.2f}_{tag}.h5",
+        f"best_match_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun_f{int(f_min)}_df{delta_f:.2f}_{tag}.h5",
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("mcz", data=mcz_arr.astype(np.float64))
@@ -286,7 +288,7 @@ def main(
         h5.attrs["phi_J"] = np.nan if phi_J is None else float(phi_J)
         h5.attrs["theta_S"] = np.nan if theta_S is None else float(theta_S)
         h5.attrs["phi_S"] = np.nan if phi_S is None else float(phi_S)
-    print(f"Saved summary: {summary_path}")
+    print(f"Saved best-match results: {summary_path}")
 
     # Plot contour of minimal mismatch
     if not no_plot:

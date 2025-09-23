@@ -149,6 +149,14 @@ def save_bank_hdf5(
         )
         for k, v in freq_meta.items():
             dset.attrs[k] = v
+        # Also store grid metadata on file attrs for clarity
+        h5.attrs["omega_pts"] = int(omega_arr.shape[0])
+        h5.attrs["theta_pts"] = int(theta_arr.shape[0])
+        h5.attrs["gamma_pts"] = int(gamma_arr.shape[0])
+        h5.attrs["omega_min"] = float(omega_arr.min()) if omega_arr.size else np.nan
+        h5.attrs["omega_max"] = float(omega_arr.max()) if omega_arr.size else np.nan
+        h5.attrs["theta_min"] = float(theta_arr.min()) if theta_arr.size else np.nan
+        h5.attrs["theta_max"] = float(theta_arr.max()) if theta_arr.size else np.nan
     return filepath
 
 
