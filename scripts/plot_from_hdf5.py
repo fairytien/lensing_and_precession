@@ -147,8 +147,8 @@ if __name__ == "__main__":
     p.add_argument(
         "--td_decimals",
         type=int,
-        default=0,
-        help="Number of decimal places for time-delay x-axis ticks (default: 0, i.e., integers)",
+        default=1,
+        help="Number of decimal places for time-delay x-axis ticks (default: 1, e.g., 1.0ms)",
     )
     p.add_argument(
         "--end_tag",
