@@ -1,6 +1,6 @@
 import os
 import argparse
-from typing import Optional, Tuple
+from typing import Optional
 
 import numpy as np
 import h5py
@@ -28,87 +28,19 @@ from modules.filenames import (
     best_match_filename,
     contour_td_mcz_filename,
 )
-from modules.match_utils import cast_to_match_precision, ensure_same_length
-from modules.bank_io import open_bank_readonly
+from modules.match_utils import (
+    build_source_strain_for_td,
+    init_mismatch_worker,
+    mismatch_gamma_job,
+)
+from modules.bank_io import open_bank_readonly, create_mismatch_cube
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
+from modules.chunking import choose_gamma_chunk
 
 
-# Globals for worker processes
-_S_STRAIN = None
-_PSD = None
-_DELTA_F = None
-_COMPARE_BOTH = False
-_USE_OPT_MATCH = True
-_BANK_H5 = None
-_BANK_DSET = None
-_GAMMA_ARR = None
-_GAMMA_CHUNK = None
-
-
-def _init_worker(
-    s_strain,
-    psd,
-    delta_f,
-    compare_both,
-    use_opt_match,
-    bank_path,
-    gamma_arr,
-    gamma_chunk,
-):
-    import atexit
-
-    global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
-    _S_STRAIN = s_strain
-    _PSD = psd
-    _DELTA_F = delta_f
-    _COMPARE_BOTH = bool(compare_both)
-    _USE_OPT_MATCH = bool(use_opt_match)
-    _BANK_H5 = h5py.File(bank_path, "r")
-    _BANK_DSET = _BANK_H5["bank"]
-    _GAMMA_ARR = gamma_arr
-    _GAMMA_CHUNK = int(gamma_chunk) if gamma_chunk is not None else None
-    # Harmonize dtype for PyCBC: use complex128 for strains to match PSD double precision
-    try:
-        _S_STRAIN = cast_to_match_precision(_S_STRAIN)
-    except Exception:
-        pass
-    atexit.register(lambda: _BANK_H5.close())
-
-
-def _mismatch_gamma_job(args: tuple) -> tuple:
-    r, c = args
-    n_gamma = _BANK_DSET.shape[2]
-    ep_vec = np.empty(n_gamma, dtype=np.float32)
-    best_ep = np.inf
-    best_gamma = 0.0
-    # Iterate over gamma in chunks to keep memory low
-    chunk = _GAMMA_CHUNK or max(1, min(32, n_gamma))
-    for k0 in range(0, n_gamma, chunk):
-        k1 = min(n_gamma, k0 + chunk)
-        gamma_block = _BANK_DSET[int(r), int(c), k0:k1, :]  # shape (g, n_freq)
-        # Ensure numpy array and cast to complex128 to match source/PSD precision
-        gamma_block = cast_to_match_precision(gamma_block)
-        for local_idx in range(gamma_block.shape[0]):
-            k = k0 + local_idx
-            t_arr = gamma_block[local_idx]
-            # Length guard: ensure template matches source length
-            t_arr, _ = ensure_same_length(t_arr, _S_STRAIN)
-            res = mismatch_from_strains(
-                t_arr,
-                _S_STRAIN,
-                f_min=20.0,  # unused since psd is provided
-                delta_f=_DELTA_F,
-                psd=_PSD,
-                use_opt_match=_USE_OPT_MATCH,
-                compare_both=_COMPARE_BOTH,
-            )
-            ep = float(res["mismatch"])
-            ep_vec[k] = ep
-            if ep < best_ep:
-                best_ep = ep
-                best_gamma = float(_GAMMA_ARR[k])
-    return int(r), int(c), ep_vec, float(best_ep), float(best_gamma)
+"""This script computes mismatch maps using prebuilt banks.
+Worker logic is delegated to modules.match_utils.* helpers for reuse."""
 
 
 @timer_decorator
@@ -249,55 +181,28 @@ def main(
                 td_max_ms=td_max_ms,
                 orientation_tag=tag,
             )
-            with h5py.File(mm_out_path, "w") as mmh5:
-                mmh5.create_dataset("mcz", data=np.array([mcz], dtype=np.float64))
-                mmh5.create_dataset("td", data=td_arr.astype(np.float64))
-                mmh5.create_dataset("omega", data=omega_arr.astype(np.float64))
-                mmh5.create_dataset("theta", data=theta_arr.astype(np.float64))
-                mmh5.create_dataset("gamma", data=gamma_arr.astype(np.float64))
-
-                if save_full_mismatch:
-                    mm_dset = mmh5.create_dataset(
-                        "mismatch",  # shape (td, theta, omega, gamma)
-                        shape=(td_pts, n_theta, n_omega, n_gamma),
-                        dtype=np.float32,
-                        chunks=(1, min(16, n_theta), min(16, n_omega), n_gamma),
-                        compression="gzip",
-                        compression_opts=4,
-                        shuffle=True,
-                        fletcher32=True,
-                    )
-                else:
-                    mm_dset = None
-
-                # Per-td min over gamma grids (stored for convenience)
-                ep_min_grid_dset = mmh5.create_dataset(
-                    "epsilon_min_grid",  # (td, theta, omega)
-                    shape=(td_pts, n_theta, n_omega),
-                    dtype=np.float32,
-                    chunks=(1, min(16, n_theta), min(16, n_omega)),
-                    compression="gzip",
-                    compression_opts=4,
-                    shuffle=True,
-                    fletcher32=True,
-                )
-                g_best_grid_dset = mmh5.create_dataset(
-                    "gamma_best_grid",  # (td, theta, omega)
-                    shape=(td_pts, n_theta, n_omega),
-                    dtype=np.float32,
-                    chunks=(1, min(16, n_theta), min(16, n_omega)),
-                    compression="gzip",
-                    compression_opts=4,
-                    shuffle=True,
-                    fletcher32=True,
-                )
+            mmh5, dsets = create_mismatch_cube(
+                filepath=mm_out_path,
+                td_pts=td_pts,
+                theta_arr=theta_arr,
+                omega_arr=omega_arr,
+                gamma_arr=gamma_arr,
+                mcz=mcz,
+                td_arr=td_arr,
+                save_full_mismatch=save_full_mismatch,
+            )
+            with mmh5:
+                mm_dset = dsets.get("mismatch")
+                ep_min_grid_dset = dsets["epsilon_min_grid"]
+                g_best_grid_dset = dsets["gamma_best_grid"]
 
                 # Iterate over td values
                 for j, td in enumerate(td_arr):
                     lens_params_j = dict(lens_params)
                     lens_params_j["MLz"] = float(get_MLz_from_td(td, y) * SOLMASS2SEC)
-                    s = get_gw(lens_params_j, f_min=f_min, delta_f=delta_f)
-                    s_strain = s["strain"]
+                    s_strain = build_source_strain_for_td(
+                        get_gw, lens_params_j, f_min=f_min, delta_f=delta_f
+                    )
 
                     # Prepare jobs across (theta, omega) using indices only
                     total_jobs = int(n_theta) * int(n_omega)
@@ -310,10 +215,10 @@ def main(
                     Ggrid = np.zeros_like(Zgrid)
 
                     # Stream results to reduce memory; open bank inside workers
-                    gamma_chunk = max(1, min(32, int(n_gamma)))
+                    gamma_chunk = choose_gamma_chunk(int(n_gamma))
                     with Pool(
                         n_workers_eff,
-                        initializer=_init_worker,
+                        initializer=init_mismatch_worker,
                         initargs=(
                             s_strain,
                             psd,
@@ -330,7 +235,7 @@ def main(
                             (r, c) for r in range(n_theta) for c in range(n_omega)
                         )
                         for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
-                            _mismatch_gamma_job, job_iter, chunksize=1
+                            mismatch_gamma_job, job_iter, chunksize=1
                         ):
                             if save_full_mismatch and mm_dset is not None:
                                 mm_dset[j, r, c, :] = ep_vec

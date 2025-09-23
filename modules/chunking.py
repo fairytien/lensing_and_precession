@@ -13,3 +13,14 @@ def choose_bank_chunks(
     # Keep frequency chunks moderate to balance I/O and memory
     freq_chunk = int(min(4096, max(1, n_freq)))
     return theta_chunk, omega_chunk, gamma_chunk, freq_chunk
+
+
+def choose_gamma_chunk(n_gamma: int) -> int:
+    """
+    Heuristic gamma chunk size for iterating bank[r, c, k0:k1, :].
+
+    Keeps chunks modest to reduce peak memory while allowing reasonable I/O throughput.
+    """
+    if n_gamma <= 0:
+        return 1
+    return int(max(1, min(32, n_gamma)))

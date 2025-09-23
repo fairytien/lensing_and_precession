@@ -56,3 +56,72 @@ def create_bank_writer(
         yield h5, bank
     finally:
         h5.close()
+
+
+def create_mismatch_cube(
+    filepath: str,
+    td_pts: int,
+    theta_arr: np.ndarray,
+    omega_arr: np.ndarray,
+    gamma_arr: np.ndarray,
+    mcz: float,
+    td_arr: np.ndarray,
+    save_full_mismatch: bool = False,
+):
+    """
+    Create an HDF5 file with per-mcz mismatch cube datasets.
+
+    Returns a tuple (h5, datasets) where datasets is a dict containing:
+      - 'mismatch' (optional): (td, theta, omega, gamma)
+      - 'epsilon_min_grid': (td, theta, omega)
+      - 'gamma_best_grid': (td, theta, omega)
+    Caller is responsible for closing the returned h5 file.
+    """
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    h5 = h5py.File(filepath, "w")
+    h5.create_dataset("mcz", data=np.array([mcz], dtype=np.float64))
+    h5.create_dataset("td", data=td_arr.astype(np.float64))
+    h5.create_dataset("omega", data=omega_arr.astype(np.float64))
+    h5.create_dataset("theta", data=theta_arr.astype(np.float64))
+    h5.create_dataset("gamma", data=gamma_arr.astype(np.float64))
+
+    n_theta = int(theta_arr.shape[0])
+    n_omega = int(omega_arr.shape[0])
+    n_gamma = int(gamma_arr.shape[0])
+
+    datasets: Dict[str, Any] = {}
+    if save_full_mismatch:
+        datasets["mismatch"] = h5.create_dataset(
+            "mismatch",
+            shape=(int(td_pts), n_theta, n_omega, n_gamma),
+            dtype=np.float32,
+            chunks=(1, min(16, n_theta), min(16, n_omega), n_gamma),
+            compression="gzip",
+            compression_opts=4,
+            shuffle=True,
+            fletcher32=True,
+        )
+
+    datasets["epsilon_min_grid"] = h5.create_dataset(
+        "epsilon_min_grid",
+        shape=(int(td_pts), n_theta, n_omega),
+        dtype=np.float32,
+        chunks=(1, min(16, n_theta), min(16, n_omega)),
+        compression="gzip",
+        compression_opts=4,
+        shuffle=True,
+        fletcher32=True,
+    )
+
+    datasets["gamma_best_grid"] = h5.create_dataset(
+        "gamma_best_grid",
+        shape=(int(td_pts), n_theta, n_omega),
+        dtype=np.float32,
+        chunks=(1, min(16, n_theta), min(16, n_omega)),
+        compression="gzip",
+        compression_opts=4,
+        shuffle=True,
+        fletcher32=True,
+    )
+
+    return h5, datasets
