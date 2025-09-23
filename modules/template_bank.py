@@ -64,6 +64,7 @@ def build_bank_for_mcz(
     f_min: float,
     delta_f: float,
     n_workers: Optional[int] = None,
+    dtype: str = "complex128",
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
     """
     Build a 4D RP template bank for a fixed mcz and orientation.
@@ -89,11 +90,12 @@ def build_bank_for_mcz(
     probe = get_gw(
         probe_params, f_min=f_min, delta_f=delta_f, prec_Class=P2, frequencySeries=False
     )
-    probe_strain = np.asarray(probe["strain"], dtype=np.complex128)
+    target_dtype = np.complex64 if str(dtype) == "complex64" else np.complex128
+    probe_strain = np.asarray(probe["strain"], dtype=target_dtype)
     n_freq = int(probe_strain.shape[0])
     delta_f_actual = float(delta_f)
 
-    bank = np.empty((theta_pts, omega_pts, gamma_pts, n_freq), dtype=np.complex128)
+    bank = np.empty((theta_pts, omega_pts, gamma_pts, n_freq), dtype=target_dtype)
 
     jobs = []
     for r in range(theta_pts):
@@ -119,11 +121,11 @@ def build_bank_for_mcz(
     with Pool(n_workers) as pool:
         for (r, c, k), strain in pool.map(_template_job, jobs):
             # Resize to match probe length if needed (safety)
-            arr = np.asarray(strain, dtype=np.complex128)
+            arr = np.asarray(strain, dtype=target_dtype)
             if arr.shape[0] != n_freq:
                 # pad or truncate to n_freq
                 if arr.shape[0] < n_freq:
-                    pad = np.zeros((n_freq - arr.shape[0],), dtype=np.complex128)
+                    pad = np.zeros((n_freq - arr.shape[0],), dtype=target_dtype)
                     arr = np.concatenate([arr, pad], axis=0)
                 else:
                     arr = arr[:n_freq]
@@ -197,6 +199,7 @@ def build_and_save_bank(
     orientation_tag: str,
     bank_prefix: str = "rp_bank",
     n_workers: Optional[int] = None,
+    dtype: str = "complex128",
 ) -> str:
     params = copy.deepcopy(base_rp_params)
     params["mcz"] = float(mcz_msun) * SOLMASS2SEC
@@ -212,6 +215,7 @@ def build_and_save_bank(
         f_min,
         delta_f,
         n_workers,
+        dtype,
     )
     meta = {"f_min": float(f_min), "delta_f": float(df), "mcz_msun": float(mcz_msun)}
     path = bank_filename(

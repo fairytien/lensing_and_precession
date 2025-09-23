@@ -43,6 +43,7 @@ def main(
     bank_dir: str,
     bank_prefix: str,
     n_workers: Optional[int],
+    dtype: str,
 ):
     # Base RP params and orientation/tag handling via shared helper
     base_params, tag = resolve_orientation(
@@ -78,6 +79,7 @@ def main(
             tag,
             bank_prefix,
             n_workers,
+            dtype,
         )
         logging.info(f"Saved: {out_path}")
 
@@ -122,6 +124,13 @@ if __name__ == "__main__":
     )
     p.add_argument("--bank_prefix", type=str, default="rp_bank")
     p.add_argument("--n_workers", type=int, default=None)
+    p.add_argument(
+        "--dtype",
+        type=str,
+        choices=["complex64", "complex128"],
+        default="complex128",
+        help="Data type for stored complex strain arrays.",
+    )
 
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)
@@ -154,4 +163,5 @@ if __name__ == "__main__":
         bank_dir=args.bank_dir,
         bank_prefix=args.bank_prefix,
         n_workers=args.n_workers,
+        dtype=args.dtype,
     )
