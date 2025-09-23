@@ -28,6 +28,8 @@ from modules.filenames import (
     best_match_filename,
     contour_td_mcz_filename,
 )
+from modules.match_utils import cast_to_match_precision, ensure_same_length
+from modules.bank_io import open_bank_readonly
 import logging
 
 
@@ -37,40 +39,75 @@ _PSD = None
 _DELTA_F = None
 _COMPARE_BOTH = False
 _USE_OPT_MATCH = True
+_BANK_H5 = None
+_BANK_DSET = None
+_GAMMA_ARR = None
+_GAMMA_CHUNK = None
 
 
-def _init_worker(s_strain, psd, delta_f, compare_both, use_opt_match):
-    global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH
+def _init_worker(
+    s_strain,
+    psd,
+    delta_f,
+    compare_both,
+    use_opt_match,
+    bank_path,
+    gamma_arr,
+    gamma_chunk,
+):
+    import atexit
+
+    global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
     _S_STRAIN = s_strain
     _PSD = psd
     _DELTA_F = delta_f
     _COMPARE_BOTH = bool(compare_both)
     _USE_OPT_MATCH = bool(use_opt_match)
+    _BANK_H5 = h5py.File(bank_path, "r")
+    _BANK_DSET = _BANK_H5["bank"]
+    _GAMMA_ARR = gamma_arr
+    _GAMMA_CHUNK = int(gamma_chunk) if gamma_chunk is not None else None
+    # Harmonize dtype for PyCBC: use complex128 for strains to match PSD double precision
+    try:
+        _S_STRAIN = cast_to_match_precision(_S_STRAIN)
+    except Exception:
+        pass
+    atexit.register(lambda: _BANK_H5.close())
 
 
 def _mismatch_gamma_job(args: tuple) -> tuple:
-    r, c, gamma_stack, gamma_arr = args
-    n_gamma = gamma_stack.shape[0]
+    r, c = args
+    n_gamma = _BANK_DSET.shape[2]
     ep_vec = np.empty(n_gamma, dtype=np.float32)
     best_ep = np.inf
     best_gamma = 0.0
-    for k in range(n_gamma):
-        t_arr = gamma_stack[k]
-        res = mismatch_from_strains(
-            t_arr,
-            _S_STRAIN,
-            f_min=20.0,  # unused since psd is provided
-            delta_f=_DELTA_F,
-            psd=_PSD,
-            use_opt_match=_USE_OPT_MATCH,
-            compare_both=_COMPARE_BOTH,
-        )
-        ep = float(res["mismatch"])
-        ep_vec[k] = ep
-        if ep < best_ep:
-            best_ep = ep
-            best_gamma = float(gamma_arr[k])
-    return r, c, ep_vec, best_ep, best_gamma
+    # Iterate over gamma in chunks to keep memory low
+    chunk = _GAMMA_CHUNK or max(1, min(32, n_gamma))
+    for k0 in range(0, n_gamma, chunk):
+        k1 = min(n_gamma, k0 + chunk)
+        gamma_block = _BANK_DSET[int(r), int(c), k0:k1, :]  # shape (g, n_freq)
+        # Ensure numpy array and cast to complex128 to match source/PSD precision
+        gamma_block = cast_to_match_precision(gamma_block)
+        for local_idx in range(gamma_block.shape[0]):
+            k = k0 + local_idx
+            t_arr = gamma_block[local_idx]
+            # Length guard: ensure template matches source length
+            t_arr, _ = ensure_same_length(t_arr, _S_STRAIN)
+            res = mismatch_from_strains(
+                t_arr,
+                _S_STRAIN,
+                f_min=20.0,  # unused since psd is provided
+                delta_f=_DELTA_F,
+                psd=_PSD,
+                use_opt_match=_USE_OPT_MATCH,
+                compare_both=_COMPARE_BOTH,
+            )
+            ep = float(res["mismatch"])
+            ep_vec[k] = ep
+            if ep < best_ep:
+                best_ep = ep
+                best_gamma = float(_GAMMA_ARR[k])
+    return int(r), int(c), ep_vec, float(best_ep), float(best_gamma)
 
 
 @timer_decorator
@@ -160,11 +197,8 @@ def main(
             raise FileNotFoundError(f"Template bank not found: {bank_path}")
 
         # Open bank for slicing without loading to memory
-        with h5py.File(bank_path, "r") as h5:
-            omega_arr = np.array(h5["omega"]).astype(float)
-            theta_arr = np.array(h5["theta"]).astype(float)
-            gamma_arr = np.array(h5["gamma"]).astype(float)
-            bank = h5["bank"]  # h5py Dataset, shape (theta, omega, gamma, n_freq)
+        h5, omega_arr, theta_arr, gamma_arr, bank, _ = open_bank_readonly(bank_path)
+        with h5:
             n_theta, n_omega, n_gamma, n_freq = bank.shape
 
             assert (
@@ -241,26 +275,38 @@ def main(
                     s = get_gw(lens_params_j, f_min=f_min, delta_f=delta_f)
                     s_strain = s["strain"]
 
-                    # Prepare jobs across (theta, omega)
-                    jobs = []
-                    for r in range(n_theta):
-                        for c in range(n_omega):
-                            gamma_stack = np.array(bank[r, c, :, :])  # (gamma, n_freq)
-                            jobs.append((r, c, gamma_stack, gamma_arr))
-
+                    # Prepare jobs across (theta, omega) using indices only
+                    total_jobs = int(n_theta) * int(n_omega)
                     if n_workers is None:
-                        n_workers = min(cpu_count(), len(jobs))
+                        n_workers_eff = min(cpu_count(), total_jobs)
+                    else:
+                        n_workers_eff = int(n_workers)
 
                     Zgrid = np.zeros((n_theta, n_omega), dtype=np.float32)
                     Ggrid = np.zeros_like(Zgrid)
 
+                    # Stream results to reduce memory; open bank inside workers
+                    gamma_chunk = max(1, min(32, int(n_gamma)))
                     with Pool(
-                        n_workers,
+                        n_workers_eff,
                         initializer=_init_worker,
-                        initargs=(s_strain, psd, delta_f, compare_both, use_opt_match),
+                        initargs=(
+                            s_strain,
+                            psd,
+                            delta_f,
+                            compare_both,
+                            use_opt_match,
+                            bank_path,
+                            gamma_arr,
+                            gamma_chunk,
+                        ),
+                        maxtasksperchild=256,
                     ) as pool:
-                        for r, c, ep_vec, ep_min, g_best in pool.map(
-                            _mismatch_gamma_job, jobs
+                        job_iter = (
+                            (r, c) for r in range(n_theta) for c in range(n_omega)
+                        )
+                        for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
+                            _mismatch_gamma_job, job_iter, chunksize=1
                         ):
                             if save_full_mismatch and mm_dset is not None:
                                 mm_dset[j, r, c, :] = ep_vec

@@ -18,11 +18,8 @@ from modules.functions_v3 import get_gw
 from modules.default_params_v3 import SOLMASS2SEC
 from modules.Classes_v2 import Precessing as P2
 from modules.filenames import bank_filename
-from modules.orientation import (
-    resolve_orientation,
-    orientation_tag,
-    allowed_orient_presets,
-)
+from modules.chunking import choose_bank_chunks
+from modules.bank_io import create_bank_writer
 
 
 def _grid_arrays(
@@ -201,10 +198,12 @@ def build_and_save_bank(
     n_workers: Optional[int] = None,
     dtype: str = "complex128",
 ) -> str:
+    # Prepare parameters
     params = copy.deepcopy(base_rp_params)
     params["mcz"] = float(mcz_msun) * SOLMASS2SEC
-    omega_arr, theta_arr, gamma_arr, bank, df = build_bank_for_mcz(
-        params,
+
+    # Build grid arrays
+    omega_arr, theta_arr, gamma_arr = _grid_arrays(
         omega_min,
         omega_max,
         omega_pts,
@@ -212,12 +211,21 @@ def build_and_save_bank(
         theta_max,
         theta_pts,
         gamma_pts,
-        f_min,
-        delta_f,
-        n_workers,
-        dtype,
     )
-    meta = {"f_min": float(f_min), "delta_f": float(df), "mcz_msun": float(mcz_msun)}
+
+    # Probe one template to determine n_freq and dtype
+    probe_params = copy.deepcopy(params)
+    probe_params["omega_tilde"] = float(omega_arr[0])
+    probe_params["theta_tilde"] = float(theta_arr[0])
+    probe_params["gamma_P"] = float(gamma_arr[0])
+    probe = get_gw(
+        probe_params, f_min=f_min, delta_f=delta_f, prec_Class=P2, frequencySeries=False
+    )
+    target_dtype = np.complex64 if str(dtype) == "complex64" else np.complex128
+    n_freq = int(np.asarray(probe["strain"], dtype=target_dtype).shape[0])
+    df_actual = float(delta_f)
+
+    # Output path
     path = bank_filename(
         bank_dir,
         mcz_msun,
@@ -231,7 +239,71 @@ def build_and_save_bank(
         orientation_tag,
         prefix=bank_prefix,
     )
-    return save_bank_hdf5(path, omega_arr, theta_arr, gamma_arr, meta, bank)
+
+    # Choose chunks and create bank writer
+    t_chunk, o_chunk, chunk_gamma, chunk_freq = choose_bank_chunks(
+        theta_pts, omega_pts, gamma_pts, n_freq
+    )
+    dset_attrs = {
+        "f_min": float(f_min),
+        "delta_f": float(df_actual),
+        "mcz_msun": float(mcz_msun),
+    }
+    with create_bank_writer(
+        path,
+        shape=(theta_pts, omega_pts, gamma_pts, n_freq),
+        dtype=target_dtype,
+        chunking=(t_chunk, o_chunk, chunk_gamma, chunk_freq),
+        dset_attrs=dset_attrs,
+    ) as (h5, dset):
+        # Write axis datasets and file attrs
+        h5.create_dataset("omega", data=np.asarray(omega_arr, dtype=np.float64))
+        h5.create_dataset("theta", data=np.asarray(theta_arr, dtype=np.float64))
+        h5.create_dataset("gamma", data=np.asarray(gamma_arr, dtype=np.float64))
+        h5.attrs["omega_pts"] = int(omega_arr.shape[0])
+        h5.attrs["theta_pts"] = int(theta_arr.shape[0])
+        h5.attrs["gamma_pts"] = int(gamma_arr.shape[0])
+        h5.attrs["omega_min"] = float(omega_arr.min()) if omega_arr.size else np.nan
+        h5.attrs["omega_max"] = float(omega_arr.max()) if omega_arr.size else np.nan
+        h5.attrs["theta_min"] = float(theta_arr.min()) if theta_arr.size else np.nan
+        h5.attrs["theta_max"] = float(theta_arr.max()) if theta_arr.size else np.nan
+
+        # Lazy job iterator to avoid materializing a huge job list
+        def _job_iter():
+            for r in range(theta_pts):
+                for c in range(omega_pts):
+                    for k in range(gamma_pts):
+                        yield (
+                            r,
+                            c,
+                            k,
+                            omega_arr[c],
+                            theta_arr[r],
+                            gamma_arr[k],
+                            params,
+                            f_min,
+                            delta_f,
+                        )
+
+        total_jobs = int(theta_pts) * int(omega_pts) * int(gamma_pts)
+        workers = n_workers if n_workers is not None else min(cpu_count(), total_jobs)
+
+        # Stream results as they complete; write each directly into HDF5
+        with Pool(workers, maxtasksperchild=256) as pool:
+            for (r, c, k), strain in pool.imap_unordered(
+                _template_job, _job_iter(), chunksize=1
+            ):
+                arr = np.asarray(strain, dtype=target_dtype)
+                if arr.shape[0] != n_freq:
+                    # pad or truncate to n_freq
+                    if arr.shape[0] < n_freq:
+                        pad = np.zeros((n_freq - arr.shape[0],), dtype=target_dtype)
+                        arr = np.concatenate([arr, pad], axis=0)
+                    else:
+                        arr = arr[:n_freq]
+                dset[int(r), int(c), int(k), :] = arr
+
+    return path
 
 
 # orientation helpers moved to modules.orientation
