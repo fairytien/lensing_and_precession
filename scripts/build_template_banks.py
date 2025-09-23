@@ -12,6 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from modules.template_bank import build_and_save_bank
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.default_params_v3 import RP_params_1
+from modules.functions_v3 import timer_decorator
 
 # set_orientation is used internally by resolve_orientation; no direct import needed here
 from modules.default_params_v3 import orient_params
@@ -20,6 +21,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
+@timer_decorator
 def main(
     theta_J: Optional[float],
     phi_J: Optional[float],

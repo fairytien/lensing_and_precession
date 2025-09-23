@@ -17,7 +17,7 @@ def bank_filename(
     os.makedirs(bank_dir, exist_ok=True)
     name = (
         f"{prefix}_mcz{mcz_msun:.0f}_omega{omega_min:.0f}-{omega_max:.0f}"
-        f"_theta{theta_min:.0f}-{theta_max:.0f}_o{omega_pts}xt{theta_pts}xg{gamma_pts}"
+        f"_theta{theta_min:.0f}-{theta_max:.0f}_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
     return os.path.join(bank_dir, name)
