@@ -12,7 +12,7 @@ cd $SLURM_SUBMIT_DIR
 
 # Activate conda environment
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate gw
+conda activate fairytien_gw
 
 # Configurable parameters via environment variables (with sensible defaults)
 ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}

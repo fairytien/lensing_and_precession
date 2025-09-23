@@ -12,7 +12,7 @@ cd $SLURM_SUBMIT_DIR
 
 # Activate conda environment
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
-conda activate gw
+conda activate fairytien_gw
 
 # Test run parameters (smaller grids for quick testing)
 ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}
