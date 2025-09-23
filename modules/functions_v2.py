@@ -15,8 +15,7 @@ from modules.default_params_v2 import *
 import numpy as np
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed
-if not hasattr(np, "asscalar"):
-    np.asscalar = lambda a: a.item()
+# np.asscalar was long-deprecated; use array.item() directly where needed
 if not hasattr(np, "alen"):
     np.alen = lambda a: len(a)
 for _name, _alias in (
@@ -937,7 +936,7 @@ def find_optimized_coalescence_params(
         f_cut = get_fcut_from_mcz(mcz_src_msun)
         f_arr = np.arange(f_min, f_cut, delta_f)
         psd = Sn(f_arr)
-    
+
     gammaP_results_dict = optimize_mismatch_gammaP(
         t_params_copy,
         s_params_copy,

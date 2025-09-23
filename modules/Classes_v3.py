@@ -7,21 +7,21 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 import numpy as np
+from numpy.lib import NumpyVersion
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed
-if not hasattr(np, "asscalar"):
-    np.asscalar = lambda a: a.item()
 if not hasattr(np, "alen"):
     np.alen = lambda a: len(a)
-for _name, _alias in (
-    ("float", float),
-    ("int", int),
-    ("bool", bool),
-    ("complex", complex),
-    ("object", object),
-):
-    if not hasattr(np, _name):
-        setattr(np, _name, _alias)
+if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
+    for _name, _alias in (
+        ("float", float),
+        ("int", int),
+        ("bool", bool),
+        ("complex", complex),
+        ("object", object),
+    ):
+        if not hasattr(np, _name):
+            setattr(np, _name, _alias)
 
 # Be robust to environments where np.seterr may be unavailable or altered
 try:
