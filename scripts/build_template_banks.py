@@ -9,9 +9,14 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.template_bank import build_and_save_bank, orientation_tag
+from modules.template_bank import (
+    build_and_save_bank,
+    resolve_orientation,
+    allowed_orient_presets,
+)
 from modules.default_params_v3 import RP_params_1
-from modules.functions_v3 import set_orientation
+
+# set_orientation is used internally by resolve_orientation; no direct import needed here
 from modules.default_params_v3 import orient_params
 
 
@@ -20,6 +25,7 @@ def main(
     phi_J: Optional[float],
     theta_S: Optional[float],
     phi_S: Optional[float],
+    orient_preset: Optional[str],
     mcz_min: float,
     mcz_max: float,
     mcz_pts: int,
@@ -36,18 +42,18 @@ def main(
     bank_prefix: str,
     n_workers: Optional[int],
 ):
-    # Base RP params with orientation
-    base_params = set_orientation(orient_params["Taman"]["edgeon"], RP_params_1)[0]
-    if theta_J is not None:
-        base_params["theta_J"] = theta_J
-    if phi_J is not None:
-        base_params["phi_J"] = phi_J
-    if theta_S is not None:
-        base_params["theta_S"] = theta_S
-    if phi_S is not None:
-        base_params["phi_S"] = phi_S
-
-    tag = orientation_tag(theta_J, phi_J, theta_S, phi_S)
+    # Base RP params and orientation/tag handling via shared helper
+    base_params, tag = resolve_orientation(
+        orient_preset,
+        theta_J,
+        phi_J,
+        theta_S,
+        phi_S,
+        RP_params_1,
+        orient_params,
+        default_author="Taman",
+        default_orientation="edgeon",
+    )
 
     mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
     for i, mcz in enumerate(mcz_arr):
@@ -82,6 +88,15 @@ if __name__ == "__main__":
     p.add_argument("--phi_J", type=float, default=None)
     p.add_argument("--theta_S", type=float, default=None)
     p.add_argument("--phi_S", type=float, default=None)
+    p.add_argument(
+        "--orient_preset",
+        type=str,
+        default=None,
+        help=(
+            "Optional orientation preset to use for both params and tag."
+            "If not provided, angles (theta_J, phi_J, theta_S, phi_S) form the tag."
+        ),
+    )
     p.add_argument("--mcz_min", type=float, default=10.0)
     p.add_argument("--mcz_max", type=float, default=80.0)
     p.add_argument("--mcz_pts", type=int, default=71)
@@ -105,6 +120,15 @@ if __name__ == "__main__":
     )
     p.add_argument("--bank_prefix", type=str, default="rp_bank")
     p.add_argument("--n_workers", type=int, default=None)
+
+    # Build dynamic choices list from orient_params to avoid drift
+    dynamic_choices = allowed_orient_presets(orient_params)
+    # Override parser's static choices with dynamic (safe; same option name)
+    for action in p._actions:
+        if getattr(action, "dest", None) == "orient_preset":
+            action.choices = dynamic_choices
+            break
+
     args = p.parse_args()
 
     main(
@@ -112,6 +136,7 @@ if __name__ == "__main__":
         phi_J=args.phi_J,
         theta_S=args.theta_S,
         phi_S=args.phi_S,
+        orient_preset=args.orient_preset,
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         mcz_pts=args.mcz_pts,

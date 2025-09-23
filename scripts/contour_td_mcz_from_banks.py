@@ -17,12 +17,15 @@ from modules.functions_v3 import (
     get_MLz_from_td,
     mismatch_from_strains,
     Sn,
-    set_orientation,
     timer_decorator,
     get_fcut_from_mcz,
 )
 from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
-from modules.template_bank import bank_filename, orientation_tag
+from modules.template_bank import (
+    bank_filename,
+    resolve_orientation,
+    allowed_orient_presets,
+)
 
 
 # Globals for worker processes
@@ -74,6 +77,7 @@ def main(
     phi_J: Optional[float],
     theta_S: Optional[float],
     phi_S: Optional[float],
+    orient_preset: Optional[str],
     mcz_min: float,
     mcz_max: float,
     mcz_pts: int,
@@ -114,19 +118,18 @@ def main(
     Tmap = np.zeros_like(Zmap)
     Gmap = np.zeros_like(Zmap)
 
-    # Orientation/tag used to find matching banks
-    tag = orientation_tag(theta_J, phi_J, theta_S, phi_S)
-
-    # Pre-build orientation base params for source (lensed)
-    lens_base = set_orientation(orient_params["Taman"]["edgeon"], lens_params_1)[0]
-    if theta_J is not None:
-        lens_base["theta_J"] = theta_J
-    if phi_J is not None:
-        lens_base["phi_J"] = phi_J
-    if theta_S is not None:
-        lens_base["theta_S"] = theta_S
-    if phi_S is not None:
-        lens_base["phi_S"] = phi_S
+    # Orientation/tag used to find matching banks and to set source orientation
+    lens_base, tag = resolve_orientation(
+        orient_preset,
+        theta_J,
+        phi_J,
+        theta_S,
+        phi_S,
+        lens_params_1,
+        orient_params,
+        default_author="Taman",
+        default_orientation="edgeon",
+    )
 
     # Loop over mcz values
     for i, mcz in enumerate(mcz_arr):
@@ -323,6 +326,15 @@ if __name__ == "__main__":
     p.add_argument("--phi_J", type=float, default=None)
     p.add_argument("--theta_S", type=float, default=None)
     p.add_argument("--phi_S", type=float, default=None)
+    p.add_argument(
+        "--orient_preset",
+        type=str,
+        default=None,
+        help=(
+            "Optional orientation preset to use for both params and tag."
+            "If not provided, angles (theta_J, phi_J, theta_S, phi_S) form the tag."
+        ),
+    )
     p.add_argument("--mcz_min", type=float, default=10.0)
     p.add_argument("--mcz_max", type=float, default=80.0)
     p.add_argument("--mcz_pts", type=int, default=71)
@@ -362,6 +374,13 @@ if __name__ == "__main__":
         ),
     )
     p.add_argument("--no_plot", action="store_true")
+    # Build dynamic choices list from orient_params to avoid drift
+    dynamic_choices = allowed_orient_presets(orient_params)
+    # Repoint choices on orient_preset action
+    for action in p._actions:
+        if getattr(action, "dest", None) == "orient_preset":
+            action.choices = dynamic_choices
+            break
 
     args = p.parse_args()
 
@@ -371,6 +390,7 @@ if __name__ == "__main__":
         phi_J=args.phi_J,
         theta_S=args.theta_S,
         phi_S=args.phi_S,
+        orient_preset=args.orient_preset,
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         mcz_pts=args.mcz_pts,
