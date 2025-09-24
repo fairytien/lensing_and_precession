@@ -4,6 +4,7 @@
 #SBATCH -N 1 # Number of nodes
 #SBATCH -t 02:00:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
+#SBATCH --array=0-9 # Number of chunks
 #SBATCH -o batch_outputs/contour_td_mcz_from_banks.out # Output file
 #SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
@@ -24,7 +25,7 @@ NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
 python scripts/contour_td_mcz_from_banks.py \
   --I 0.5 \
-  --orient_preset edgeon \
+  --orient_preset Taman_edgeon \
   --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
   --td_min_ms 20 --td_max_ms 70 --td_pts 51 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
@@ -34,5 +35,6 @@ python scripts/contour_td_mcz_from_banks.py \
   --n_workers ${NWORKERS} \
   --use_opt_match \
   --results_dir ./data/contours \
+  --no_plot \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
   --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}

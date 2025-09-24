@@ -26,7 +26,7 @@ cd "$PROJECT_ROOT"
 NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
 python scripts/build_template_banks.py \
-  --orient_preset edgeon \
+  --orient_preset Taman_edgeon \
   --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
