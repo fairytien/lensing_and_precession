@@ -42,6 +42,9 @@ import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
 from modules.chunking import choose_gamma_chunk
 
+# Suppress matplotlib font substitution messages
+logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
+
 
 """This script computes mismatch maps using prebuilt banks.
 Worker logic is delegated to modules.match_utils.* helpers for reuse."""

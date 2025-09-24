@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=128 # Number of tasks per node
 #SBATCH --array=0-9 # Number of chunks
 #SBATCH -o batch_outputs/build_template_banks.out # Output file
-#SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
+#SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
 # Activate your conda environment for this project
@@ -31,7 +31,6 @@ python scripts/build_template_banks.py \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 101 \
-  --f_min 20 --delta_f 0.25 \
   --n_workers ${NWORKERS} \
   --dtype complex64 \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \

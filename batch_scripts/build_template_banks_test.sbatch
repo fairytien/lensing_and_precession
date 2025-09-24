@@ -3,10 +3,10 @@
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes
 #SBATCH -t 00:05:00 # Walltime (shorter for test runs)
-#SBATCH -p development # Queue name where job is submitted (faster queue)
-#SBATCH --array=0-2 # Test with 3 chunks
+#SBATCH -p normal # Queue name where job is submitted (faster queue)
+#SBATCH --array=0-1 # Test with 2 chunks
 #SBATCH -o batch_outputs/build_template_banks_test_%A_%a.out # Output file
-#SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
+#SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
 # Activate your conda environment for this project
@@ -32,6 +32,6 @@ python scripts/build_template_banks.py \
   --gamma_pts 51 \
   --f_min 20 --delta_f 0.25 \
   --n_workers ${NWORKERS} \
-  --dtype complex128 \
+  --dtype complex64 \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
   --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}

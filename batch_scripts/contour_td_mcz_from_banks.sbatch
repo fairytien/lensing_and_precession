@@ -6,7 +6,7 @@
 #SBATCH -p normal # Queue name where job is submitted
 #SBATCH --array=0-9 # Number of chunks
 #SBATCH -o batch_outputs/contour_td_mcz_from_banks.out # Output file
-#SBATCH --mail-type=BEGIN,FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
+#SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
 # Activate your conda environment for this project
@@ -34,7 +34,6 @@ python scripts/contour_td_mcz_from_banks.py \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 101 \
-  --f_min 20 --delta_f 0.25 \
   --n_workers ${NWORKERS} \
   --use_opt_match \
   --results_dir ./data/contours \
