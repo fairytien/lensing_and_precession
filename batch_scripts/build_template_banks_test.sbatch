@@ -24,41 +24,14 @@ cd "$PROJECT_ROOT"
 # Tune n_workers to available cores per node; default to a conservative value
 NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
-# Test run parameters (smaller grids for quick testing)
-ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}
-
-MCZ_MIN=${MCZ_MIN:-10}
-MCZ_MAX=${MCZ_MAX:-12}
-MCZ_PTS=${MCZ_PTS:-2}
-
-OMEGA_MIN=${OMEGA_MIN:-0}
-OMEGA_MAX=${OMEGA_MAX:-6}
-OMEGA_PTS=${OMEGA_PTS:-21}
-
-THETA_MIN=${THETA_MIN:-0}
-THETA_MAX=${THETA_MAX:-15}
-THETA_PTS=${THETA_PTS:-51}
-
-GAMMA_PTS=${GAMMA_PTS:-51}
-
-F_MIN=${F_MIN:-20}
-DELTA_F=${DELTA_F:-0.25}
-
-BANK_DIR=${BANK_DIR:-$SLURM_SUBMIT_DIR/data/template_banks}
-BANK_PREFIX=${BANK_PREFIX:-rp_bank}
-
-# Data type for complex arrays (complex128 or complex64)
-DTYPE=${DTYPE:-complex128}
-
 python scripts/build_template_banks.py \
-  --orient_preset "$ORIENT_PRESET" \
-  --mcz_min $MCZ_MIN --mcz_max $MCZ_MAX --mcz_pts $MCZ_PTS \
-  --omega_min $OMEGA_MIN --omega_max $OMEGA_MAX --omega_pts $OMEGA_PTS \
-  --theta_min $THETA_MIN --theta_max $THETA_MAX --theta_pts $THETA_PTS \
-  --gamma_pts $GAMMA_PTS \
-  --f_min $F_MIN --delta_f $DELTA_F \
-  --bank_dir "$BANK_DIR" --bank_prefix "$BANK_PREFIX" \
+  --orient_preset Taman_edgeon \
+  --mcz_min 10 --mcz_max 12 --mcz_pts 2 \
+  --omega_min 0 --omega_max 6 --omega_pts 21 \
+  --theta_min 0 --theta_max 15 --theta_pts 51 \
+  --gamma_pts 51 \
+  --f_min 20 --delta_f 0.25 \
   --n_workers ${NWORKERS} \
-  --dtype "$DTYPE" \
+  --dtype complex128 \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
   --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}

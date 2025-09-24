@@ -23,74 +23,17 @@ cd "$PROJECT_ROOT"
 
 NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
-# Test run parameters (smaller grids for quick testing)
-ORIENT_PRESET=${ORIENT_PRESET:-Taman_edgeon}
-
-I=${I:-0.5}
-
-MCZ_MIN=${MCZ_MIN:-10}
-MCZ_MAX=${MCZ_MAX:-12}
-MCZ_PTS=${MCZ_PTS:-2}
-
-TD_MIN_MS=${TD_MIN_MS:-20}
-TD_MAX_MS=${TD_MAX_MS:-22}
-TD_PTS=${TD_PTS:-3}
-
-OMEGA_MIN=${OMEGA_MIN:-0}
-OMEGA_MAX=${OMEGA_MAX:-2}
-OMEGA_PTS=${OMEGA_PTS:-3}
-
-THETA_MIN=${THETA_MIN:-0}
-THETA_MAX=${THETA_MAX:-3}
-THETA_PTS=${THETA_PTS:-3}
-
-GAMMA_PTS=${GAMMA_PTS:-3}
-
-F_MIN=${F_MIN:-20}
-DELTA_F=${DELTA_F:-1.0}
-
-BANK_DIR=${BANK_DIR:-$SLURM_SUBMIT_DIR/data/template_banks}
-BANK_PREFIX=${BANK_PREFIX:-rp_bank}
-RESULTS_DIR=${RESULTS_DIR:-$SLURM_SUBMIT_DIR/data/contours}
-
-# Optional flags (defaults for test)
-COMPARE_BOTH=${COMPARE_BOTH:-false}
-USE_OPT_MATCH=${USE_OPT_MATCH:-false}
-SAVE_FULL_MISMATCH=${SAVE_FULL_MISMATCH:-false}
-NO_PLOT=${NO_PLOT:-false}
-
-# Build command with conditional flags
-CMD="python scripts/contour_td_mcz_from_banks.py \
-  --I $I \
-  --orient_preset \"$ORIENT_PRESET\" \
-  --mcz_min $MCZ_MIN --mcz_max $MCZ_MAX --mcz_pts $MCZ_PTS \
-  --td_min_ms $TD_MIN_MS --td_max_ms $TD_MAX_MS --td_pts $TD_PTS \
-  --omega_min $OMEGA_MIN --omega_max $OMEGA_MAX --omega_pts $OMEGA_PTS \
-  --theta_min $THETA_MIN --theta_max $THETA_MAX --theta_pts $THETA_PTS \
-  --gamma_pts $GAMMA_PTS \
-  --f_min $F_MIN --delta_f $DELTA_F \
-  --bank_dir \"$BANK_DIR\" --bank_prefix \"$BANK_PREFIX\" \
-  --results_dir \"$RESULTS_DIR\" \
+python scripts/contour_td_mcz_from_banks.py \
+  --I 0.5 \
+  --orient_preset Taman_edgeon \
+  --mcz_min 10 --mcz_max 12 --mcz_pts 2 \
+  --td_min_ms 20 --td_max_ms 22 --td_pts 3 \
+  --omega_min 0 --omega_max 2 --omega_pts 3 \
+  --theta_min 0 --theta_max 3 --theta_pts 3 \
+  --gamma_pts 3 \
+  --f_min 20 --delta_f 1.0 \
+  --results_dir "$SLURM_SUBMIT_DIR/data/contours" \
   --n_workers ${NWORKERS} \
+  --no_plot \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
-  --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}"
-
-# Add optional flags if enabled
-if [[ "$COMPARE_BOTH" == "true" ]]; then
-  CMD="$CMD --compare_both"
-fi
-
-if [[ "$USE_OPT_MATCH" == "true" ]]; then
-  CMD="$CMD --use_opt_match"
-fi
-
-if [[ "$SAVE_FULL_MISMATCH" == "true" ]]; then
-  CMD="$CMD --save_full_mismatch"
-fi
-
-if [[ "$NO_PLOT" == "true" ]]; then
-  CMD="$CMD --no_plot"
-fi
-
-# Execute the command
-eval $CMD
+  --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}
