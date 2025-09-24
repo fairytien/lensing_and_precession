@@ -6,8 +6,7 @@ and builds a consolidated best-match file. Designed for array-job chunking and
 low-memory operation.
 """
 
-import os
-import argparse
+import os, argparse, sys
 from typing import Optional
 
 import numpy as np
@@ -15,15 +14,12 @@ import h5py
 from multiprocessing import Pool, cpu_count
 
 # Ensure project root is on path
-import sys
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.functions_v3 import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
-    mismatch_from_strains,
     Sn,
     timer_decorator,
     get_fcut_from_mcz,

@@ -4,15 +4,12 @@ Streams templates directly to HDF5 to avoid high RAM usage and supports
 SLURM-style chunking via CLI or environment variables.
 """
 
-import os
-import argparse
+import os, argparse, sys
 from typing import Optional
 
 import numpy as np
 
 # Ensure project root on path
-import sys
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.template_bank import build_and_save_bank

@@ -5,15 +5,18 @@ Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
 optionally generates the final contour figure.
 """
 
-import os
-import argparse
-import glob
+import os, sys, argparse, glob
 import h5py
 import numpy as np
 
+# Ensure project root is on path for local invocation
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from modules.filenames import best_match_filename, contour_td_mcz_filename
+from modules.functions_v3 import timer_decorator
 
 
+@timer_decorator
 def main(
     results_dir: str,
     td_min_ms: float,

@@ -2,9 +2,9 @@
 
 import numpy as np
 import h5py
-from typing import Callable, Tuple
+from typing import Tuple
 
-from modules.functions_v3 import mismatch_from_strains
+from modules.functions_v3 import get_fcut_from_mcz, Sn, mismatch_from_strains
 
 
 def cast_to_match_precision(arr: np.ndarray) -> np.ndarray:
@@ -23,20 +23,18 @@ def ensure_same_length(t: np.ndarray, s: np.ndarray) -> tuple:
 
 
 def build_psd_for_mcz(
-    Sn_func: Callable,
     f_min: float,
     delta_f: float,
     mcz_msun: float,
-    fcut_func: Callable[[float], float],
 ) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     Build frequency grid and PSD for a given mcz using provided helpers.
-    Returns (s_f, psd, f_cut).
+    Returns (s_farr, psd, f_cut).
     """
-    f_cut = float(fcut_func(mcz_msun))
-    s_f = np.arange(f_min, f_cut, delta_f)
-    psd = Sn_func(s_f, f_min=f_min, delta_f=delta_f)
-    return s_f, psd, f_cut
+    f_cut = get_fcut_from_mcz(mcz_msun)
+    s_farr = np.arange(f_min, f_cut, delta_f)
+    psd = Sn(s_farr, f_min=f_min, delta_f=delta_f)
+    return s_farr, psd, f_cut
 
 
 def build_source_strain_for_td(
