@@ -23,6 +23,9 @@ cd "$PROJECT_ROOT"
 
 NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
 
+# NOTE: This array job computes mismatches in chunks. Each chunk writes a partial best_match file.
+# After ALL array tasks complete, run: python scripts/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 10 --mcz_max 80 --orientation_tag Taman_edgeon
+
 python scripts/contour_td_mcz_from_banks.py \
   --I 0.5 \
   --orient_preset Taman_edgeon \
