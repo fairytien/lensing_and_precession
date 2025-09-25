@@ -2,10 +2,13 @@
 #SBATCH -J contour_td_mcz # Job name
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes
-#SBATCH -t 02:00:00 # Walltime
+#SBATCH --ntasks=1 # Single task (not MPI)
+#SBATCH --cpus-per-task=128 # Use all CPUs on node
+#SBATCH --mem=0 # Use all available memory on node
+#SBATCH -t 04:00:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
 #SBATCH --array=0-9 # Number of chunks
-#SBATCH -o batch_outputs/contour_td_mcz_from_banks.out # Output file
+#SBATCH -o batch_outputs/contour_td_mcz_from_banks_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
@@ -21,7 +24,14 @@ fi
 PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
 cd "$PROJECT_ROOT"
 
-NWORKERS=${NWORKERS:-${SLURM_CPUS_ON_NODE:-96}}
+# Set thread limits to prevent oversubscription
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
+
+# Use all allocated CPUs for multiprocessing workers
+NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
 # NOTE: This array job computes mismatches in chunks. Each chunk writes a partial best_match file.
 # After ALL array tasks complete, run: python scripts/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 10 --mcz_max 80 --orientation_tag Taman_edgeon
