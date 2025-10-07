@@ -127,10 +127,9 @@ def main(
         plt.xlabel(r"$\Delta t_d$ [ms]")
         plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
         plt.tight_layout()
-        fig_dir = os.path.join(
-            os.path.dirname(os.path.dirname(summary_path)), "..", "figures"
-        )
-        fig_dir = os.path.abspath(fig_dir)
+        # Save figures into the project-level figures directory
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        fig_dir = os.path.join(project_root, "figures")
         os.makedirs(fig_dir, exist_ok=True)
         fig_path = contour_td_mcz_filename(
             fig_dir, td_min_ms, td_max_ms, mcz_min, mcz_max, orientation_tag, ext="pdf"
