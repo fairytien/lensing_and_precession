@@ -26,7 +26,7 @@ def main(
     orientation_tag: str,
     no_plot: bool,
 ):
-    cube_paths = sorted(
+    cube_paths_all = sorted(
         glob.glob(
             os.path.join(
                 results_dir,
@@ -35,6 +35,19 @@ def main(
             )
         )
     )
+    # Filter by requested mcz range by parsing the filename token 'mcz<val>Msun'
+    cube_paths = []
+    for p in cube_paths_all:
+        base = os.path.basename(p)
+        try:
+            # Example: mismatch_cubes_mcz47Msun_td20-70ms_TAG.h5
+            token = base.split("_mcz", 1)[1]
+            mcz_str = token.split("Msun", 1)[0]
+            mcz_val = float(mcz_str)
+        except Exception:
+            continue
+        if mcz_min <= mcz_val <= mcz_max:
+            cube_paths.append(p)
     if not cube_paths:
         raise FileNotFoundError("No mismatch cube files found")
 
@@ -46,7 +59,13 @@ def main(
     td_arr = None
 
     for p in cube_paths:
-        with h5py.File(p, "r") as h5:
+        # Skip unreadable/corrupted files gracefully
+        try:
+            h5 = h5py.File(p, "r")
+        except Exception as e:
+            print(f"Warning: Skipping unreadable file: {p} ({e})")
+            continue
+        with h5:
             mcz = float(np.array(h5["mcz"]).item())
             if td_arr is None:
                 td_arr = np.array(h5["td"])  # (td,)
