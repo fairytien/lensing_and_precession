@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-"$DIR"/../lfs/setup_lfs.sh "$@"
+cd "$DIR/.."
+exec python3 scripts/organize_data.py "$@"
