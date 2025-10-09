@@ -70,3 +70,59 @@ Pickle files are Python-version sensitive. For long-term archival, consider expo
 
 ---
 Last updated: 2025-10-09
+
+## Git LFS & Large File Guard
+
+### Current LFS Patterns
+The repository `.gitattributes` declares:
+
+```
+*.pkl filter=lfs diff=lfs merge=lfs -text
+```
+
+All pickle files committed after this rule (or re-added and migrated) are *pointers* ~130–300 bytes that reference binary content stored in LFS. A pointer file looks like:
+
+```
+version https://git-lfs.github.com/spec/v1
+oid sha256:<hash>
+size <bytes>
+```
+
+List tracked LFS files:
+```bash
+git lfs ls-files
+```
+
+Fetch actual large objects after a fresh clone:
+```bash
+git lfs pull
+```
+
+### Adding Additional Types
+If notebooks or other large binary artifacts grow, extend tracking, e.g.:
+```bash
+git lfs track "*.ipynb"
+git add .gitattributes
+git commit -m "chore: track notebooks in LFS"
+```
+
+### Pre-Commit Size Guard
+To prevent accidental large non-LFS blobs entering the history, a size guard hook exists.
+
+Install:
+```bash
+bash scripts/install_precommit_hook.sh
+```
+
+Default threshold: 5 MB for non-LFS files. Customize per commit by exporting:
+```bash
+export MAX_SIZE_MB=15   # allow up to 15 MB temporarily
+git commit -m "..."
+```
+
+The hook rejects any staged file exceeding the threshold unless:
+1. It is already an LFS pointer (first line starts with `version https://git-lfs.github.com`), or
+2. Its path matches one of the allowed LFS patterns (currently `*.pkl`).
+
+### Why Not Rewrite History?
+Historic large blobs remain in earlier commits; we chose not to rewrite to avoid forcing collaborator resets. New growth is controlled via LFS + guard. If future repository size becomes problematic, revisit a full history cleanup using the documented procedure in `scripts/history_cleanup.md`.
