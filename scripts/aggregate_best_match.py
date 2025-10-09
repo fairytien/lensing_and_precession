@@ -93,20 +93,39 @@ def main(
             T_rows.append(T)
             G_rows.append(G)
 
-    # Sort by mcz
-    order = np.argsort(mcz_vals)
-    mcz_sorted = np.array(mcz_vals, dtype=np.float64)[order]
-    Zmap = np.stack(Z_rows, axis=0)[order]
-    Omap = np.stack(O_rows, axis=0)[order]
-    Tmap = np.stack(T_rows, axis=0)[order]
-    Gmap = np.stack(G_rows, axis=0)[order]
+    # Build full mcz grid [mcz_min, ..., mcz_max] with blanks (NaNs) for missing entries
+    desired_mcz = np.arange(float(mcz_min), float(mcz_max) + 1.0, 1.0, dtype=np.float64)
+    td_len = td_arr.shape[0]
+    Zmap = np.full((desired_mcz.shape[0], td_len), np.nan, dtype=np.float32)
+    Omap = np.full_like(Zmap, np.nan)
+    Tmap = np.full_like(Zmap, np.nan)
+    Gmap = np.full_like(Zmap, np.nan)
+
+    # Place available rows at the correct indices
+    present_mcz = np.array(mcz_vals, dtype=np.float64)
+    order = np.argsort(present_mcz)
+    present_mcz_sorted = present_mcz[order]
+    Z_rows_sorted = [Z_rows[i] for i in order]
+    O_rows_sorted = [O_rows[i] for i in order]
+    T_rows_sorted = [T_rows[i] for i in order]
+    G_rows_sorted = [G_rows[i] for i in order]
+    index_map = {val: idx for idx, val in enumerate(desired_mcz)}
+    for val, Zr, Or, Tr, Gr in zip(
+        present_mcz_sorted, Z_rows_sorted, O_rows_sorted, T_rows_sorted, G_rows_sorted
+    ):
+        if val in index_map:
+            j = index_map[val]
+            Zmap[j, :] = Zr
+            Omap[j, :] = Or
+            Tmap[j, :] = Tr
+            Gmap[j, :] = Gr
 
     # Save combined best-match file
     summary_path = best_match_filename(
         results_dir, td_min_ms, td_max_ms, mcz_min, mcz_max, orientation_tag
     )
     with h5py.File(summary_path, "w") as h5:
-        h5.create_dataset("mcz", data=mcz_sorted)
+        h5.create_dataset("mcz", data=desired_mcz)
         h5.create_dataset("td", data=td_arr.astype(np.float64))
         h5.create_dataset("epsilon_min", data=Zmap.astype(np.float32))
         h5.create_dataset("omega_best", data=Omap.astype(np.float32))
@@ -117,9 +136,13 @@ def main(
     if not no_plot:
         import matplotlib.pyplot as plt
 
-        TD, MCZ = np.meshgrid(td_arr, mcz_sorted)
+        TD, MCZ = np.meshgrid(td_arr, desired_mcz)
         plt.figure(figsize=(8, 6))
-        cf = plt.contourf(TD * 1e3, MCZ, Zmap, levels=100, cmap="jet")
+        # Mask NaNs so missing mcz rows appear as blank space
+        import numpy.ma as ma
+
+        Zmasked = ma.masked_invalid(Zmap)
+        cf = plt.contourf(TD * 1e3, MCZ, Zmasked, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
         cbar.set_label(
             r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$"
