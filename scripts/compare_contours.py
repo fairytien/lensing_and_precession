@@ -1,7 +1,6 @@
-import sys, os
-import pickle
-import argparse
+import sys, os, argparse, pickle
 import numpy as np
+import numpy.ma as ma
 import matplotlib.pyplot as plt
 
 # Ensure project root is on path
@@ -14,7 +13,86 @@ def load_pickle_data(filepath):
         return pickle.load(f)
 
 
-def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
+def load_generic_dataset(path):
+    """Load a dataset (omega/theta or td/mcz) and return X, Y, Z and axis labels.
+
+    Supports:
+    - Pickle with keys: 'omega_matrix', 'theta_matrix', 'epsilon_matrix'
+    - Pickle with keys: 'td_arr' (s), 'mcz_arr' (Msun), 'epsilon_matrix' (mcz x td)
+    - HDF5 best_match: datasets 'mcz', 'td', 'epsilon_min'
+    """
+    _, ext = os.path.splitext(path)
+    ext = ext.lower()
+    if ext == ".pkl":
+        d = load_pickle_data(path)
+        # Case 1: omega-theta grid
+        if all(k in d for k in ("omega_matrix", "theta_matrix", "epsilon_matrix")):
+            X = np.asarray(d["omega_matrix"])
+            Y = np.asarray(d["theta_matrix"])
+            Z = np.asarray(d["epsilon_matrix"], dtype=float)
+            return X, Y, Z, r"$\tilde{\Omega}$", r"$\tilde{\theta}$"
+        # Case 2: td-mcz map
+        if all(k in d for k in ("td_arr", "mcz_arr", "epsilon_matrix")):
+            td = np.asarray(d["td_arr"], dtype=float)  # seconds
+            mcz = np.asarray(d["mcz_arr"], dtype=float)
+            Z = np.asarray(d["epsilon_matrix"], dtype=float)
+            X, Y = np.meshgrid(td * 1e3, mcz)  # x in ms
+            return X, Y, Z, r"$\Delta t_d$ [ms]", r"$\mathcal{M}_s\ [M_\odot]$"
+        raise ValueError("Unsupported pickle structure: missing expected keys")
+    elif ext == ".h5":
+        import h5py
+
+        with h5py.File(path, "r") as h5:
+            if all(k in h5 for k in ("mcz", "td", "epsilon_min")):
+                mcz = np.asarray(h5["mcz"], dtype=float)
+                td = np.asarray(h5["td"], dtype=float)
+                Z = np.asarray(h5["epsilon_min"], dtype=float)
+                X, Y = np.meshgrid(td * 1e3, mcz)  # x in ms
+                return X, Y, Z, r"$\Delta t_d$ [ms]", r"$\mathcal{M}_s\ [M_\odot]$"
+        raise ValueError(
+            "Unsupported HDF5 structure: expecting best_match with mcz, td, epsilon_min"
+        )
+    else:
+        raise ValueError(f"Unsupported extension: {ext}")
+
+
+def compute_color_scale(epsilons, scale_from="auto"):
+    eps_masked = [ma.masked_invalid(ep) for ep in epsilons]
+    idx_choice = None
+    if isinstance(scale_from, str):
+        sf = scale_from.strip().lower()
+        if sf.isdigit():
+            idx_choice = max(0, int(sf) - 1)
+    elif isinstance(scale_from, int):
+        idx_choice = max(0, scale_from - 1)
+
+    if (
+        idx_choice is not None
+        and idx_choice < len(eps_masked)
+        and eps_masked[idx_choice].count() > 0
+    ):
+        vmin = float(eps_masked[idx_choice].min())
+        vmax = float(eps_masked[idx_choice].max())
+        return eps_masked, vmin, vmax
+
+    mins = [float(ep.min()) for ep in eps_masked if ep.count() > 0]
+    maxs = [float(ep.max()) for ep in eps_masked if ep.count() > 0]
+    if not mins or not maxs:
+        raise ValueError(
+            "All input epsilon matrices are empty or NaN-only; cannot set color scale."
+        )
+    return eps_masked, min(mins), max(maxs)
+
+
+def create_comparison_contours(
+    paths,
+    labels=None,
+    tag=None,
+    outdir="figures",
+    scale_from="auto",
+    n_levels=100,
+    cmap="jet",
+):
     """Create comparison contours (2+ datasets) with a unified color scale.
 
     Parameters
@@ -27,6 +105,10 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
         Optional tag appended to output filename (preceded by underscore).
     outdir : str
         Directory to save output figure.
+    scale_from : str | int | None
+        Which dataset to take color scale from: 'auto' (global), a 1-based index (1,2,3...), or None.
+    n_levels : int
+        Number of contour levels for each subplot.
     """
 
     if not isinstance(paths, (list, tuple)) or len(paths) < 2:
@@ -35,24 +117,39 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
         if not os.path.exists(p):
             raise FileNotFoundError(f"Pickle not found: {p}")
 
+    # If no user-provided labels, derive from filenames (basename without extension)
     if labels is None:
-        labels = [f"{i+1}" for i in range(len(paths))]
+        labels = [os.path.splitext(os.path.basename(p))[0] for p in paths]
     if len(labels) != len(paths):
-        raise ValueError("labels length must match paths length")
+        raise ValueError(
+            f"labels length ({len(labels)}) must match paths length ({len(paths)})"
+        )
 
-    # Load datasets and collect fields
-    datasets = [load_pickle_data(p) for p in paths]
-    omegas = [d["omega_matrix"] for d in datasets]
-    thetas = [d["theta_matrix"] for d in datasets]
-    epsilons = [d["epsilon_matrix"] for d in datasets]
+    # Load datasets and collect fields, with explicit error context per path
+    loaded = []
+    for p in paths:
+        try:
+            loaded.append(load_generic_dataset(p))
+        except Exception as e:
+            raise RuntimeError(f"Failed to load dataset: {p}: {e}") from e
+    # Unpack
+    Xs = [t[0] for t in loaded]
+    Ys = [t[1] for t in loaded]
+    epsilons = [t[2] for t in loaded]
+    xlabels = [t[3] for t in loaded]
+    ylabels = [t[4] for t in loaded]
 
-    # Global color scale
-    global_min = min(float(ep.min()) for ep in epsilons)
-    global_max = max(float(ep.max()) for ep in epsilons)
+    # Mask NaNs and compute color scale via helper
+    eps_masked, global_min, global_max = compute_color_scale(epsilons, scale_from)
 
     print(f"Global epsilon range: {global_min:.6f} to {global_max:.6f}")
-    for lab, ep in zip(labels, epsilons):
-        print(f"{lab} epsilon range: {float(ep.min()):.6f} to {float(ep.max()):.6f}")
+    for lab, ep in zip(labels, eps_masked):
+        if ep.count() > 0:
+            print(
+                f"{lab} epsilon range: {float(ep.min()):.6f} to {float(ep.max()):.6f}"
+            )
+        else:
+            print(f"{lab} epsilon range: NaN-only")
 
     # Determine subplot grid: up to 3 columns per row
     n = len(paths)
@@ -67,16 +164,16 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
     for i in range(n):
         ax = axes[i]
         cf = ax.contourf(
-            omegas[i],
-            thetas[i],
-            epsilons[i],
-            levels=np.linspace(global_min, global_max, 100),
-            cmap="jet",
+            Xs[i],
+            Ys[i],
+            eps_masked[i],
+            levels=np.linspace(global_min, global_max, n_levels),
+            cmap=cmap,
             extend="both",
         )
         ax.set_title(labels[i])
-        ax.set_xlabel(r"$\tilde{\Omega}$")
-        ax.set_ylabel(r"$\tilde{\theta}$")
+        ax.set_xlabel(xlabels[i])
+        ax.set_ylabel(ylabels[i])
         try:
             ax.set_box_aspect(1)
         except Exception:
@@ -91,7 +188,22 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
     cbar = fig.colorbar(
         contour_handles[-1], ax=list(axes[:n]), location="right", shrink=0.9, pad=0.02
     )
-    cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
+    # If this is a td–mcz contour, use the minimized-over-(Omega, theta, gamma) label
+    is_td_mcz = any(
+        isinstance(xlab, str)
+        and (
+            ("Δ" in xlab)  # unicode delta
+            or ("Delta" in xlab)  # plain text
+            or ("t_d" in xlab and "ms" in xlab)
+        )
+        for xlab in xlabels
+    )
+    if is_td_mcz:
+        cbar.set_label(
+            r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_L,\tilde{h}_P)$"
+        )
+    else:
+        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
 
     # Output
     os.makedirs(outdir, exist_ok=True)
@@ -104,10 +216,10 @@ def create_comparison_contours(paths, labels=None, tag=None, outdir="figures"):
 
     # Stats
     print("\nGrid Information:")
-    for lab, om, th in zip(labels, omegas, thetas):
-        print(f"{lab} grid shape: {om.shape}")
-        print(f"{lab} omega range: {float(om.min()):.3f} to {float(om.max()):.3f}")
-        print(f"{lab} theta range: {float(th.min()):.3f} to {float(th.max()):.3f}")
+    for lab, X, Y in zip(labels, Xs, Ys):
+        print(f"{lab} grid shape: {X.shape}")
+        print(f"{lab} X range: {float(X.min()):.1f} to {float(X.max()):.1f}")
+        print(f"{lab} Y range: {float(Y.min()):.1f} to {float(Y.max()):.1f}")
 
     plt.show()
 
@@ -119,18 +231,8 @@ def _parse_args():
     parser.add_argument(
         "--paths",
         nargs="+",
-        help="List of 2+ pickle files to compare (overrides --a/--b)",
-    )
-    # Backwards-compat flags for exactly two inputs
-    parser.add_argument(
-        "--a",
-        dest="path_a",
-        help="Path to first dataset (A) pickle file",
-    )
-    parser.add_argument(
-        "--b",
-        dest="path_b",
-        help="Path to second dataset (B) pickle file",
+        required=True,
+        help="List of 2+ dataset files to compare (.pkl or best_match .h5)",
     )
     parser.add_argument(
         "--labels",
@@ -146,25 +248,40 @@ def _parse_args():
     parser.add_argument(
         "--outdir", dest="outdir", default="figures", help="Output directory"
     )
+    parser.add_argument(
+        "--n_levels",
+        type=int,
+        default=100,
+        help="Number of contour levels for each subplot (default: 100)",
+    )
+    parser.add_argument(
+        "--cmap",
+        type=str,
+        default="jet",
+        help="Matplotlib colormap name to use (default: jet)",
+    )
+    parser.add_argument(
+        "--scale_from",
+        default="auto",
+        help=(
+            "Which dataset to take color scale from: 'auto' (global) or a 1-based index (1,2,3...). "
+            "Default: auto."
+        ),
+    )
     args = parser.parse_args()
     return args
 
 
 if __name__ == "__main__":
     args = _parse_args()
-    if args.paths and len(args.paths) >= 2:
-        create_comparison_contours(
-            args.paths, labels=args.labels, tag=args.tag, outdir=args.outdir
-        )
-    else:
-        # Fallback to legacy two-input mode
-        if not args.path_a or not args.path_b:
-            raise SystemExit("Provide either --paths (2+ files) or both --a and --b")
-        labels = None
-        if args.labels:
-            labels = args.labels[:2]
-        else:
-            labels = ["1", "2"]
-        create_comparison_contours(
-            [args.path_a, args.path_b], labels=labels, tag=args.tag, outdir=args.outdir
-        )
+    if len(args.paths) < 2:
+        raise SystemExit("--paths must include at least 2 files to compare")
+    create_comparison_contours(
+        args.paths,
+        labels=args.labels,
+        tag=args.tag,
+        outdir=args.outdir,
+        scale_from=args.scale_from,
+        n_levels=args.n_levels,
+        cmap=args.cmap,
+    )
