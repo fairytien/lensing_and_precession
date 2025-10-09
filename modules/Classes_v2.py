@@ -48,7 +48,38 @@ FMIN = 20  # lower frequency of the detector sensitivity band [Hz]
 
 
 class Lensing:
+    """
+    Point-mass lensing model for gravitational wave signals.
+
+    This class implements the wave optics treatment of gravitational lensing
+    by a point mass, computing lensed gravitational waveforms.
+
+    Notes
+    -----
+    Based on Takahashi & Nakamura (2003) and related works on gravitational
+    wave lensing in the wave optics regime.
+    """
+
     def __init__(self, params):
+        """
+        Initialize gravitational lensing model.
+
+        Parameters
+        ----------
+        params : dict
+            Dictionary containing parameters for unlensed signal and lens:
+            - theta_S : Sky inclination (detector frame)
+            - phi_S : Sky azimuthal angle (detector frame)
+            - theta_J : Binary plane inclination (J == L, no precession)
+            - phi_J : Binary plane azimuthal angle
+            - mcz : Chirp mass [s]
+            - dist : Luminosity distance
+            - eta : Symmetric mass ratio
+            - t_c : Coalescence time
+            - phi_c : Coalescence phase
+            - MLz : Lens mass (redshifted) [s]
+            - y : Dimensionless source position
+        """
         self.params = params
 
         assert type(self.params == dict), "Parameters should be a dictionary"
@@ -69,15 +100,36 @@ class Lensing:
         self.y = params["y"]
 
     def total_mass(self):
-        """Total mass from chirp mass [seconds]"""
+        """
+        Calculate total mass from chirp mass.
+
+        Returns
+        -------
+        float
+            Total mass [s].
+        """
         return self.mcz / (self.eta ** (3 / 5))
 
     def f_cut(self):
-        """f_cut"""
+        """
+        Calculate ISCO cut-off frequency.
+
+        Returns
+        -------
+        float
+            Cut-off frequency [Hz].
+        """
         return 1 / (6 ** (3 / 2) * np.pi * self.total_mass())
 
     def LdotN(self):
-        """(cosine angle between l and n)"""
+        """
+        Calculate dot product between orbital angular momentum and line of sight.
+
+        Returns
+        -------
+        float
+            Dot product L · N (for non-precessing case, L == J).
+        """
         cos_term = np.cos(self.theta_S) * np.cos(self.theta_J)
         sin_term = (
             np.sin(self.theta_S)
@@ -88,14 +140,37 @@ class Lensing:
         return inner_prod
 
     def amp(self):
-        """A for h(f)"""
+        """
+        Calculate amplitude prefactor for unlensed waveform following equation 3.13 in Cutler-Flanaghan 1994.
+
+        Returns
+        -------
+        float
+            Amplitude prefactor.
+        """
         amplitude = (
             np.sqrt(5 / 96) * np.pi ** (-2 / 3) * self.mcz ** (5 / 6) / (self.dist)
         )
         return amplitude
 
     def Psi(self, f):
-        """eqn 3.13 in Cutler-Flanaghan 1994"""
+        """
+        Calculate GW phase to 2 PN order.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency [Hz].
+
+        Returns
+        -------
+        float or ndarray
+            GW phase.
+
+        Notes
+        -----
+        Implements Equation 3.13 from Cutler & Flanagan (1994).
+        """
         x = (np.pi * self.total_mass() * f) ** (2 / 3)
         term1 = 2 * np.pi * f * self.t_c - self.phi_c - np.pi / 4
         prefactor = (3 / 4) * (8 * np.pi * self.mcz * f) ** (-5 / 3)
@@ -172,8 +247,19 @@ class Lensing:
         return phi_pI_val
 
     def hI(self, f):
-        """Unlensed Waveform"""
+        """
+        Calculate the unlensed gravitational waveform.
 
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency [Hz].
+
+        Returns
+        -------
+        complex or ndarray
+            Unlensed strain h_I(f).
+        """
         term_1 = self.lambdaI()
         term_2 = np.exp(-1j * self.phi_pI())
         term_3 = self.amp() * f ** (-7 / 6)
@@ -184,7 +270,24 @@ class Lensing:
         return signal_I
 
     def F(self, f):
-        """PM amplification factor in exact form, equation 17 in Takahashi & Nakamura 2003"""
+        """
+        Calculate the point-mass amplification factor in wave optics regime.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency [Hz].
+
+        Returns
+        -------
+        complex or ndarray
+            Amplification factor F(f).
+
+        Notes
+        -----
+        Implements Equation 17 from Takahashi & Nakamura (2003) using the
+        confluent hypergeometric function.
+        """
         self.w = 8 * np.pi * self.M_Lz * f
         x_m = 0.5 * (self.y + np.sqrt(self.y**2 + 4))
         phi_m = np.power((x_m - self.y), 2) / 2 - np.log(x_m)
@@ -204,14 +307,23 @@ class Lensing:
         return F_val
 
     def strain(self, f, delta_f=0.25, frequencySeries=True):
-        """lensed strain = unlensed strain * amplification factor
-        Args:
-            f (numpy array): frequency range
-            delta_f (float): interval length of frequency. Default at 0.25 Hz.
-            frequencySeries (bool): True for FrequencySeries. False otherwise.
+        """
+        Calculate the lensed gravitational wave strain.
 
-        Returns:
-            hL (numpy array): lensed strain
+        Parameters
+        ----------
+        f : array_like
+            Frequencies at which to evaluate [Hz].
+        delta_f : float, optional
+            Frequency spacing for FrequencySeries output (default: 0.25 Hz).
+        frequencySeries : bool, optional
+            If True, return pycbc.FrequencySeries; if False, return ndarray
+            (default: True).
+
+        Returns
+        -------
+        FrequencySeries or ndarray
+            Lensed strain h_L(f) = h_I(f) * F(f).
         """
         hL = self.hI(f) * self.F(f)
 
@@ -222,30 +334,97 @@ class Lensing:
 
 
 class LensingGeo(Lensing):
+    """
+    Geometric optics approximation for gravitational wave lensing.
+
+    This class implements the geometric optics limit of
+    point-mass gravitational lensing, which is computationally faster than
+    the full wave optics treatment.
+
+    Notes
+    -----
+    Valid when f >> f_0 = c^3/(4*pi*G*M_L) ~ 0.4 Hz / (M_L/M_sun).
+    Based on Takahashi & Nakamura (2003) and Saif et al. (2023).
+    """
+
     def __init__(self, params):
+        """
+        Initialize geometric optics lensing model.
+
+        Parameters
+        ----------
+        params : dict
+            Same parameters as Lensing class.
+        """
         super().__init__(params)
 
     def mu_plus(self):
-        """plus magnification, equation 18 in Takahashi & Nakamura 2003, also 16a in Saif et al. 2023"""
+        """
+        Calculate the magnification of the plus (primary) image.
+
+        Returns
+        -------
+        complex
+            Magnification mu_+.
+
+        Notes
+        -----
+        Implements Equation 18 from Takahashi & Nakamura (2003) and
+        Equation 16a from Saif et al. (2023).
+        """
         mu_plus_val = (
             1 / 2 + (self.y**2 + 2) / (2 * self.y * np.sqrt(self.y**2 + 4)) + 0j
         )
         return mu_plus_val
 
     def mu_minus(self):
-        """minus magnification, equation 18 in Takahashi & Nakamura 2003, also 16a in Saif et al. 2023"""
+        """
+        Calculate the magnification of the minus (secondary) image.
+
+        Returns
+        -------
+        complex
+            Magnification mu_-.
+
+        Notes
+        -----
+        Implements Equation 18 from Takahashi & Nakamura (2003) and
+        Equation 16a from Saif et al. (2023).
+        """
         mu_minus_val = (
             1 / 2 - (self.y**2 + 2) / (2 * self.y * np.sqrt(self.y**2 + 4)) + 0j
         )
         return mu_minus_val
 
     def I(self):
-        """flux ratio, equation 17a in Saif et al. 2023"""
+        """
+        Calculate the flux ratio between images.
+
+        Returns
+        -------
+        float
+            Flux ratio |mu_-| / |mu_+|.
+
+        Notes
+        -----
+        Implements Equation 17a from Saif et al. (2023).
+        """
         I_val = np.abs(self.mu_minus()) / np.abs(self.mu_plus())
         return I_val
 
     def td(self):
-        """time delay, equation 16b in Saif et al. 2023"""
+        """
+        Calculate the time delay between the two images.
+
+        Returns
+        -------
+        float
+            Time delay [s].
+
+        Notes
+        -----
+        Implements Equation 16b from Saif et al. (2023).
+        """
         td_val = (
             2
             * self.M_Lz
@@ -261,7 +440,24 @@ class LensingGeo(Lensing):
         return td_val
 
     def F(self, f):
-        """PM amplification factor in geometric optics limit, equation 18 in Takahashi & Nakamura 2003"""
+        """
+        Calculate amplification factor in geometric optics limit.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency [Hz].
+
+        Returns
+        -------
+        complex or ndarray
+            Amplification factor F(f) in geometric optics approximation.
+
+        Notes
+        -----
+        Implements Equation 18 from Takahashi & Nakamura (2003).
+        Superposition of two images with magnifications and time delay.
+        """
         F_val = np.sqrt(np.abs(self.mu_plus())) - 1j * np.sqrt(
             np.abs(self.mu_minus())
         ) * np.exp(2j * np.pi * f * self.td())
@@ -274,7 +470,35 @@ class LensingGeo(Lensing):
 
 
 class Precessing:
+    """
+    Regular Precession: When L moves in a cone around J with an opening angle theta_tilde
+    that changes on a radiation reaction timescale, with frequency omega_tilde (also changing
+    on the same timescale) and a phase gamma_P.
+
+    Model presented in following paper: arXiv:2509.10628 [gr-qc]
+    """
+
     def __init__(self, params):
+        """
+        Initialize Regular Precession model.
+
+        Parameters
+        ----------
+        params : dict
+            Dictionary containing physical parameters:
+            - theta_S : Sky inclination (polar angle for line of sight in detector frame)
+            - phi_S : Sky azimuthal angle (azimuthal angle for line of sight in detector frame)
+            - theta_J : Source binary plane inclination (polar angle for J in detector frame)
+            - phi_J : Source binary plane azimuthal angle (azimuthal angle for J in detector frame)
+            - mcz : Chirp mass [s] - M_c = (m1*m2)**(3/5) / (m1 + m2)**(1/5)
+            - dist : Distance to the source
+            - eta : Symmetric mass ratio - eta = m1*m2 / (m1 + m2)**2
+            - t_c : Coalescence time
+            - phi_c : Coalescence phase
+            - theta_tilde : Dimensionless precession amplitude (10x opening angle at r = 6M)
+            - omega_tilde : Dimensionless precession frequency (1000x frequency at r = 6M for solar mass binary)
+            - gamma_P : Phase of the precession when binary enters detector band
+        """
         self.params = params
 
         assert type(self.params == dict), "Parameters should be a dictionary"
@@ -296,19 +520,67 @@ class Precessing:
         self.gamma_P = params["gamma_P"]
 
     def total_mass(self):
-        """Total mass from chirp mass [seconds]"""
+        """
+        Calculate the total mass [seconds] of the binary system from the chirp mass and symmetric mass ratio.
+
+        Returns
+        -------
+        total_mass : float
+            Total mass of the binary system [s]: M = M_c / eta**(3/5)
+        """
         return self.mcz / (self.eta ** (3 / 5))
 
     def f_cut(self):
-        """f_cut"""
+        """
+        Compute the cut-off frequency where the binary coalesces.
+
+        Returns
+        -------
+        f_cut : float
+            Cut-off frequency [Hz]: f_cut = 1/(r_{ISCO}**(3/2) * pi * M)
+        """
         return 1 / (6 ** (3 / 2) * np.pi * self.total_mass())
 
     def theta_LJ(self, f):
-        """Equation 18b in Taman's draft"""
+        """
+        Compute the opening angle between L and J at a given frequency.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to calculate the angle [Hz].
+
+        Returns
+        -------
+        float or ndarray
+            Opening angle between L and J [rad].
+
+        Notes
+        -----
+        Implements Equation 18a from Taman's paper: theta_LJ = 0.1/(4*eta) * theta_tilde * (f/f_cut)**(1/3)
+        """
         return (0.1 / (4 * self.eta)) * self.theta_tilde * (f / self.f_cut()) ** (1 / 3)
 
     def phi_LJ(self, f):
-        """phi_LJ"""
+        """
+        Compute the azimuthal precession angle at a given frequency.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to calculate the angle [Hz].
+
+        Returns
+        -------
+        float or ndarray
+            Azimuthal angle of L in the source frame [rad].
+
+        Notes
+        -----
+        Implements Equations 18b and 19:
+        phi_LJ = phi_LJ_amp * (1/f_min - 1/f) + gamma_P
+        where phi_LJ_amp depends on omega_tilde and system parameters.
+        """
         num = (5000 / 96) * self.omega_tilde
         deno = (
             (self.total_mass() / SOLMASS2SEC)
@@ -319,15 +591,44 @@ class Precessing:
         phi_LJ_amp = num / deno
         return phi_LJ_amp * (1 / FMIN - 1 / f) + self.gamma_P
 
-    def amp_prefactor(self) -> float:
-        """amplitude prefactor calculated using chirp mass and distance"""
+    def amp_prefactor(self):
+        """
+        Calculate the gravitational wave amplitude prefactor.
+
+        Returns
+        -------
+        float
+            Amplitude prefactor.
+
+        Notes
+        -----
+        Implements Equation 6: A = sqrt(5/96) * pi^(-2/3) * M_c^(5/6) / D_L
+        """
         amp_prefactor = (
             np.sqrt(5 / 96) * (np.pi ** (-2 / 3)) * (self.mcz ** (5 / 6)) / self.dist
         )
         return amp_prefactor
 
     def precession_angles(self):
-        """some angles"""
+        """
+        Compute coordinate transformation angles for the precession calculation.
+
+        Returns
+        -------
+        cos_i_JN : float
+            Cosine of angle between J and line of sight N.
+        sin_i_JN : float
+            Sine of angle between J and line of sight N.
+        cos_o_XH : float
+            Cosine of angle Omega_XH in detector frame.
+        sin_o_XH : float
+            Sine of angle Omega_XH in detector frame.
+
+        Notes
+        -----
+        Implements Equations A4, A6a, and A6b for coordinate transformation
+        between detector frame and source frame.
+        """
 
         if self.phi_J == self.phi_S:
             if self.theta_J == self.theta_S:
@@ -360,6 +661,19 @@ class Precessing:
         return cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH
 
     def LdotN(self, f):
+        """
+        Compute the dot product between orbital angular momentum and line of sight.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to evaluate [Hz].
+
+        Returns
+        -------
+        float or ndarray
+            Dot product L · N (cosine of angle between L and N).
+        """
         cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
         LdotN = (
             np.sin(self.theta_LJ(f)) * sin_i_JN * np.sin(self.phi_LJ(f))
@@ -368,6 +682,28 @@ class Precessing:
         return LdotN
 
     def polarization_amplitude_and_phase(self, f):
+        """
+        Calculate beam pattern amplitude and polarization angle components.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to evaluate [Hz].
+
+        Returns
+        -------
+        C_amp : float or ndarray
+            Amplitude of beam pattern function C.
+        sin_2pa : float or ndarray
+            sin(2*psi + alpha), related to cross polarization.
+        cos_2pa : float or ndarray
+            cos(2*psi + alpha), related to plus polarization.
+
+        Notes
+        -----
+        Implements Equations 3, 4a, and 4b in Taman et al. 2025. Combines the polarization angle psi
+        with the detector orientation angle alpha.
+        """
         cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
         # for C
         C_amp = np.sqrt(
@@ -377,13 +713,13 @@ class Precessing:
             + ((np.cos(self.theta_S)) ** 2 * (np.sin(2 * self.phi_S)) ** 2)
         )
 
-        # define alpha
+        # define alpha based on equation 4b
         sin_alpha = np.cos(self.theta_S) * np.sin(2 * self.phi_S) / C_amp
         cos_alpha = (
             (1 + np.cos(self.theta_S) ** 2) * np.cos(2 * self.phi_S) / (2 * C_amp)
         )
 
-        # define tan_psi
+        # define tan_psi from equation 3
         num_psi = (
             np.sin(self.theta_LJ(f))
             * (
@@ -423,9 +759,24 @@ class Precessing:
 
         return C_amp, sin_2pa, cos_2pa
 
-    ### get the amplitude
-    def amplitude(self, f) -> np.ndarray:
-        """NP/Unlensed amplitude"""
+    def amplitude(self, f):
+        """
+        Calculate the non-precessing/unlensed gravitational wave amplitude.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to evaluate [Hz].
+
+        Returns
+        -------
+        ndarray
+            GW amplitude.
+
+        Notes
+        -----
+        Implements Equation 10 from Apostolatos et al. (1994).
+        """
         LdotN = self.LdotN(f)
         C_amp, sin_2pa, cos_2pa = self.polarization_amplitude_and_phase(f)
 
@@ -437,9 +788,24 @@ class Precessing:
         )
         return amp
 
-    ### get the phase phi_P
     def phase_phi_P(self, f):
-        """phi_p"""
+        """
+        Calculate the polarization phase.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to evaluate [Hz].
+
+        Returns
+        -------
+        ndarray
+            Polarization phase phi_P (unwrapped).
+
+        Notes
+        -----
+        Implements Equation 11 from Apostolatos et al. (1994).
+        """
         LdotN = self.LdotN(f)
         C_amp, sin_2pa, cos_2pa = self.polarization_amplitude_and_phase(f)
 
@@ -448,23 +814,50 @@ class Precessing:
         return phi_p
 
     def f_dot(self, f):
-        """df/dt from Cutler Flanagan 1994"""
+        """
+        Calculate the rate of change of frequency with time.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency at which to evaluate [Hz].
+
+        Returns
+        -------
+        float or ndarray
+            Time derivative df/dt [Hz/s].
+
+        Notes
+        -----
+        Implements leading order term from Cutler & Flanagan (1994).
+        Higher order PN corrections are commented out.
+        """
         prefactor = (96 / 5) * np.pi ** (8 / 3) * self.mcz ** (5 / 3) * f ** (11 / 3)
         return prefactor  # * (1 - (743/336 + (11/4) * self.eta) * (np.pi * self.total_mass() * f)**(2/3) + 4 * np.pi * (np.pi * self.total_mass() * f))
 
-    ### get the delta phi_P
     def integrand_delta_phi(self, y, f):
         """
-        Integrand for delta phi_P (precession phase correction).
+        Compute the integrand for the precession phase correction delta_phi_P.
 
-        This function is designed to be used as the right-hand side for ODE integrators such as `scipy.integrate.odeint`, which require the signature `func(y, f)`. The integrand is based on equations from Apostolatos 1994 and the appendix of Taman (in preparation). Handles special cases for non-precessing, face-on, and generic precessing binaries.
+        This function is designed to be used as the right-hand side for ODE integrators such as `scipy.integrate.odeint`, which require the signature `func(y, f)`.
+        The integrand is based on Equation A18 from Apostolatos 1994 or Equation A19 from Taman et al. 2025.
+        Handles special cases for non-precessing, face-on, and generic precessing binaries.
 
-        Args:
-            y: Dummy variable for ODE integrator compatibility (ignored).
-            f: Frequency at which to evaluate the integrand.
+        Parameters
+        ----------
+        y : float
+            Dummy variable for ODE integrator compatibility (unused).
+        f : float or array_like
+            Frequency at which to evaluate [Hz].
 
-        Returns:
-            Value of the integrand at frequency f.
+        Returns
+        -------
+        float or ndarray
+            Integrand value d(delta_phi_P)/df at frequency f.
+
+        Notes
+        -----
+        Added correction term following Equation A19 from Taman et al. 2025.
         """
         # Precompute reused quantities
         LdotN = self.LdotN(f)
@@ -513,20 +906,45 @@ class Precessing:
         """
         Integrate the delta_phi integrand over the given frequency array.
 
-        Args:
-            f (array-like): Array of frequencies at which to compute the integral.
-            rtol (float, optional): Relative tolerance for odeint. Default is 1.49012e-8.
-            atol (float, optional): Absolute tolerance for odeint. Default is 1.49012e-8.
+        Parameters
+        ----------
+        f : array_like
+            Frequencies at which to compute the phase correction [Hz].
+        rtol : float, optional
+            Relative tolerance for odeint (default: 1.49012e-8).
+        atol : float, optional
+            Absolute tolerance for odeint (default: 1.49012e-8).
 
-        Returns:
-            np.ndarray: Integrated phase difference delta_phi at each frequency in f.
+        Returns
+        -------
+        ndarray
+            Precession phase correction delta_phi at each frequency.
+
+        Notes
+        -----
+        Uses scipy.integrate.odeint to numerically integrate the integrand from f_min to each frequency value.
         """
-
         integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
         return np.squeeze(integral)
 
     def Psi(self, f):
-        """GW phase"""
+        """
+        Calculate GW phase to 2 PN order.
+
+        Parameters
+        ----------
+        f : float or array_like
+            Frequency [Hz].
+
+        Returns
+        -------
+        float or ndarray
+            GW phase.
+
+        Notes
+        -----
+        Implements Equation 3.13 from Cutler & Flanagan (1994).
+        """
         x = (np.pi * self.total_mass() * f) ** (2 / 3)
         Psi = (
             (2 * np.pi * f * self.t_c)
@@ -542,8 +960,23 @@ class Precessing:
         return Psi
 
     def cos_theta_L(self, f):
-        """for figure 2 in Evangelos"""
-        # from equation A8
+        """
+        Evolution of the orbital angular momentum vector in the detector frame (cosine of polar angle).
+
+        Parameters
+        ----------
+        f : float
+            Frequency at which the angle is to be calculated [Hz].
+
+        Returns
+        -------
+        L_z : float
+            Cosine of the polar angle for the orbital angular momentum vector.
+
+        Notes
+        -----
+        Implements Equation A8 from Taman et al. 2025.
+        """
         cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
         # L_H = np.sin(self.theta_LJ(f)) * (np.cos(self.phi_LJ(f)) * cos_o_XH - np.sin(self.phi_LJ(f)) * cos_i_JN * sin_o_XH) + sin_i_JN * sin_o_XH * np.cos(self.theta_LJ(f))
         # L_V = np.sin(self.theta_LJ(f)) * (np.cos(self.phi_LJ(f)) * sin_o_XH + np.sin(self.phi_LJ(f)) * cos_i_JN * cos_o_XH) - sin_i_JN * cos_o_XH * np.cos(self.theta_LJ(f))
@@ -565,8 +998,23 @@ class Precessing:
         return L_z
 
     def phi_L(self, f):
-        """for figure 2 in Evangelos"""
-        # from equation A8
+        """
+        Evolution of the orbital angular momentum vector in the detector frame (phase).
+
+        Parameters
+        ----------
+        f : float
+            Frequency at which the angle is to be calculated [Hz].
+
+        Returns
+        -------
+        Phi_L : float
+            Phase of the orbital angular momentum vector.
+
+        Notes
+        -----
+        Implements Equation A8 from Taman et al. 2025.
+        """
         cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
         L_H = np.sin(self.theta_LJ(f)) * (
             np.cos(self.phi_LJ(f)) * cos_o_XH
@@ -596,7 +1044,28 @@ class Precessing:
         return Phi_L  # _ur
 
     def strain(self, f, delta_f=0.25, frequencySeries=True):
-        """precessing GW"""
+        """
+        Calculate the complete gravitational wave strain with regular precession.
+
+        Parameters
+        ----------
+        f : array_like
+            Frequencies at which to evaluate the strain [Hz].
+        delta_f : float, optional
+            Frequency spacing for FrequencySeries output (default: 0.25 Hz).
+        frequencySeries : bool, optional
+            If True, return pycbc.FrequencySeries; if False, return ndarray (default: True).
+
+        Returns
+        -------
+        FrequencySeries or ndarray
+            Complex gravitational wave strain h(f) = A(f) * exp(i*Phi(f)).
+
+        Notes
+        -----
+        The total phase is Phi = Psi - phi_P - 2*delta_phi_P,
+        combining the orbital phase, polarization phase, and precession correction.
+        """
         strain = self.amplitude(f) * np.exp(
             1j * (self.Psi(f) - self.phase_phi_P(f) - 2 * self.phase_delta_phi(f))
         )
