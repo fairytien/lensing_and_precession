@@ -8,8 +8,8 @@ This guide explains how to use the repository's data organization, Git LFS integ
 |------|-------------|---------|
 | Track large pickle outputs | `.gitattributes` (`*.pkl` rule) | Store large binary content via Git LFS (lightweight pointers in Git) |
 | Organize new result files | `scripts/organize_data.py` | Classify raw output files into `TACC/`, `super_contours/`, `indiv_contours/` deterministically |
-| Automate LFS enablement | `scripts/setup_lfs.sh` | Ensure LFS installed, track `*.pkl`, convert staged pickles to LFS pointers |
-| Prevent oversized mistakes | `scripts/precommit_size_guard.sh` + install script | Block accidental commit of large non-LFS blobs |
+| Automate LFS enablement | `lfs/setup_lfs.sh` (or `scripts/setup_lfs.sh`) | Ensure LFS installed, track `*.pkl`, convert staged pickles to LFS pointers |
+| Prevent oversized mistakes | `lfs/precommit_size_guard.sh` + `lfs/install_precommit_hook.sh` | Block accidental commit of large non-LFS blobs |
 | Integrity & drift detection | `scripts/checksums.py` | Generate / verify SHA256 manifest of data pickles |
 | Optional deep cleanup | `scripts/history_cleanup.md` | Instructions for rewriting history to expunge historical large blobs |
 
@@ -64,14 +64,14 @@ git commit -m "chore: track notebooks in LFS"
 ## 4. Automating (If LFS Not Yet Active Locally)
 Run the helper script (idempotent):
 ```bash
-bash scripts/setup_lfs.sh
+bash lfs/setup_lfs.sh
 ```
 This installs (if possible), ensures the pattern, re-adds pickles to convert them to pointers, and commits if needed.
 
 ## 5. Preventing Accidental Large Commits (Size Guard)
 Install the pre-commit hook:
 ```bash
-bash scripts/install_precommit_hook.sh
+bash lfs/install_precommit_hook.sh
 ```
 Default limit: 5 MB for non-LFS files. Override temporarily:
 ```bash

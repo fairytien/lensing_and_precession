@@ -111,7 +111,7 @@ To prevent accidental large non-LFS blobs entering the history, a size guard hoo
 
 Install:
 ```bash
-bash scripts/install_precommit_hook.sh
+bash lfs/install_precommit_hook.sh
 ```
 
 Default threshold: 5 MB for non-LFS files. Customize per commit by exporting:
