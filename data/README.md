@@ -50,8 +50,8 @@ Consider instead leaving history intact if collaborators have clones.
 Generate into the top-level `data/` first or directly into correct subfolder. If unsure, drop into root and run the helper script below to reclassify safely without wildcard collisions.
 
 ```bash
-python3 scripts/organize_data.py --dry-run   # preview
-python3 scripts/organize_data.py            # execute
+python3 lfs/organize_data.py --dry-run   # preview
+python3 lfs/organize_data.py            # execute
 ```
 
 ## Helper Script Behavior Summary
@@ -125,4 +125,4 @@ The hook rejects any staged file exceeding the threshold unless:
 2. Its path matches one of the allowed LFS patterns (currently `*.pkl`).
 
 ### Why Not Rewrite History?
-Historic large blobs remain in earlier commits; we chose not to rewrite to avoid forcing collaborator resets. New growth is controlled via LFS + guard. If future repository size becomes problematic, revisit a full history cleanup using the documented procedure in `scripts/history_cleanup.md`.
+Historic large blobs remain in earlier commits; we chose not to rewrite to avoid forcing collaborator resets. New growth is controlled via LFS + guard. If future repository size becomes problematic, revisit a full history cleanup using the documented procedure in `lfs/history_cleanup.md`.

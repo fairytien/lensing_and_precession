@@ -10,13 +10,13 @@ This guide explains how to use the repository's data organization, Git LFS integ
 | Organize new result files | `scripts/organize_data.py` | Classify raw output files into `TACC/`, `super_contours/`, `indiv_contours/` deterministically |
 | Automate LFS enablement | `lfs/setup_lfs.sh` (or `scripts/setup_lfs.sh`) | Ensure LFS installed, track `*.pkl`, convert staged pickles to LFS pointers |
 | Prevent oversized mistakes | `lfs/precommit_size_guard.sh` + `lfs/install_precommit_hook.sh` | Block accidental commit of large non-LFS blobs |
-| Integrity & drift detection | `scripts/checksums.py` | Generate / verify SHA256 manifest of data pickles |
+| Integrity & drift detection | `lfs/checksums.py` | Generate / verify SHA256 manifest of data pickles |
 | Optional deep cleanup | `scripts/history_cleanup.md` | Instructions for rewriting history to expunge historical large blobs |
 
 ## 1. Clone / Initial Setup
 ```bash
-# Standard clone
-git clone https://github.com/fairytien/lensing_and_precession.git
+python3 lfs/organize_data.py --dry-run   # Preview moves
+python3 lfs/organize_data.py            # Apply moves
 cd lensing_and_precession
 
 # Install Git LFS once per machine
@@ -48,7 +48,7 @@ The repo already includes a wildcard rule:
 To be sure new large pickles are pointers:
 ```bash
 git add path/to/new.pkl
-git commit -m "feat: add new contour result"
+python3 lfs/checksums.py generate
 # Inspect pointer
 head -n 3 path/to/new.pkl
 ```
@@ -62,9 +62,6 @@ git commit -m "chore: track notebooks in LFS"
 ```
 
 ## 4. Automating (If LFS Not Yet Active Locally)
-Run the helper script (idempotent):
-```bash
-bash lfs/setup_lfs.sh
 ```
 This installs (if possible), ensures the pattern, re-adds pickles to convert them to pointers, and commits if needed.
 
@@ -82,16 +79,16 @@ A failed commit prints which files exceeded the limit and suggests tracking them
 ## 6. Integrity: Checksums
 Generate (or refresh) a baseline manifest:
 ```bash
-python3 scripts/checksums.py generate
+python3 lfs/checksums.py generate
 # Commit if you intentionally updated data set
 ```
 Verify integrity later:
 ```bash
-python3 scripts/checksums.py verify
+python3 lfs/checksums.py verify
 ```
 See what changed relative to the manifest:
 ```bash
-python3 scripts/checksums.py changed
+python3 lfs/checksums.py changed
 ```
 The manifest stores relative path + SHA256 digest. (Hashes reflect current on-disk content; ensure `git lfs pull` before trusting them on a fresh clone.)
 

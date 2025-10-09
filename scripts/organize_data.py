@@ -26,23 +26,23 @@ import os
 import shutil
 from pathlib import Path
 
-DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 TARGETS = {
-    'TACC': DATA_DIR / 'TACC',
-    'super': DATA_DIR / 'super_contours',
-    'indiv': DATA_DIR / 'indiv_contours',
+    "TACC": DATA_DIR / "TACC",
+    "super": DATA_DIR / "super_contours",
+    "indiv": DATA_DIR / "indiv_contours",
 }
 
 PRIORITY_RULES = [
-    (lambda n: 'TACC_' in n, TARGETS['TACC']),
-    (lambda n: 'indiv_contour' in n, TARGETS['indiv']),
-    (lambda n: 'super_contour' in n, TARGETS['super']),
-    (lambda n: 'mismatch_contour' in n, TARGETS['super']),
-    (lambda n: 'contours' in n, TARGETS['super']),  # plural catch-all
-    (lambda n: n.startswith('mismatch_') and n.endswith('.pkl'), TARGETS['super']),
+    (lambda n: "TACC_" in n, TARGETS["TACC"]),
+    (lambda n: "indiv_contour" in n, TARGETS["indiv"]),
+    (lambda n: "super_contour" in n, TARGETS["super"]),
+    (lambda n: "mismatch_contour" in n, TARGETS["super"]),
+    (lambda n: "contours" in n, TARGETS["super"]),  # plural catch-all
+    (lambda n: n.startswith("mismatch_") and n.endswith(".pkl"), TARGETS["super"]),
 ]
 
-CATEGORIZED_DIR_NAMES = {p.name for p in TARGETS.values()} | {'contours'}
+CATEGORIZED_DIR_NAMES = {p.name for p in TARGETS.values()} | {"contours"}
 
 
 def classify(path: Path) -> Path | None:
@@ -65,12 +65,12 @@ def is_categorized(path: Path) -> bool:
 def scan_files(include_all: bool) -> list[Path]:
     files = []
     for child in DATA_DIR.iterdir():
-        if child.name.startswith('.'):
+        if child.name.startswith("."):
             continue
         if child.is_dir():
             # Only inspect top-level loose files; skip subdirs (they are already organized)
             continue
-        if not include_all and child.suffix != '.pkl':
+        if not include_all and child.suffix != ".pkl":
             continue
         files.append(child)
     return files
@@ -93,9 +93,15 @@ def ensure_dirs():
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Organize data pickle files into taxonomy folders.')
-    parser.add_argument('--dry-run', action='store_true', help='Show what would be moved.')
-    parser.add_argument('--all', action='store_true', help='Consider non-.pkl files as well.')
+    parser = argparse.ArgumentParser(
+        description="Organize data pickle files into taxonomy folders."
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show what would be moved."
+    )
+    parser.add_argument(
+        "--all", action="store_true", help="Consider non-.pkl files as well."
+    )
     args = parser.parse_args()
 
     ensure_dirs()
@@ -103,7 +109,7 @@ def main():
     moves = plan_moves(files)
 
     if not moves:
-        print('No files need moving.')
+        print("No files need moving.")
         return
 
     for src, dst in moves:
@@ -118,5 +124,5 @@ def main():
     print(f"Executed {len(moves)} move(s).")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

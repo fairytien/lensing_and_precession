@@ -2,4 +2,4 @@
 set -euo pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR/.."
-exec python3 scripts/organize_data.py "$@"
+exec python3 lfs/organize_data.py "$@"
