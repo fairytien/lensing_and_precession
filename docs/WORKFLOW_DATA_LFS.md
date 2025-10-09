@@ -7,11 +7,11 @@ This guide explains how to use the repository's data organization, Git LFS integ
 | Task | Tool / File | Purpose |
 |------|-------------|---------|
 | Track large pickle outputs | `.gitattributes` (`*.pkl` rule) | Store large binary content via Git LFS (lightweight pointers in Git) |
-| Organize new result files | `scripts/organize_data.py` | Classify raw output files into `TACC/`, `super_contours/`, `indiv_contours/` deterministically |
-| Automate LFS enablement | `lfs/setup_lfs.sh` (or `scripts/setup_lfs.sh`) | Ensure LFS installed, track `*.pkl`, convert staged pickles to LFS pointers |
+| Organize new result files | `lfs/organize_data.py` | Classify raw output files into `TACC/`, `super_contours/`, `indiv_contours/` deterministically |
+| Automate LFS enablement | `lfs/setup_lfs.sh` | Ensure LFS installed, track `*.pkl`, convert staged pickles to LFS pointers |
 | Prevent oversized mistakes | `lfs/precommit_size_guard.sh` + `lfs/install_precommit_hook.sh` | Block accidental commit of large non-LFS blobs |
 | Integrity & drift detection | `lfs/checksums.py` | Generate / verify SHA256 manifest of data pickles |
-| Optional deep cleanup | `scripts/history_cleanup.md` | Instructions for rewriting history to expunge historical large blobs |
+| Optional deep cleanup | `lfs/history_cleanup.md` | Instructions for rewriting history to expunge historical large blobs |
 
 ## 1. Clone / Initial Setup
 ```bash
@@ -29,8 +29,8 @@ git lfs pull
 ## 2. Producing New Data Files
 Drop raw newly generated `.pkl` result files into `data/` (root) or let scripts write them there. Then run the organizer:
 ```bash
-python3 scripts/organize_data.py --dry-run   # Preview moves
-python3 scripts/organize_data.py            # Apply moves
+python3 lfs/organize_data.py --dry-run   # Preview moves
+python3 lfs/organize_data.py            # Apply moves
 ```
 Classification priority (first match wins):
 1. `TACC_`
@@ -98,13 +98,13 @@ The manifest stores relative path + SHA256 digest. (Hashes reflect current on-di
 python3 some_pipeline_script.py
 
 # Organize
-python3 scripts/organize_data.py --dry-run
-python3 scripts/organize_data.py
+python3 lfs/organize_data.py --dry-run
+python3 lfs/organize_data.py
 
 # (Optional) Update checksum baseline if adding authoritative results
-python3 scripts/checksums.py generate
+python3 lfs/checksums.py generate
 
-git add data/updated.pkl checksums/manifest.sha256
+git add data/updated.pkl lfs/checksums/manifest.sha256
 
 git commit -m "feat: add updated mcz40 results"
 git push origin main
@@ -120,12 +120,12 @@ du -h data/**/*.pkl 2>/dev/null | sort -h | tail
 ## 9. If Push Size Explodes Again
 - Confirm new large file actually became a pointer (inspect first line). If not, re-add after ensuring rule exists.
 - Avoid committing raw large binaries outside configured patterns.
-- Run `bash scripts/setup_lfs.sh` to re-normalize.
+- Run `bash lfs/setup_lfs.sh` to re-normalize.
 
 ## 10. (Optional) Full History Cleanup
 If future repository bloat becomes problematic, see:
 ```
-scripts/history_cleanup.md
+lfs/history_cleanup.md
 ```
 You decided *not* to rewrite history now. This doc contains filter-repo & BFG recipes should the decision change.
 
@@ -142,7 +142,7 @@ Checksums hash the actual binary content present locally after LFS smudge. If yo
 Yes—add them to `.gitignore` or store externally; do not track via Git if not needed for reproducibility.
 
 **Q: How to raise default size guard permanently?**  
-Edit `MAX_SIZE_MB` default inside `scripts/precommit_size_guard.sh` or export it in your shell profile.
+Edit `MAX_SIZE_MB` default inside `lfs/precommit_size_guard.sh` or export it in your shell profile.
 
 ---
 _Last updated: 2025-10-09_

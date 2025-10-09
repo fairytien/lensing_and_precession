@@ -2,7 +2,7 @@
 """Generate or verify a checksum manifest for data pickle files.
 
 Usage:
-  python3 lfs/checksums.py generate   # writes checksums/manifest.sha256
+    python3 lfs/checksums.py generate   # writes lfs/checksums/manifest.sha256
   python3 lfs/checksums.py verify     # verifies against existing manifest
   python3 lfs/checksums.py changed    # lists files whose current hash differs from manifest
 
@@ -17,7 +17,7 @@ import hashlib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-MANIFEST_DIR = REPO_ROOT / "checksums"
+MANIFEST_DIR = REPO_ROOT / "lfs" / "checksums"
 MANIFEST_PATH = MANIFEST_DIR / "manifest.sha256"
 
 
