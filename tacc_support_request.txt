@@ -1,0 +1,27 @@
+Subject: Request for Group Access to Shared Directory for Gravitational Wave Research
+
+Dear TACC Support,
+
+I am working on a gravitational wave research project (PHY24021) and need to share large datasets (31GB, 167 HDF5 files) with my collaborators.
+
+Current situation:
+- My data is stored in: /work/10000/fairytien33/gw_shared_data/
+- Data files have correct group permissions (G-827397 can read)
+- Collaborators are members of group G-827397: anta1997,bmckallip,fairytien33,lking,shafe,tamants10utd
+- Problem: Collaborators cannot traverse /work/10000/fairytien33/ (belongs to group G-825977)
+
+Request:
+Please grant group G-827397 read/execute permissions on /work/10000/fairytien33/ so that my collaborators can access the shared data directory.
+
+Alternative solutions would be:
+1. Create a dedicated shared directory for our project group
+2. Help us set up a proper shared workspace
+
+This is for academic research collaboration and the data is already properly organized with correct group ownership.
+
+Thank you for your assistance.
+
+Best regards,
+[Your name]
+Project: PHY24021
+Group: G-827397
