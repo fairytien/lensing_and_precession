@@ -307,7 +307,7 @@ if __name__ == "__main__":
         default=os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "data",
-            "contours",
+            "contours_td_mcz",
         ),
     )
     p.add_argument(
