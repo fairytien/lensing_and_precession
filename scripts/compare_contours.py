@@ -183,12 +183,17 @@ def create_comparison_contours(
             cmap=cmap,
             extend="both",
         )
-        ax.set_title(labels[i])
+        ax.set_title(labels[i], pad=15)
         ax.set_xlabel(xlabels[i])
         ax.set_ylabel(ylabels[i])
 
-        # Overlay cycle lines for td-mcz contours
-        if is_td_mcz:
+        # Overlay cycle lines for td–mcz contours (detect per-axis)
+        is_td_mcz_i = isinstance(xlabels[i], str) and (
+            ("Δ" in xlabels[i])
+            or ("Delta" in xlabels[i])
+            or ("t_d" in xlabels[i] and "ms" in xlabels[i])
+        )
+        if is_td_mcz_i:
             # Extract td array from the X grid (first row, convert ms to s)
             td_arr_ms = Xs[i][0, :]
             td_arr = td_arr_ms / 1e3  # Convert from ms to s
@@ -442,3 +447,11 @@ if __name__ == "__main__":
         eta=args.eta,
         f_min=args.f_min,
     )
+
+"""Example usage:
+python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contours.py
+--paths /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
+--labels "Lensed Sources vs Non-Precessing Templates" "Lensed Sources vs Regularly Precessing Templates" 
+--cbar_round_ticks 
+--cbar_resize_factor 0.85
+"""
