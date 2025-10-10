@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from modules.functions_v3 import mcz_for_n_lens_cycles
+
 
 def load_pickle_data(filepath):
     """Load pickle data and return the loaded object"""
@@ -96,6 +98,8 @@ def create_comparison_contours(
     cbar_n_ticks="auto",
     cbar_decimals=None,
     cbar_resize_factor=0.9,
+    eta=0.25,
+    f_min=20.0,
 ):
     """Create comparison contours (2+ datasets) with a unified color scale.
 
@@ -113,6 +117,10 @@ def create_comparison_contours(
         Which dataset to take color scale from: 'auto' (global), a 1-based index (1,2,3...), or None.
     n_levels : int
         Number of contour levels for each subplot.
+    eta : float
+        Symmetric mass ratio for cycle line calculations. Default is 0.25.
+    f_min : float
+        Minimum frequency in Hz for cycle line calculations. Default is 20.0.
     """
 
     if not isinstance(paths, (list, tuple)) or len(paths) < 2:
@@ -178,6 +186,44 @@ def create_comparison_contours(
         ax.set_title(labels[i])
         ax.set_xlabel(xlabels[i])
         ax.set_ylabel(ylabels[i])
+
+        # Overlay cycle lines for td-mcz contours
+        if is_td_mcz:
+            # Extract td array from the X grid (first row, convert ms to s)
+            td_arr_ms = Xs[i][0, :]
+            td_arr = td_arr_ms / 1e3  # Convert from ms to s
+
+            # Compute 1/2/3-cycle lines
+            mcz_1cyc = mcz_for_n_lens_cycles(1.0, td_arr, f_min=f_min, eta=eta)
+            mcz_2cyc = mcz_for_n_lens_cycles(2.0, td_arr, f_min=f_min, eta=eta)
+            mcz_3cyc = mcz_for_n_lens_cycles(3.0, td_arr, f_min=f_min, eta=eta)
+
+            # Plot cycle lines
+            ax.plot(
+                td_arr_ms,
+                mcz_1cyc,
+                color="black",
+                ls="-",
+                lw=2,
+                label="1 lensing modulation",
+            )
+            ax.plot(
+                td_arr_ms,
+                mcz_2cyc,
+                color="black",
+                ls="--",
+                lw=2,
+                label="2 lensing modulations",
+            )
+            ax.plot(
+                td_arr_ms,
+                mcz_3cyc,
+                color="black",
+                ls=":",
+                lw=2,
+                label="3 lensing modulations",
+            )
+
         try:
             ax.set_box_aspect(1)
         except Exception:
@@ -360,6 +406,18 @@ def _parse_args():
             "Typical range 0.3–1.2."
         ),
     )
+    parser.add_argument(
+        "--eta",
+        type=float,
+        default=0.25,
+        help="Symmetric mass ratio for cycle line calculations (default: 0.25)",
+    )
+    parser.add_argument(
+        "--f_min",
+        type=float,
+        default=20.0,
+        help="Minimum frequency in Hz for cycle line calculations (default: 20.0)",
+    )
     # removed: --cbar_use_inset (manual resize is used instead)
     args = parser.parse_args()
     return args
@@ -381,4 +439,6 @@ if __name__ == "__main__":
         cbar_n_ticks=args.cbar_n_ticks,
         cbar_decimals=args.cbar_decimals,
         cbar_resize_factor=args.cbar_resize_factor,
+        eta=args.eta,
+        f_min=args.f_min,
     )
