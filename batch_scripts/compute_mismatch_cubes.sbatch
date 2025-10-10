@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J contour_td_mcz # Job name
+#SBATCH -J compute_mismatch # Job name
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes
 #SBATCH --ntasks=1 # Single task (not MPI)
@@ -8,7 +8,7 @@
 #SBATCH -t 00:12:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
 #SBATCH --array=0-9 # Number of chunks
-#SBATCH -o batch_outputs/contour_td_mcz_from_banks_%A_%a.out # Output file
+#SBATCH -o batch_outputs/compute_mismatch_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
@@ -33,10 +33,12 @@ export NUMEXPR_NUM_THREADS=1
 # Use all allocated CPUs for multiprocessing workers
 NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
-# NOTE: This array job computes mismatches in chunks. Each chunk writes a partial best_match file.
-# After ALL array tasks complete, run: python scripts/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 10 --mcz_max 80 --orientation_tag Taman_edgeon
+# NOTE: This array job computes per-mcz mismatch cubes in chunks.
+# After ALL array tasks complete, run:
+# 1. python scripts/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 16 --mcz_max 25 --orientation_tag Taman_edgeon
+# 2. python scripts/create_contour_td_mcz_from_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 16 --mcz_max 25 --orientation_tag Taman_edgeon
 
-python scripts/contour_td_mcz_from_banks.py \
+python scripts/compute_mismatch_cubes.py \
   --I 0.5 \
   --orient_preset Taman_edgeon \
   --mcz_min 16 --mcz_max 25 --mcz_pts 10 \
@@ -47,6 +49,6 @@ python scripts/contour_td_mcz_from_banks.py \
   --n_workers ${NWORKERS} \
   --use_opt_match \
   --results_dir ./data/contours \
-  --no_plot \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
   --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}
+

@@ -1,16 +1,22 @@
-"""Compute mismatch maps across (mcz, td) using prebuilt RP template banks.
+"""Compute per-mcz mismatch cubes from prebuilt RP template banks.
 
 This script streams templates directly from HDF5, computes per-(theta, omega)
-minima across gamma in parallel, writes per-mcz mismatch cubes incrementally,
-and builds a consolidated best-match file. Designed for array-job chunking and
-low-memory operation.
+minima across gamma in parallel, and writes per-mcz mismatch cubes incrementally.
+Designed for array-job chunking and low-memory operation.
+
+Outputs per-mcz HDF5 files to results_dir/mismatch_cubes/ containing:
+  - epsilon_min_grid (td, theta, omega)
+  - gamma_best_grid (td, theta, omega)
+  - optional mismatch (td, theta, omega, gamma) if --save_full_mismatch
+
+Use scripts/aggregate_best_match.py to consolidate cubes into a single best-match file.
+Use scripts/create_contour_td_mcz_from_best_match.py to plot the contour from the best-match file.
 """
 
 import os, argparse, sys
 from typing import Optional
 
 import numpy as np
-import h5py
 from multiprocessing import Pool, cpu_count
 
 # Ensure project root is on path
@@ -29,8 +35,6 @@ from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.filenames import (
     bank_filename,
     mismatch_cubes_filename,
-    best_match_filename,
-    contour_td_mcz_filename,
 )
 from modules.match_utils import (
     build_source_strain_for_td,
@@ -42,12 +46,7 @@ import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
 from modules.chunking import choose_gamma_chunk
 
-# Suppress matplotlib font substitution messages
-logging.getLogger("matplotlib.font_manager").setLevel(logging.WARNING)
-
-
-"""This script computes mismatch maps using prebuilt banks.
-Worker logic is delegated to modules.match_utils.* helpers for reuse."""
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 @timer_decorator
@@ -80,27 +79,15 @@ def main(
     use_opt_match: bool,
     save_full_mismatch: bool,
     results_dir: str,
-    no_plot: bool,
     mcz_chunk_index: Optional[int] = None,
     mcz_chunk_count: Optional[int] = None,
 ):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    fig_dir = os.path.join(base_dir, "figures")
-    os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(results_dir, exist_ok=True)
-
-    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
     # Axes arrays
     mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
     td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_pts)
     td_arr = td_arr_ms / 1e3
-
-    # Output maps
-    Zmap = np.zeros((mcz_pts, td_pts), dtype=float)
-    Omap = np.zeros_like(Zmap)
-    Tmap = np.zeros_like(Zmap)
-    Gmap = np.zeros_like(Zmap)
 
     # Orientation/tag used to find matching banks and to set source orientation
     lens_base, tag = resolve_orientation(
@@ -199,6 +186,13 @@ def main(
                 save_full_mismatch=save_full_mismatch,
             )
             with mmh5:
+                # Store source parameters as HDF5 attributes for later aggregation
+                mmh5.attrs["I"] = float(I)
+                mmh5.attrs["theta_J"] = np.nan if theta_J is None else float(theta_J)
+                mmh5.attrs["phi_J"] = np.nan if phi_J is None else float(phi_J)
+                mmh5.attrs["theta_S"] = np.nan if theta_S is None else float(theta_S)
+                mmh5.attrs["phi_S"] = np.nan if phi_S is None else float(phi_S)
+
                 mm_dset = dsets.get("mismatch")
                 ep_min_grid_dset = dsets["epsilon_min_grid"]
                 g_best_grid_dset = dsets["gamma_best_grid"]
@@ -253,69 +247,13 @@ def main(
                     ep_min_grid_dset[j, :, :] = Zgrid
                     g_best_grid_dset[j, :, :] = Ggrid
 
-                    # Extract overall minima across (theta, omega)
-                    idx = np.unravel_index(int(np.nanargmin(Zgrid)), Zgrid.shape)
-                    Zmap[i, j] = float(Zgrid[idx])
-                    Omap[i, j] = float(omega_arr[idx[1]])
-                    Tmap[i, j] = float(theta_arr[idx[0]])
-                    Gmap[i, j] = float(Ggrid[idx])
-
-        logging.info(f"Saved mismatch data: {mm_out_path}")
-
-    # Save best-match results across all mcz
-    summary_path = best_match_filename(
-        results_dir,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
-        orientation_tag=tag,
-    )
-    with h5py.File(summary_path, "w") as h5:
-        h5.create_dataset("mcz", data=mcz_arr.astype(np.float64))
-        h5.create_dataset("td", data=td_arr.astype(np.float64))
-        h5.create_dataset("epsilon_min", data=Zmap.astype(np.float32))
-        h5.create_dataset("omega_best", data=Omap.astype(np.float32))
-        h5.create_dataset("theta_best", data=Tmap.astype(np.float32))
-        h5.create_dataset("gamma_best", data=Gmap.astype(np.float32))
-        h5.attrs["I"] = float(I)
-        h5.attrs["theta_J"] = np.nan if theta_J is None else float(theta_J)
-        h5.attrs["phi_J"] = np.nan if phi_J is None else float(phi_J)
-        h5.attrs["theta_S"] = np.nan if theta_S is None else float(theta_S)
-        h5.attrs["phi_S"] = np.nan if phi_S is None else float(phi_S)
-    logging.info(f"Saved best-match results: {summary_path}")
-
-    # Plot contour of minimal mismatch
-    if not no_plot:
-        import matplotlib.pyplot as plt
-
-        TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
-        plt.figure(figsize=(8, 6))
-        cf = plt.contourf(TD, MCZ, Zmap, levels=100, cmap="jet")
-        cbar = plt.colorbar(cf)
-        cbar.set_label(
-            r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$"
-        )
-        plt.xlabel(r"$\Delta t_d$ [ms]")
-        plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
-        plt.tight_layout()
-        fig_path = contour_td_mcz_filename(
-            fig_dir,
-            td_min_ms=td_min_ms,
-            td_max_ms=td_max_ms,
-            mcz_min=mcz_min,
-            mcz_max=mcz_max,
-            orientation_tag=tag,
-            ext="pdf",
-        )
-        plt.savefig(fig_path, dpi=200)
-        logging.info(f"Figure saved as {fig_path}")
+        logging.info(f"Saved mismatch cube: {mm_out_path}")
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description=(
-            "Compute mismatch between lensed sources and best-matching RP templates across td (x) and mcz (y) using precomputed banks."
+            "Compute per-mcz mismatch cubes between lensed sources and RP templates using precomputed banks."
         )
     )
     p.add_argument(
@@ -372,7 +310,6 @@ if __name__ == "__main__":
             "contours",
         ),
     )
-    p.add_argument("--no_plot", action="store_true")
     p.add_argument(
         "--mcz_chunk_index",
         type=int,
@@ -424,7 +361,6 @@ if __name__ == "__main__":
         use_opt_match=args.use_opt_match,
         save_full_mismatch=args.save_full_mismatch,
         results_dir=args.results_dir,
-        no_plot=args.no_plot,
         mcz_chunk_index=args.mcz_chunk_index,
         mcz_chunk_count=args.mcz_chunk_count,
     )

@@ -1,8 +1,9 @@
-"""Aggregate per-mcz mismatch cubes into one best-match HDF5 and plot.
+"""Aggregate per-mcz mismatch cubes into one best-match HDF5 file.
 
 Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
-(theta, omega), stacks over mcz, writes a combined best_match_*.h5, and
-optionally generates the final contour figure.
+(theta, omega), stacks over mcz, and writes a combined best_match_*.h5.
+
+Use scripts/create_contour_td_mcz_from_best_match.py to plot the aggregated results.
 """
 
 import os, sys, argparse, glob
@@ -12,7 +13,7 @@ import numpy as np
 # Ensure project root is on path for local invocation
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.filenames import best_match_filename, contour_td_mcz_filename
+from modules.filenames import best_match_filename
 from modules.functions_v3 import timer_decorator
 
 
@@ -24,7 +25,6 @@ def main(
     mcz_min: float,
     mcz_max: float,
     orientation_tag: str,
-    no_plot: bool,
 ):
     cube_paths_all = sorted(
         glob.glob(
@@ -57,6 +57,8 @@ def main(
     T_rows = []
     G_rows = []
     td_arr = None
+    # Store source parameters from first cube (should be same across all)
+    source_attrs = {}
 
     for p in cube_paths:
         # Skip unreadable/corrupted files gracefully
@@ -69,6 +71,17 @@ def main(
             mcz = float(np.array(h5["mcz"]).item())
             if td_arr is None:
                 td_arr = np.array(h5["td"])  # (td,)
+                # Extract source parameters from first cube file if available
+                if "I" in h5.attrs:
+                    source_attrs["I"] = h5.attrs["I"]
+                if "theta_J" in h5.attrs:
+                    source_attrs["theta_J"] = h5.attrs["theta_J"]
+                if "phi_J" in h5.attrs:
+                    source_attrs["phi_J"] = h5.attrs["phi_J"]
+                if "theta_S" in h5.attrs:
+                    source_attrs["theta_S"] = h5.attrs["theta_S"]
+                if "phi_S" in h5.attrs:
+                    source_attrs["phi_S"] = h5.attrs["phi_S"]
             ep_min_grid = np.array(h5["epsilon_min_grid"])  # (td, theta, omega)
             g_best_grid = np.array(h5["gamma_best_grid"])  # (td, theta, omega)
             theta_arr = np.array(h5["theta"])  # (theta,)
@@ -131,39 +144,16 @@ def main(
         h5.create_dataset("omega_best", data=Omap.astype(np.float32))
         h5.create_dataset("theta_best", data=Tmap.astype(np.float32))
         h5.create_dataset("gamma_best", data=Gmap.astype(np.float32))
+        # Save source parameters as attributes if available
+        for key, val in source_attrs.items():
+            h5.attrs[key] = val
     print(f"Saved aggregated best-match results: {summary_path}")
-
-    if not no_plot:
-        import matplotlib.pyplot as plt
-
-        TD, MCZ = np.meshgrid(td_arr, desired_mcz)
-        plt.figure(figsize=(8, 6))
-        # Mask NaNs so missing mcz rows appear as blank space
-        import numpy.ma as ma
-
-        Zmasked = ma.masked_invalid(Zmap)
-        cf = plt.contourf(TD * 1e3, MCZ, Zmasked, levels=100, cmap="jet")
-        cbar = plt.colorbar(cf)
-        cbar.set_label(
-            r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$"
-        )
-        plt.xlabel(r"$\Delta t_d$ [ms]")
-        plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
-        plt.tight_layout()
-        # Save figures into the project-level figures directory
-        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        fig_dir = os.path.join(project_root, "figures")
-        os.makedirs(fig_dir, exist_ok=True)
-        fig_path = contour_td_mcz_filename(
-            fig_dir, td_min_ms, td_max_ms, mcz_min, mcz_max, orientation_tag, ext="pdf"
-        )
-        plt.savefig(fig_path, dpi=200)
-        print(f"Figure saved as {fig_path}")
+    print(f"Use scripts/create_contour_td_mcz_from_best_match.py to plot the results.")
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(
-        description="Aggregate per-mcz mismatch cubes into a combined best-match file and optional plot."
+        description="Aggregate per-mcz mismatch cubes into a combined best-match file."
     )
     p.add_argument("--results_dir", type=str, required=True)
     p.add_argument("--td_min_ms", type=float, required=True)
@@ -171,7 +161,6 @@ if __name__ == "__main__":
     p.add_argument("--mcz_min", type=float, required=True)
     p.add_argument("--mcz_max", type=float, required=True)
     p.add_argument("--orientation_tag", type=str, required=True)
-    p.add_argument("--no_plot", action="store_true")
     args = p.parse_args()
 
     main(
@@ -181,5 +170,4 @@ if __name__ == "__main__":
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         orientation_tag=args.orientation_tag,
-        no_plot=args.no_plot,
     )
