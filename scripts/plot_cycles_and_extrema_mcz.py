@@ -148,6 +148,24 @@ def main():
         default="",
         help="Optional suffix to append to figure filename",
     )
+    parser.add_argument(
+        "--no-troughs",
+        dest="no_troughs",
+        action="store_true",
+        help="Do not plot mcz trough points",
+    )
+    parser.add_argument(
+        "--no-peaks",
+        dest="no_peaks",
+        action="store_true",
+        help="Do not plot mcz peak points",
+    )
+    parser.add_argument(
+        "--no-cycles",
+        dest="no_cycles",
+        action="store_true",
+        help="Do not plot 1/2/3 lensing modulation lines",
+    )
     args = parser.parse_args()
 
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -164,16 +182,26 @@ def main():
     td_arr_ms = td_arr * 1e3
     TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
 
-    # Compute 1-cycle and 2-cycle lines
-    mcz_1cyc = mcz_for_n_lens_cycles(1.0, td_arr, f_min=args.f_min, eta=args.eta)
-    mcz_2cyc = mcz_for_n_lens_cycles(2.0, td_arr, f_min=args.f_min, eta=args.eta)
+    # Compute 1/2/3-cycle lines (unless disabled)
+    if not args.no_cycles:
+        mcz_1cyc = mcz_for_n_lens_cycles(1.0, td_arr, f_min=args.f_min, eta=args.eta)
+        mcz_2cyc = mcz_for_n_lens_cycles(2.0, td_arr, f_min=args.f_min, eta=args.eta)
+        mcz_3cyc = mcz_for_n_lens_cycles(3.0, td_arr, f_min=args.f_min, eta=args.eta)
 
-    # Find mcz_trough and mcz_peak points
+    # Find mcz_trough and mcz_peak points (unless disabled)
     mcz_min, mcz_max = mcz_arr.min(), mcz_arr.max()
-    td_trough_points, mcz_trough_points = find_mcz_troughs(
-        td_arr, args.eta, mcz_min, mcz_max
-    )
-    td_peak_points, mcz_peak_points = find_mcz_peaks(td_arr, args.eta, mcz_min, mcz_max)
+    if not args.no_troughs:
+        td_trough_points, mcz_trough_points = find_mcz_troughs(
+            td_arr, args.eta, mcz_min, mcz_max
+        )
+    else:
+        td_trough_points, mcz_trough_points = np.array([]), np.array([])
+    if not args.no_peaks:
+        td_peak_points, mcz_peak_points = find_mcz_peaks(
+            td_arr, args.eta, mcz_min, mcz_max
+        )
+    else:
+        td_peak_points, mcz_peak_points = np.array([]), np.array([])
 
     # Plot
     plt.figure(figsize=(8, 6))
@@ -190,9 +218,32 @@ def main():
     plt.xlabel(r"$\Delta t_d$ [ms]")
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
-    # Overlay cycle lines
-    plt.plot(td_arr_ms, mcz_1cyc, color="black", ls="-", label="1 cycle")
-    plt.plot(td_arr_ms, mcz_2cyc, color="black", ls="--", label="2 cycles")
+    # Overlay cycle lines (unless disabled)
+    if not args.no_cycles:
+        plt.plot(
+            td_arr_ms,
+            mcz_1cyc,
+            color="black",
+            ls="-",
+            lw=2,
+            label="1 lensing modulation",
+        )
+        plt.plot(
+            td_arr_ms,
+            mcz_2cyc,
+            color="black",
+            ls="--",
+            lw=2,
+            label="2 lensing modulations",
+        )
+        plt.plot(
+            td_arr_ms,
+            mcz_3cyc,
+            color="black",
+            ls=":",
+            lw=2,
+            label="3 lensing modulations",
+        )
 
     # Overlay mcz_trough points
     if len(td_trough_points) > 0:

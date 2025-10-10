@@ -92,6 +92,10 @@ def create_comparison_contours(
     scale_from="auto",
     n_levels=100,
     cmap="jet",
+    cbar_round_ticks=False,
+    cbar_n_ticks="auto",
+    cbar_decimals=None,
+    cbar_resize_factor=0.9,
 ):
     """Create comparison contours (2+ datasets) with a unified color scale.
 
@@ -186,8 +190,46 @@ def create_comparison_contours(
 
     # Colorbar for all panels
     cbar = fig.colorbar(
-        contour_handles[-1], ax=list(axes[:n]), location="right", shrink=0.9, pad=0.02
+        contour_handles[-1],
+        ax=list(axes[:n]),
+        location="right",
+        use_gridspec=True,
+        shrink=1.0,
+        fraction=0.046,
+        pad=0.04,
     )
+
+    # Manually resize colorbar height by provided factor, keeping it centered vertically
+    # Important: perform after layout; disable constrained_layout to avoid it overriding manual set_position
+    try:
+        try:
+            import matplotlib as mpl  # noqa: F401
+        except Exception:
+            pass
+        # Force a draw so positions are finalized
+        try:
+            fig.canvas.draw()
+        except Exception:
+            pass
+        # Disable constrained_layout if active to prevent it from resetting positions
+        try:
+            if hasattr(fig, "get_constrained_layout") and fig.get_constrained_layout():
+                fig.set_constrained_layout(False)
+        except Exception:
+            pass
+        cpos = cbar.ax.get_position()
+        factor = float(cbar_resize_factor)
+        if not (0.05 <= factor <= 1.5):
+            factor = 0.9
+        new_height = cpos.height * factor
+        new_y0 = cpos.y0 + 0.5 * (cpos.height - new_height)
+        cbar.ax.set_position([cpos.x0, new_y0, cpos.width, new_height])
+        try:
+            fig.canvas.draw_idle()
+        except Exception:
+            pass
+    except Exception:
+        pass
     # If this is a td–mcz contour, use the minimized-over-(Omega, theta, gamma) label
     is_td_mcz = any(
         isinstance(xlab, str)
@@ -205,14 +247,31 @@ def create_comparison_contours(
     else:
         cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
 
+    # Optional: rounded ticks on colorbar
+    if cbar_round_ticks:
+        try:
+            import matplotlib.ticker as mticker
+
+            # Allow automatic tick count when cbar_n_ticks == 'auto'
+            if isinstance(cbar_n_ticks, str) and cbar_n_ticks.strip().lower() == "auto":
+                nbins_val = "auto"
+            else:
+                nbins_val = max(2, int(cbar_n_ticks))
+
+            locator = mticker.MaxNLocator(nbins=nbins_val, steps=[1, 2, 2.5, 5, 10])
+            cbar.locator = locator
+            if cbar_decimals is not None:
+                cbar.formatter = mticker.FormatStrFormatter(f"%.{int(cbar_decimals)}f")
+            cbar.update_ticks()
+        except Exception:
+            pass
+
     # Output
     os.makedirs(outdir, exist_ok=True)
     tag_str = f"_{tag}" if tag else ""
     safe_labels = [lab.replace(" ", "") for lab in labels]
     joined = "_".join(safe_labels)
     fig_path = os.path.join(outdir, f"compare_{joined}_same_scale{tag_str}.pdf")
-    plt.savefig(fig_path, dpi=200, bbox_inches="tight")
-    print(f"Comparison figure saved as {fig_path}")
 
     # Stats
     print("\nGrid Information:")
@@ -221,7 +280,12 @@ def create_comparison_contours(
         print(f"{lab} X range: {float(X.min()):.1f} to {float(X.max()):.1f}")
         print(f"{lab} Y range: {float(Y.min()):.1f} to {float(Y.max()):.1f}")
 
-    plt.show()
+    # Show the plot immediately, then save after window is closed
+    try:
+        plt.show()
+    finally:
+        plt.savefig(fig_path, dpi=200, bbox_inches="tight")
+        print(f"Comparison figure saved as {fig_path}")
 
 
 def _parse_args():
@@ -268,6 +332,35 @@ def _parse_args():
             "Default: auto."
         ),
     )
+    parser.add_argument(
+        "--cbar_round_ticks",
+        action="store_true",
+        help="Use rounded tick locations on the colorbar (nice numbers)",
+    )
+    parser.add_argument(
+        "--cbar_n_ticks",
+        type=str,
+        default="auto",
+        help=(
+            "Approximate number of colorbar ticks when rounding; "
+            "use an integer or 'auto' (default) to choose automatically based on range"
+        ),
+    )
+    parser.add_argument(
+        "--cbar_decimals",
+        type=int,
+        help="If set, format colorbar tick labels to this many decimals",
+    )
+    parser.add_argument(
+        "--cbar_resize_factor",
+        type=float,
+        default=0.9,
+        help=(
+            "Scale the colorbar height by this factor (e.g., 0.6 shrinks to 60%). "
+            "Typical range 0.3–1.2."
+        ),
+    )
+    # removed: --cbar_use_inset (manual resize is used instead)
     args = parser.parse_args()
     return args
 
@@ -284,4 +377,8 @@ if __name__ == "__main__":
         scale_from=args.scale_from,
         n_levels=args.n_levels,
         cmap=args.cmap,
+        cbar_round_ticks=args.cbar_round_ticks,
+        cbar_n_ticks=args.cbar_n_ticks,
+        cbar_decimals=args.cbar_decimals,
+        cbar_resize_factor=args.cbar_resize_factor,
     )
