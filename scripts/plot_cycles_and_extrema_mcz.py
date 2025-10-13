@@ -11,62 +11,76 @@ from modules.filenames import contour_td_mcz_filename
 SOLMASS2SEC = 4.92624076e-6
 
 
-def mcz_trough_for_n(td_s: float, n_trough: int, eta: float = 0.25) -> float:
-    """Calculate mcz_trough for given time delay and trough number n_trough."""
-    mcz_trough = (
-        (eta ** (3 / 5) * td_s)
-        / (6 ** (3 / 2) * np.pi * (n_trough + 1 / 2))
-        / SOLMASS2SEC
-    )
-    return mcz_trough
+def _mcz_extremum_for_n(td_s: float, n: float, eta: float = 0.25) -> float:
+    """Calculate mcz extremum for given time delay and index n.
+
+    For troughs: n = n_trough + 0.5
+    For peaks: n = n_peak (integer >= 1)
+    """
+    return (eta ** (3 / 5) * td_s) / (6 ** (3 / 2) * np.pi * n) / SOLMASS2SEC
 
 
-def mcz_peak_for_n(td_s: float, n_peak: int, eta: float = 0.25) -> float:
-    """Calculate mcz_peak for given time delay and peak number n_peak."""
-    mcz_peak = (eta ** (3 / 5) * td_s) / (6 ** (3 / 2) * np.pi * n_peak) / SOLMASS2SEC
-    return mcz_peak
+def _find_mcz_extrema(
+    td_arr: np.ndarray,
+    eta: float,
+    mcz_min: float,
+    mcz_max: float,
+    n_start: float,
+    n_increment: float,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Generic function to find mcz extrema (troughs or peaks) within range.
+
+    Parameters
+    ----------
+    td_arr : np.ndarray
+        Array of time delays in seconds
+    eta : float
+        Symmetric mass ratio
+    mcz_min, mcz_max : float
+        Chirp mass range boundaries in solar masses
+    n_start : float
+        Starting value for n (0.5 for troughs, 1 for peaks)
+    n_increment : float
+        Increment for n (1.0 for both)
+
+    Returns
+    -------
+    tuple
+        (td_points, mcz_points) arrays
+    """
+    td_points = []
+    mcz_points = []
+
+    for td in td_arr:
+        n = n_start
+        while True:
+            mcz = _mcz_extremum_for_n(td, n, eta)
+            if mcz < mcz_min:
+                break
+            if mcz <= mcz_max:
+                td_points.append(td)
+                mcz_points.append(mcz)
+            n += n_increment
+
+    return np.array(td_points), np.array(mcz_points)
 
 
 def find_mcz_troughs(
     td_arr: np.ndarray, eta: float = 0.25, mcz_min: float = 10.0, mcz_max: float = 90.0
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Find mcz_trough points for each time delay within the mcz range."""
-    td_trough_points = []
-    mcz_trough_points = []
-
-    for td in td_arr:
-        n_trough = 0
-        while True:
-            mcz_trough = mcz_trough_for_n(td, n_trough, eta)
-            if mcz_trough < mcz_min:
-                break
-            if mcz_trough <= mcz_max:
-                td_trough_points.append(td)
-                mcz_trough_points.append(mcz_trough)
-            n_trough += 1
-
-    return np.array(td_trough_points), np.array(mcz_trough_points)
+    return _find_mcz_extrema(
+        td_arr, eta, mcz_min, mcz_max, n_start=0.5, n_increment=1.0
+    )
 
 
 def find_mcz_peaks(
     td_arr: np.ndarray, eta: float = 0.25, mcz_min: float = 10.0, mcz_max: float = 90.0
 ) -> Tuple[np.ndarray, np.ndarray]:
     """Find mcz_peak points for each time delay within the mcz range."""
-    td_peak_points = []
-    mcz_peak_points = []
-
-    for td in td_arr:
-        n_peak = 1
-        while True:
-            mcz_peak = mcz_peak_for_n(td, n_peak, eta)
-            if mcz_peak < mcz_min:
-                break
-            if mcz_peak <= mcz_max:
-                td_peak_points.append(td)
-                mcz_peak_points.append(mcz_peak)
-            n_peak += 1
-
-    return np.array(td_peak_points), np.array(mcz_peak_points)
+    return _find_mcz_extrema(
+        td_arr, eta, mcz_min, mcz_max, n_start=1.0, n_increment=1.0
+    )
 
 
 def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -123,7 +137,7 @@ def _infer_orientation_tag(input_path: str) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Overlay mcz_1cyc, mcz_2cyc, and mcz_peaks lines on a mismatch contour (L vs P)."
+        description="Overlay mcz_1cyc, mcz_2cyc, mcz_3cyc, and mcz_extrema lines on a mismatch (L vs P) contour of td vs mcz."
     )
     parser.add_argument(
         "--input_path",
@@ -187,10 +201,13 @@ def main():
     mcz_min, mcz_max = mcz_arr.min(), mcz_arr.max()
 
     # Compute 1/2/3-cycle lines (unless disabled)
+    cycle_data = []
     if not args.no_cycles:
-        mcz_1cyc = mcz_for_n_lens_cycles(1.0, td_arr, f_min=args.f_min, eta=args.eta)
-        mcz_2cyc = mcz_for_n_lens_cycles(2.0, td_arr, f_min=args.f_min, eta=args.eta)
-        mcz_3cyc = mcz_for_n_lens_cycles(3.0, td_arr, f_min=args.f_min, eta=args.eta)
+        for n_cyc, ls_style in [(1.0, "-"), (2.0, "--"), (3.0, ":")]:
+            mcz_cyc = mcz_for_n_lens_cycles(
+                n_cyc, td_arr, f_min=args.f_min, eta=args.eta
+            )
+            cycle_data.append((n_cyc, mcz_cyc, ls_style))
 
     # Find mcz_trough and mcz_peak points (unless disabled)
     td_trough_points, mcz_trough_points = (
@@ -220,36 +237,27 @@ def main():
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
     # Overlay cycle lines (unless disabled)
-    if not args.no_cycles:
-        plt.plot(td_arr_ms, mcz_1cyc, color="black", ls="-", lw=2, label="1 cycle")
-        plt.plot(td_arr_ms, mcz_2cyc, color="black", ls="--", lw=2, label="2 cycles")
-        plt.plot(td_arr_ms, mcz_3cyc, color="black", ls=":", lw=2, label="3 cycles")
+    for n_cyc, mcz_cyc, ls_style in cycle_data:
+        label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
+        plt.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
 
-    # Overlay mcz_trough points
-    if td_trough_points.size > 0:
-        plt.scatter(
-            td_trough_points * 1e3,  # Convert to ms
-            mcz_trough_points,
-            c="white",
-            marker=".",
-            s=5,
-            alpha=0.8,
-            label="mcz troughs",
-            zorder=5,
-        )
-
-    # Overlay mcz_peak points
-    if td_peak_points.size > 0:
-        plt.scatter(
-            td_peak_points * 1e3,  # Convert to ms
-            mcz_peak_points,
-            c="red",
-            marker=".",
-            s=5,
-            alpha=0.8,
-            label="mcz peaks",
-            zorder=5,
-        )
+    # Overlay mcz extrema points
+    extrema_config = [
+        (td_trough_points, mcz_trough_points, "white", "mcz troughs"),
+        (td_peak_points, mcz_peak_points, "red", "mcz peaks"),
+    ]
+    for td_pts, mcz_pts, color, label in extrema_config:
+        if td_pts.size > 0:
+            plt.scatter(
+                td_pts * 1e3,  # Convert to ms
+                mcz_pts,
+                c=color,
+                marker=".",
+                s=5,
+                alpha=0.8,
+                label=label,
+                zorder=5,
+            )
 
     # Optionally show legend if there are labeled artists
     if args.show_legend:
@@ -262,10 +270,9 @@ def main():
     # Generate output filename derived from source data + orientation tag, with 'overlayed' suffix
     td_min_ms = td_arr.min() * 1e3
     td_max_ms = td_arr.max() * 1e3
-    # mcz_min, mcz_max already computed above
     orientation_tag = _infer_orientation_tag(input_path)
 
-    # Start from the standard contour filename then add suffix 'overlayed'
+    # Build filename with overlayed suffix
     base_fig = contour_td_mcz_filename(
         fig_dir,
         td_min_ms=td_min_ms,
@@ -275,14 +282,13 @@ def main():
         orientation_tag=orientation_tag,
         ext="pdf",
     )
-    # Append suffix
     base_name, base_ext = os.path.splitext(base_fig)
-    out_path = f"{base_name}_overlayed{base_ext}"
 
-    # Add tag if provided
+    # Add suffixes: _overlayed and optional user tag
+    suffixes = ["overlayed"]
     if args.tag:
-        name, ext = os.path.splitext(out_path)
-        out_path = f"{name}_{args.tag}{ext}"
+        suffixes.append(args.tag)
+    out_path = f"{base_name}_{'_'.join(suffixes)}{base_ext}"
     plt.savefig(out_path, dpi=200)
     print("Figure saved as", out_path)
 
