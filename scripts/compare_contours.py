@@ -143,8 +143,8 @@ def sanitize_filename(name):
     """Convert a label to a safe filename component."""
     # Remove or replace problematic characters
     safe = re.sub(r"[^\w\s\-.]", "", name)  # Keep alphanumeric, spaces, hyphens, dots
-    safe = safe.replace(" ", "_")  # Replace spaces with underscores
-    return safe.strip("_")  # Remove leading/trailing underscores
+    safe = safe.replace(" ", "")  # Remove spaces
+    return safe
 
 
 def create_comparison_contours(
