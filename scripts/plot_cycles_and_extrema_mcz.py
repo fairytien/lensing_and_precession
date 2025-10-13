@@ -29,7 +29,7 @@ def mcz_peak_for_n(td_s: float, n_peak: int, eta: float = 0.25) -> float:
 
 def find_mcz_troughs(
     td_arr: np.ndarray, eta: float = 0.25, mcz_min: float = 10.0, mcz_max: float = 90.0
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     """Find mcz_trough points for each time delay within the mcz range."""
     td_trough_points = []
     mcz_trough_points = []
@@ -50,7 +50,7 @@ def find_mcz_troughs(
 
 def find_mcz_peaks(
     td_arr: np.ndarray, eta: float = 0.25, mcz_min: float = 10.0, mcz_max: float = 90.0
-):
+) -> Tuple[np.ndarray, np.ndarray]:
     """Find mcz_peak points for each time delay within the mcz range."""
     td_peak_points = []
     mcz_peak_points = []
@@ -75,6 +75,9 @@ def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     - Pickle must contain keys: 'mcz_arr' (Msun), 'td_arr' (seconds), 'epsilon_matrix'.
     - HDF5 (best_match) must contain datasets: 'mcz', 'td', 'epsilon_min'.
     """
+    if not os.path.exists(input_path):
+        raise FileNotFoundError(f"Input file not found: {input_path}")
+
     _, ext = os.path.splitext(input_path)
     ext = ext.lower()
     if ext == ".pkl":
@@ -122,17 +125,10 @@ def main():
     parser = argparse.ArgumentParser(
         description="Overlay mcz_1cyc, mcz_2cyc, and mcz_peaks lines on a mismatch contour (L vs P)."
     )
-    # Back-compat: allow old --pkl_path or new --input_path (.pkl or .h5)
-    parser.add_argument(
-        "--pkl_path",
-        type=str,
-        default=None,
-        help="[Deprecated] Path to pickle with mcz_arr, td_arr, epsilon_matrix",
-    )
     parser.add_argument(
         "--input_path",
         type=str,
-        default=None,
+        required=True,
         help="Path to input file (.pkl with mcz_arr, td_arr, epsilon_matrix) or best_match .h5",
     )
     parser.add_argument("--eta", type=float, default=0.25)
@@ -164,7 +160,12 @@ def main():
         "--no-cycles",
         dest="no_cycles",
         action="store_true",
-        help="Do not plot 1/2/3 lensing modulation lines",
+        help="Do not plot 1/2/3 lensing cycle lines",
+    )
+    parser.add_argument(
+        "--show-legend",
+        action="store_true",
+        help="Show legend for any plotted overlays (cycles, peaks, troughs)",
     )
     args = parser.parse_args()
 
@@ -172,15 +173,18 @@ def main():
     fig_dir = os.path.join(base_dir, "figures")
     os.makedirs(fig_dir, exist_ok=True)
 
-    input_path = args.input_path or args.pkl_path
-    if not input_path:
-        raise SystemExit("Provide --input_path (.pkl or .h5) or legacy --pkl_path")
+    input_path = args.input_path
 
     mcz_arr, td_arr, Z = _load_data(input_path)
+
+    # Validate data
+    if mcz_arr.size == 0 or td_arr.size == 0:
+        raise ValueError("Loaded arrays are empty")
 
     # Build grid for plotting
     td_arr_ms = td_arr * 1e3
     TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
+    mcz_min, mcz_max = mcz_arr.min(), mcz_arr.max()
 
     # Compute 1/2/3-cycle lines (unless disabled)
     if not args.no_cycles:
@@ -189,19 +193,16 @@ def main():
         mcz_3cyc = mcz_for_n_lens_cycles(3.0, td_arr, f_min=args.f_min, eta=args.eta)
 
     # Find mcz_trough and mcz_peak points (unless disabled)
-    mcz_min, mcz_max = mcz_arr.min(), mcz_arr.max()
-    if not args.no_troughs:
-        td_trough_points, mcz_trough_points = find_mcz_troughs(
-            td_arr, args.eta, mcz_min, mcz_max
-        )
-    else:
-        td_trough_points, mcz_trough_points = np.array([]), np.array([])
-    if not args.no_peaks:
-        td_peak_points, mcz_peak_points = find_mcz_peaks(
-            td_arr, args.eta, mcz_min, mcz_max
-        )
-    else:
-        td_peak_points, mcz_peak_points = np.array([]), np.array([])
+    td_trough_points, mcz_trough_points = (
+        find_mcz_troughs(td_arr, args.eta, mcz_min, mcz_max)
+        if not args.no_troughs
+        else (np.array([]), np.array([]))
+    )
+    td_peak_points, mcz_peak_points = (
+        find_mcz_peaks(td_arr, args.eta, mcz_min, mcz_max)
+        if not args.no_peaks
+        else (np.array([]), np.array([]))
+    )
 
     # Plot
     plt.figure(figsize=(8, 6))
@@ -220,33 +221,12 @@ def main():
 
     # Overlay cycle lines (unless disabled)
     if not args.no_cycles:
-        plt.plot(
-            td_arr_ms,
-            mcz_1cyc,
-            color="black",
-            ls="-",
-            lw=2,
-            label="1 lensing modulation",
-        )
-        plt.plot(
-            td_arr_ms,
-            mcz_2cyc,
-            color="black",
-            ls="--",
-            lw=2,
-            label="2 lensing modulations",
-        )
-        plt.plot(
-            td_arr_ms,
-            mcz_3cyc,
-            color="black",
-            ls=":",
-            lw=2,
-            label="3 lensing modulations",
-        )
+        plt.plot(td_arr_ms, mcz_1cyc, color="black", ls="-", lw=2, label="1 cycle")
+        plt.plot(td_arr_ms, mcz_2cyc, color="black", ls="--", lw=2, label="2 cycles")
+        plt.plot(td_arr_ms, mcz_3cyc, color="black", ls=":", lw=2, label="3 cycles")
 
     # Overlay mcz_trough points
-    if len(td_trough_points) > 0:
+    if td_trough_points.size > 0:
         plt.scatter(
             td_trough_points * 1e3,  # Convert to ms
             mcz_trough_points,
@@ -259,7 +239,7 @@ def main():
         )
 
     # Overlay mcz_peak points
-    if len(td_peak_points) > 0:
+    if td_peak_points.size > 0:
         plt.scatter(
             td_peak_points * 1e3,  # Convert to ms
             mcz_peak_points,
@@ -271,14 +251,18 @@ def main():
             zorder=5,
         )
 
-    # plt.legend(loc="best")
+    # Optionally show legend if there are labeled artists
+    if args.show_legend:
+        ax = plt.gca()
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            plt.legend(loc="best")
     plt.tight_layout()
 
     # Generate output filename derived from source data + orientation tag, with 'overlayed' suffix
     td_min_ms = td_arr.min() * 1e3
     td_max_ms = td_arr.max() * 1e3
-    mcz_min = mcz_arr.min()
-    mcz_max = mcz_arr.max()
+    # mcz_min, mcz_max already computed above
     orientation_tag = _infer_orientation_tag(input_path)
 
     # Start from the standard contour filename then add suffix 'overlayed'
