@@ -32,6 +32,18 @@ def _infer_orientation_tag_from_filename(path: str) -> str:
     return "unknown"
 
 
+def _infer_mcz_from_filename(path: str) -> str:
+    """Extract mcz value from a cube filename, e.g., *mcz70Msun* -> 70Msun.
+
+    Returns "unknown" if the mcz cannot be inferred.
+    """
+    base = os.path.basename(path)
+    m = re.match(r".*mcz(\d+Msun).*", base)
+    if m:
+        return m.group(1)
+    return "unknown"
+
+
 def _global_min_max(zcube: np.ndarray) -> Tuple[float, float]:
     """Compute global finite min/max across all frames of epsilon_min_grid.
 
@@ -308,8 +320,9 @@ def main():
 
     os.makedirs(args.outdir, exist_ok=True)
     tag = _infer_orientation_tag_from_filename(args.input)
+    mcz_tag = _infer_mcz_from_filename(args.input)
 
-    base = f"epsilon_contours_mcz50Msun_td20-70ms_{tag}"
+    base = f"epsilon_contours_mcz{mcz_tag}_td20-70ms_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 
