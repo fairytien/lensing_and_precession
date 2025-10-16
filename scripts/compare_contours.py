@@ -11,7 +11,11 @@ import matplotlib.ticker as mticker
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.functions_v3 import mcz_for_n_lens_cycles
+# Import overlay functions from plot_cycles_and_extrema_mcz.py
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+from plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
 
 
 def load_pickle_data(filepath):
@@ -268,6 +272,9 @@ def create_comparison_contours(
     cbar_resize_factor=0.9,
     eta=0.25,
     f_min=20.0,
+    overlay_cycles=False,
+    overlay_peaks=False,
+    overlay_troughs=False,
 ):
     """Create comparison contours (2+ datasets) with a unified color scale.
 
@@ -299,6 +306,12 @@ def create_comparison_contours(
         Symmetric mass ratio for cycle line calculations. Default is 0.25.
     f_min : float
         Minimum frequency in Hz for cycle line calculations. Default is 20.0.
+    overlay_cycles : bool
+        If True, overlay 1/2/3 lensing cycle lines on td-mcz plots. Default is False.
+    overlay_peaks : bool
+        If True, overlay mcz peak points on td-mcz plots. Default is False.
+    overlay_troughs : bool
+        If True, overlay mcz trough points on td-mcz plots. Default is False.
     """
     if not isinstance(paths, (list, tuple)) or len(paths) < 2:
         raise ValueError("paths must be a list of at least 2 dataset file paths")
@@ -375,22 +388,30 @@ def create_comparison_contours(
         ax.set_xlabel(xlabels[i])
         ax.set_ylabel(ylabels[i])
 
-        # Overlay cycle lines for td–mcz contours (use data_type instead of fragile string detection)
-        is_td_mcz_i = data_types[i] == "td_mcz"
-        if is_td_mcz_i:
+        # Overlay cycle lines and extrema for td–mcz contours
+        if data_types[i] == "td_mcz":
             # Extract td array from the X grid (first row, convert ms to s)
             td_arr_ms = Xs[i][0, :]
             td_arr = td_arr_ms / 1e3  # Convert from ms to s
 
-            # Compute 1/2/3-cycle lines
-            mcz_1cyc = mcz_for_n_lens_cycles(1.0, td_arr, f_min=f_min, eta=eta)
-            mcz_2cyc = mcz_for_n_lens_cycles(2.0, td_arr, f_min=f_min, eta=eta)
-            mcz_3cyc = mcz_for_n_lens_cycles(3.0, td_arr, f_min=f_min, eta=eta)
+            # Get mcz range for extrema overlays
+            mcz_data_min = Ys[i].min()
+            mcz_data_max = Ys[i].max()
 
-            # Plot cycle lines
-            ax.plot(td_arr_ms, mcz_1cyc, color="black", ls="-", lw=2, label="1 cycle")
-            ax.plot(td_arr_ms, mcz_2cyc, color="black", ls="--", lw=2, label="2 cycles")
-            ax.plot(td_arr_ms, mcz_3cyc, color="black", ls=":", lw=2, label="3 cycles")
+            # Overlay cycle lines if requested
+            if overlay_cycles:
+                plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
+
+            # Overlay mcz extrema points if requested
+            if overlay_peaks or overlay_troughs:
+                plot_mcz_extrema(
+                    td_arr,
+                    mcz_data_min,
+                    mcz_data_max,
+                    eta=eta,
+                    plot_troughs=overlay_troughs,
+                    plot_peaks=overlay_peaks,
+                )
 
         # Set square aspect ratio if supported
         if hasattr(ax, "set_box_aspect"):
@@ -558,6 +579,21 @@ def _parse_args():
         help="Minimum frequency in Hz for cycle line calculations (default: 20.0)",
     )
     parser.add_argument(
+        "--overlay-cycles",
+        action="store_true",
+        help="Overlay 1/2/3 lensing cycle lines on td-mcz plots",
+    )
+    parser.add_argument(
+        "--overlay-peaks",
+        action="store_true",
+        help="Overlay mcz peak points on td-mcz plots",
+    )
+    parser.add_argument(
+        "--overlay-troughs",
+        action="store_true",
+        help="Overlay mcz trough points on td-mcz plots",
+    )
+    parser.add_argument(
         "--ratio_of",
         nargs=2,
         metavar=("NUM", "DEN"),
@@ -604,6 +640,9 @@ if __name__ == "__main__":
             cbar_resize_factor=args.cbar_resize_factor,
             eta=args.eta,
             f_min=args.f_min,
+            overlay_cycles=args.overlay_cycles,
+            overlay_peaks=args.overlay_peaks,
+            overlay_troughs=args.overlay_troughs,
         )
 
 """Example CLI Usage:

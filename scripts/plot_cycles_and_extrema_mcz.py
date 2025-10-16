@@ -118,7 +118,7 @@ def plot_mcz_extrema(
                 marker=".",
                 s=5,
                 alpha=0.8,
-                label="mcz troughs",
+                label="troughs",
                 zorder=5,
             )
 
@@ -134,7 +134,7 @@ def plot_mcz_extrema(
                 marker=".",
                 s=5,
                 alpha=0.8,
-                label="mcz peaks",
+                label="peaks",
                 zorder=5,
             )
 
@@ -240,22 +240,19 @@ def main():
         help="Optional suffix to append to figure filename",
     )
     parser.add_argument(
-        "--no-troughs",
-        dest="no_troughs",
+        "--overlay-cycles",
         action="store_true",
-        help="Do not plot mcz trough points",
+        help="Overlay 1/2/3 lensing cycle lines on the contour plot",
     )
     parser.add_argument(
-        "--no-peaks",
-        dest="no_peaks",
+        "--overlay-peaks",
         action="store_true",
-        help="Do not plot mcz peak points",
+        help="Overlay mcz peak points on the contour plot",
     )
     parser.add_argument(
-        "--no-cycles",
-        dest="no_cycles",
+        "--overlay-troughs",
         action="store_true",
-        help="Do not plot 1/2/3 lensing cycle lines",
+        help="Overlay mcz trough points on the contour plot",
     )
     parser.add_argument(
         "--show-legend",
@@ -296,18 +293,18 @@ def main():
     plt.xlabel(r"$\Delta t_d$ [ms]")
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
-    # Overlay cycle lines (unless disabled)
-    if not args.no_cycles:
+    # Overlay cycle lines if requested
+    if args.overlay_cycles:
         plot_cycle_lines(td_arr, td_arr_ms, eta=args.eta, f_min=args.f_min)
 
-    # Overlay mcz extrema points (unless disabled)
+    # Overlay mcz extrema points if requested
     plot_mcz_extrema(
         td_arr,
         mcz_min,
         mcz_max,
         eta=args.eta,
-        plot_troughs=not args.no_troughs,
-        plot_peaks=not args.no_peaks,
+        plot_troughs=args.overlay_troughs,
+        plot_peaks=args.overlay_peaks,
     )
 
     # Optionally show legend if there are labeled artists
