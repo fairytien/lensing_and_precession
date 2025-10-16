@@ -161,11 +161,52 @@ def create_ratio_contour(
     cbar_round_ticks=False,
     cbar_n_ticks="auto",
     cbar_decimals=None,
-    cbar_resize_factor=0.9,
+    cbar_resize_factor=1.0,
+    eta=0.25,
+    f_min=20.0,
+    overlay_cycles=False,
+    overlay_peaks=False,
+    overlay_troughs=False,
+    title=None,
 ):
     """Create a single contour plot of the ratio of epsilon matrices (num/den).
 
     Both inputs must be td–mcz datasets with identical grids.
+
+    Parameters
+    ----------
+    num_path : str
+        Path to numerator dataset file.
+    den_path : str
+        Path to denominator dataset file.
+    tag : str | None
+        Optional tag appended to output filename.
+    outdir : str
+        Directory to save output figure.
+    n_levels : int
+        Number of contour levels.
+    cmap : str
+        Matplotlib colormap name.
+    cbar_round_ticks : bool
+        Use rounded tick locations on colorbar.
+    cbar_n_ticks : str | int
+        Number of colorbar ticks when rounding.
+    cbar_decimals : int | None
+        Format colorbar tick labels to this many decimals.
+    cbar_resize_factor : float
+        Scale colorbar height by this factor (0.3-1.2 typical range).
+    eta : float
+        Symmetric mass ratio for cycle line calculations. Default is 0.25.
+    f_min : float
+        Minimum frequency in Hz for cycle line calculations. Default is 20.0.
+    overlay_cycles : bool
+        If True, overlay 1/2/3 lensing cycle lines. Default is False.
+    overlay_peaks : bool
+        If True, overlay mcz peak points. Default is False.
+    overlay_troughs : bool
+        If True, overlay mcz trough points. Default is False.
+    title : str | None
+        Custom title for the plot. If None, uses default title.
     """
     if not os.path.exists(num_path):
         raise FileNotFoundError(f"Dataset file not found: {num_path}")
@@ -201,11 +242,39 @@ def create_ratio_contour(
         cmap=cmap,
         extend="both",
     )
-    ax.set_title(
-        "Ratio of Mismatch Between RP and NP Templates With Lensed Sources", pad=15
-    )
+
+    # Set title (custom or default)
+    if title is None:
+        title = "Ratio of Mismatch Between RP and NP Templates With Lensed Sources"
+    ax.set_title(title, pad=15)
+
     ax.set_xlabel(xlab_n)
     ax.set_ylabel(ylab_n)
+
+    # Overlay cycle lines and extrema for td–mcz contours
+    # Extract td array from the X grid (first row, convert ms to s)
+    td_arr_ms = Xn[0, :]
+    td_arr = td_arr_ms / 1e3  # Convert from ms to s
+
+    # Get mcz range for extrema overlays
+    mcz_data_min = Yn.min()
+    mcz_data_max = Yn.max()
+
+    # Overlay cycle lines if requested
+    if overlay_cycles:
+        plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
+
+    # Overlay mcz extrema points if requested
+    if overlay_peaks or overlay_troughs:
+        plot_mcz_extrema(
+            td_arr,
+            mcz_data_min,
+            mcz_data_max,
+            eta=eta,
+            plot_troughs=overlay_troughs,
+            plot_peaks=overlay_peaks,
+        )
+
     if hasattr(ax, "set_box_aspect"):
         ax.set_box_aspect(1)
 
@@ -269,7 +338,7 @@ def create_comparison_contours(
     cbar_round_ticks=False,
     cbar_n_ticks="auto",
     cbar_decimals=None,
-    cbar_resize_factor=0.9,
+    cbar_resize_factor=1.0,
     eta=0.25,
     f_min=20.0,
     overlay_cycles=False,
@@ -501,6 +570,7 @@ def _parse_args():
     parser.add_argument(
         "--paths",
         nargs="+",
+        default=None,
         help="List of 2+ dataset files to compare (.pkl or best_match .h5)",
     )
     parser.add_argument(
@@ -559,7 +629,7 @@ def _parse_args():
     parser.add_argument(
         "--cbar_resize_factor",
         type=float,
-        default=0.9,
+        default=1.0,
         help=(
             "Scale the colorbar height by this factor (e.g., 0.6 shrinks to 60%). "
             "Typical range 0.3–1.2."
@@ -601,6 +671,12 @@ def _parse_args():
             "(NUM/DEN). Both must be td–mcz datasets with identical grids."
         ),
     )
+    parser.add_argument(
+        "--title",
+        type=str,
+        default=None,
+        help="Custom title for ratio plot (only used with --ratio_of)",
+    )
     # removed: --cbar_use_inset (manual resize is used instead)
     args = parser.parse_args()
     return args
@@ -621,9 +697,15 @@ if __name__ == "__main__":
             cbar_n_ticks=args.cbar_n_ticks,
             cbar_decimals=args.cbar_decimals,
             cbar_resize_factor=args.cbar_resize_factor,
+            eta=args.eta,
+            f_min=args.f_min,
+            overlay_cycles=args.overlay_cycles,
+            overlay_peaks=args.overlay_peaks,
+            overlay_troughs=args.overlay_troughs,
+            title=args.title,
         )
     else:
-        if len(args.paths) < 2:
+        if not args.paths or len(args.paths) < 2:
             raise SystemExit("--paths must include at least 2 files to compare")
         create_comparison_contours(
             args.paths,
@@ -650,9 +732,11 @@ python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contou
 --labels "Lensed Sources vs Non-Precessing Templates" "Lensed Sources vs Regularly Precessing Templates" 
 --cbar_round_ticks 
 --cbar_resize_factor 0.85
+--overlay-cycles
 
 
 python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contours.py
 --ratio_of /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl
 --cbar_round_ticks
+--overlay-cycles
 """
