@@ -147,6 +147,113 @@ def sanitize_filename(name):
     return safe
 
 
+def create_ratio_contour(
+    num_path,
+    den_path,
+    tag=None,
+    outdir="figures",
+    n_levels=100,
+    cmap="jet",
+    cbar_round_ticks=False,
+    cbar_n_ticks="auto",
+    cbar_decimals=None,
+    cbar_resize_factor=0.9,
+):
+    """Create a single contour plot of the ratio of epsilon matrices (num/den).
+
+    Both inputs must be td–mcz datasets with identical grids.
+    """
+    if not os.path.exists(num_path):
+        raise FileNotFoundError(f"Dataset file not found: {num_path}")
+    if not os.path.exists(den_path):
+        raise FileNotFoundError(f"Dataset file not found: {den_path}")
+
+    Xn, Yn, Zn, xlab_n, ylab_n, type_n = load_generic_dataset(num_path)
+    Xd, Yd, Zd, xlab_d, ylab_d, type_d = load_generic_dataset(den_path)
+
+    if type_n != "td_mcz" or type_d != "td_mcz":
+        raise ValueError("Both datasets must be td–mcz grids for ratio plotting.")
+
+    # Validate grids match
+    if Xn.shape != Xd.shape or Yn.shape != Yd.shape:
+        raise ValueError(
+            f"Grid shapes differ: numerator {Xn.shape} vs denominator {Xd.shape}"
+        )
+    if not (np.allclose(Xn, Xd) and np.allclose(Yn, Yd)):
+        raise ValueError("Grid coordinates (td, mcz) differ between datasets.")
+
+    # Compute ratio with masking to avoid division by zero/invalids
+    Zn_mask = ma.masked_invalid(Zn)
+    Zd_mask = ma.masked_invalid(Zd)
+    denom_safe = ma.masked_less_equal(Zd_mask, 0)
+    ratio = ma.divide(Zn_mask, denom_safe)
+
+    fig, ax = plt.subplots(1, 1, figsize=(5, 5), constrained_layout=True)
+    cf = ax.contourf(
+        Xn,
+        Yn,
+        ratio,
+        levels=n_levels if isinstance(n_levels, (list, np.ndarray)) else n_levels,
+        cmap=cmap,
+        extend="both",
+    )
+    ax.set_title(
+        "Ratio of Mismatch Between RP and NP Templates With Lensed Sources", pad=15
+    )
+    ax.set_xlabel(xlab_n)
+    ax.set_ylabel(ylab_n)
+    if hasattr(ax, "set_box_aspect"):
+        ax.set_box_aspect(1)
+
+    # Colorbar
+    cbar = fig.colorbar(
+        cf,
+        ax=ax,
+        location="right",
+        use_gridspec=True,
+        shrink=1.0,
+        fraction=0.046,
+        pad=0.04,
+    )
+    cbar.set_label(
+        r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_{\rm L},\tilde{h}_{\rm P}) / \epsilon(\tilde{h}_{\rm L},\tilde{h}_{\rm NP})$"
+    )
+
+    # Rounded ticks on colorbar
+    if cbar_round_ticks:
+        if isinstance(cbar_n_ticks, str) and cbar_n_ticks.strip().lower() == "auto":
+            nbins_val = "auto"
+        else:
+            nbins_val = max(2, int(cbar_n_ticks))
+        locator = mticker.MaxNLocator(nbins=nbins_val, steps=[1, 2, 2.5, 5, 10])
+        cbar.locator = locator
+        if cbar_decimals is not None:
+            cbar.formatter = mticker.FormatStrFormatter(f"%.{int(cbar_decimals)}f")
+        cbar.update_ticks()
+
+    # Resize colorbar height if requested
+    if cbar_resize_factor != 1.0:
+        fig.canvas.draw()
+        if hasattr(fig, "get_constrained_layout") and fig.get_constrained_layout():
+            fig.set_constrained_layout(False)
+        cpos = cbar.ax.get_position()
+        factor = max(0.05, min(1.5, float(cbar_resize_factor)))
+        new_height = cpos.height * factor
+        new_y0 = cpos.y0 + 0.5 * (cpos.height - new_height)
+        cbar.ax.set_position([cpos.x0, new_y0, cpos.width, new_height])
+        fig.canvas.draw_idle()
+
+    # Output path
+    os.makedirs(outdir, exist_ok=True)
+    num_name = sanitize_filename(os.path.splitext(os.path.basename(num_path))[0])
+    den_name = sanitize_filename(os.path.splitext(os.path.basename(den_path))[0])
+    tag_str = f"_{tag}" if tag else ""
+    out_path = os.path.join(outdir, f"ratio_{num_name}_OVER_{den_name}{tag_str}.pdf")
+    plt.savefig(out_path, dpi=200, bbox_inches="tight")
+    print(f"Ratio figure saved as {out_path}")
+    plt.show()
+
+
 def create_comparison_contours(
     paths,
     labels=None,
@@ -450,6 +557,15 @@ def _parse_args():
         default=20.0,
         help="Minimum frequency in Hz for cycle line calculations (default: 20.0)",
     )
+    parser.add_argument(
+        "--ratio_of",
+        nargs=2,
+        metavar=("NUM", "DEN"),
+        help=(
+            "If provided, plot a single contour of the ratio of epsilon matrices "
+            "(NUM/DEN). Both must be td–mcz datasets with identical grids."
+        ),
+    )
     # removed: --cbar_use_inset (manual resize is used instead)
     args = parser.parse_args()
     return args
@@ -457,28 +573,48 @@ def _parse_args():
 
 if __name__ == "__main__":
     args = _parse_args()
-    if len(args.paths) < 2:
-        raise SystemExit("--paths must include at least 2 files to compare")
-    create_comparison_contours(
-        args.paths,
-        labels=args.labels,
-        tag=args.tag,
-        outdir=args.outdir,
-        scale_from=args.scale_from,
-        n_levels=args.n_levels,
-        cmap=args.cmap,
-        cbar_round_ticks=args.cbar_round_ticks,
-        cbar_n_ticks=args.cbar_n_ticks,
-        cbar_decimals=args.cbar_decimals,
-        cbar_resize_factor=args.cbar_resize_factor,
-        eta=args.eta,
-        f_min=args.f_min,
-    )
+    if args.ratio_of:
+        num, den = args.ratio_of
+        create_ratio_contour(
+            num_path=num,
+            den_path=den,
+            tag=args.tag,
+            outdir=args.outdir,
+            n_levels=args.n_levels,
+            cmap=args.cmap,
+            cbar_round_ticks=args.cbar_round_ticks,
+            cbar_n_ticks=args.cbar_n_ticks,
+            cbar_decimals=args.cbar_decimals,
+            cbar_resize_factor=args.cbar_resize_factor,
+        )
+    else:
+        if len(args.paths) < 2:
+            raise SystemExit("--paths must include at least 2 files to compare")
+        create_comparison_contours(
+            args.paths,
+            labels=args.labels,
+            tag=args.tag,
+            outdir=args.outdir,
+            scale_from=args.scale_from,
+            n_levels=args.n_levels,
+            cmap=args.cmap,
+            cbar_round_ticks=args.cbar_round_ticks,
+            cbar_n_ticks=args.cbar_n_ticks,
+            cbar_decimals=args.cbar_decimals,
+            cbar_resize_factor=args.cbar_resize_factor,
+            eta=args.eta,
+            f_min=args.f_min,
+        )
 
-"""Example usage:
+"""Example CLI Usage:
 python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contours.py
 --paths /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
 --labels "Lensed Sources vs Non-Precessing Templates" "Lensed Sources vs Regularly Precessing Templates" 
 --cbar_round_ticks 
 --cbar_resize_factor 0.85
+
+
+python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contours.py
+--ratio_of /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl
+--cbar_round_ticks
 """
