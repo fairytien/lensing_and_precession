@@ -22,6 +22,14 @@ from modules.filenames import (
     best_match_filename,
     contour_td_mcz_filename,
 )
+
+# Import overlay functions from plot_cycles_and_extrema_mcz.py
+# Add scripts directory to path to allow importing from other scripts
+scripts_dir = os.path.dirname(os.path.abspath(__file__))
+if scripts_dir not in sys.path:
+    sys.path.insert(0, scripts_dir)
+from plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
+
 import logging
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -35,6 +43,13 @@ def main(
     mcz_max: float,
     orientation_tag: str,
     output_dir: str,
+    variable: str = "epsilon",
+    overlay_cycles: bool = False,
+    overlay_peaks: bool = False,
+    overlay_troughs: bool = False,
+    show_legend: bool = False,
+    eta: float = 0.25,
+    f_min: float = 20.0,
 ):
     """Plot mismatch contour from aggregated best-match file.
 
@@ -46,6 +61,13 @@ def main(
         mcz_max: Maximum chirp mass in Msun (for filename matching).
         orientation_tag: Orientation tag (for filename matching).
         output_dir: Directory where the figure will be saved.
+        variable: Variable to plot ("epsilon", "omega", or "theta").
+        overlay_cycles: If True, overlay 1/2/3 lensing cycle lines.
+        overlay_peaks: If True, overlay mcz peak points.
+        overlay_troughs: If True, overlay mcz trough points.
+        show_legend: If True, show legend for overlays.
+        eta: Symmetric mass ratio (default 0.25).
+        f_min: Minimum frequency in Hz (default 20.0).
     """
     os.makedirs(output_dir, exist_ok=True)
 
@@ -62,27 +84,87 @@ def main(
 
     logging.info(f"Loading best-match data from: {summary_path}")
 
+    # Define variable names and labels
+    variable_mapping = {
+        "epsilon": {
+            "dataset": "epsilon_min",
+            "label": r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$",
+            "suffix": "epsilon_min",
+        },
+        "omega": {
+            "dataset": "omega_best",
+            "label": r"$\tilde{\Omega}_{\rm best}$",
+            "suffix": "omega_best",
+        },
+        "theta": {
+            "dataset": "theta_best",
+            "label": r"$\tilde{\theta}_{\rm best}$",
+            "suffix": "theta_best",
+        },
+    }
+
+    if variable not in variable_mapping:
+        raise ValueError(
+            f"Invalid variable '{variable}'. Must be one of: {list(variable_mapping.keys())}"
+        )
+
+    var_info = variable_mapping[variable]
+
     with h5py.File(summary_path, "r") as h5:
+        # Validate that required datasets exist
+        required_datasets = ["mcz", "td", var_info["dataset"]]
+        missing = [ds for ds in required_datasets if ds not in h5]
+        if missing:
+            raise KeyError(
+                f"Missing datasets in {summary_path}: {missing}. "
+                f"Available datasets: {list(h5.keys())}"
+            )
+
         mcz_arr = np.array(h5["mcz"])
         td_arr = np.array(h5["td"])
-        Zmap = np.array(h5["epsilon_min"])
+        Zmap = np.array(h5[var_info["dataset"]])
 
     # Convert td from seconds to ms for plotting
     td_arr_ms = td_arr * 1e3
+
+    # Get actual data range for overlays
+    mcz_data_min, mcz_data_max = mcz_arr.min(), mcz_arr.max()
 
     # Create contour plot
     TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
     plt.figure(figsize=(8, 6))
     cf = plt.contourf(TD, MCZ, Zmap, levels=100, cmap="jet")
     cbar = plt.colorbar(cf)
-    cbar.set_label(
-        r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$"
-    )
+    cbar.set_label(var_info["label"])
     plt.xlabel(r"$\Delta t_d$ [ms]")
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
+
+    # Overlay lensing cycle lines if requested
+    if overlay_cycles:
+        plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
+
+    # Overlay mcz extrema points if requested
+    if overlay_troughs or overlay_peaks:
+        plot_mcz_extrema(
+            td_arr,
+            mcz_data_min,
+            mcz_data_max,
+            eta=eta,
+            plot_troughs=overlay_troughs,
+            plot_peaks=overlay_peaks,
+        )
+
+    # Show legend if requested and there are labeled artists
+    if show_legend:
+        ax = plt.gca()
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            plt.legend(loc="best")
+
     plt.tight_layout()
 
-    fig_path = contour_td_mcz_filename(
+    # Generate filename with variable suffix and overlay suffixes
+    base_path = contour_td_mcz_filename(
         output_dir,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
@@ -91,12 +173,34 @@ def main(
         orientation_tag=orientation_tag,
         ext="pdf",
     )
+
+    # Build list of suffixes
+    suffixes = []
+
+    # Add variable suffix for non-epsilon variables
+    if variable != "epsilon":
+        suffixes.append(var_info["suffix"])
+
+    # Add overlay suffix if any overlays are enabled
+    if overlay_cycles or overlay_peaks or overlay_troughs:
+        suffixes.append("overlayed")
+
+    # Apply suffixes to filename
+    path_without_ext, ext = os.path.splitext(base_path)
+    if suffixes:
+        fig_path = f"{path_without_ext}_{'_'.join(suffixes)}{ext}"
+    else:
+        fig_path = base_path
+
     plt.savefig(fig_path, dpi=200)
     logging.info(f"Figure saved as {fig_path}")
     plt.close()
 
 
 if __name__ == "__main__":
+    # Get project root directory (used for default paths)
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
     p = argparse.ArgumentParser(
         description=(
             "Plot mismatch contour from aggregated best-match HDF5 file. "
@@ -106,11 +210,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--results_dir",
         type=str,
-        default=os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "data",
-            "contours",
-        ),
+        default=os.path.join(project_root, "data", "contours_td_mcz"),
         help="Directory containing the best-match HDF5 file.",
     )
     p.add_argument(
@@ -146,11 +246,47 @@ if __name__ == "__main__":
     p.add_argument(
         "--output_dir",
         type=str,
-        default=os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "figures",
-        ),
+        default=os.path.join(project_root, "figures"),
         help="Directory where the figure will be saved.",
+    )
+    p.add_argument(
+        "--variable",
+        type=str,
+        default="epsilon",
+        choices=["epsilon", "omega", "theta"],
+        help="Variable to plot: 'epsilon' (mismatch), 'omega' (best-match Omega), or 'theta' (best-match theta).",
+    )
+    p.add_argument(
+        "--overlay-cycles",
+        action="store_true",
+        help="Overlay 1/2/3 lensing cycle lines on the contour plot.",
+    )
+    p.add_argument(
+        "--overlay-peaks",
+        action="store_true",
+        help="Overlay mcz peak points on the contour plot.",
+    )
+    p.add_argument(
+        "--overlay-troughs",
+        action="store_true",
+        help="Overlay mcz trough points on the contour plot.",
+    )
+    p.add_argument(
+        "--show-legend",
+        action="store_true",
+        help="Show legend for any plotted overlays (cycles, peaks, troughs).",
+    )
+    p.add_argument(
+        "--eta",
+        type=float,
+        default=0.25,
+        help="Symmetric mass ratio for overlay calculations (default: 0.25).",
+    )
+    p.add_argument(
+        "--f_min",
+        type=float,
+        default=20.0,
+        help="Minimum frequency in Hz for cycle calculations (default: 20.0).",
     )
 
     args = p.parse_args()
@@ -163,4 +299,11 @@ if __name__ == "__main__":
         mcz_max=args.mcz_max,
         orientation_tag=args.orientation_tag,
         output_dir=args.output_dir,
+        variable=args.variable,
+        overlay_cycles=args.overlay_cycles,
+        overlay_peaks=args.overlay_peaks,
+        overlay_troughs=args.overlay_troughs,
+        show_legend=args.show_legend,
+        eta=args.eta,
+        f_min=args.f_min,
     )
