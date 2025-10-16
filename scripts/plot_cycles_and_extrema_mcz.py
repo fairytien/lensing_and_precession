@@ -83,6 +83,87 @@ def find_mcz_peaks(
     )
 
 
+def plot_mcz_extrema(
+    td_arr: np.ndarray,
+    mcz_min: float,
+    mcz_max: float,
+    eta: float = 0.25,
+    plot_troughs: bool = True,
+    plot_peaks: bool = True,
+) -> None:
+    """Overlay mcz trough and/or peak points on current matplotlib axes.
+
+    Parameters
+    ----------
+    td_arr : np.ndarray
+        Array of time delays in seconds
+    mcz_min, mcz_max : float
+        Chirp mass range boundaries in solar masses
+    eta : float
+        Symmetric mass ratio (default: 0.25)
+    plot_troughs : bool
+        If True, plot mcz trough points (default: True)
+    plot_peaks : bool
+        If True, plot mcz peak points (default: True)
+    """
+    if plot_troughs:
+        td_trough_pts, mcz_trough_pts = find_mcz_troughs(
+            td_arr, eta=eta, mcz_min=mcz_min, mcz_max=mcz_max
+        )
+        if td_trough_pts.size > 0:
+            plt.scatter(
+                td_trough_pts * 1e3,  # Convert to ms
+                mcz_trough_pts,
+                c="white",
+                marker=".",
+                s=5,
+                alpha=0.8,
+                label="mcz troughs",
+                zorder=5,
+            )
+
+    if plot_peaks:
+        td_peak_pts, mcz_peak_pts = find_mcz_peaks(
+            td_arr, eta=eta, mcz_min=mcz_min, mcz_max=mcz_max
+        )
+        if td_peak_pts.size > 0:
+            plt.scatter(
+                td_peak_pts * 1e3,  # Convert to ms
+                mcz_peak_pts,
+                c="red",
+                marker=".",
+                s=5,
+                alpha=0.8,
+                label="mcz peaks",
+                zorder=5,
+            )
+
+
+def plot_cycle_lines(
+    td_arr: np.ndarray,
+    td_arr_ms: np.ndarray,
+    eta: float = 0.25,
+    f_min: float = 20.0,
+) -> None:
+    """Overlay 1/2/3 lensing cycle lines on current matplotlib axes.
+
+    Parameters
+    ----------
+    td_arr : np.ndarray
+        Array of time delays in seconds
+    td_arr_ms : np.ndarray
+        Array of time delays in milliseconds (for plotting)
+    eta : float
+        Symmetric mass ratio (default: 0.25)
+    f_min : float
+        Minimum frequency in Hz (default: 20.0)
+    """
+    for n_cyc, ls_style in [(1.0, "-"), (2.0, "--"), (3.0, ":")]:
+        mcz_cyc = mcz_for_n_lens_cycles(n_cyc, td_arr, f_min=f_min, eta=eta)
+        label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
+        plt.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
+
+
 def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Load (mcz_arr [Msun], td_arr [s], epsilon_matrix) from .pkl or .h5 file.
 
@@ -200,27 +281,6 @@ def main():
     TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
     mcz_min, mcz_max = mcz_arr.min(), mcz_arr.max()
 
-    # Compute 1/2/3-cycle lines (unless disabled)
-    cycle_data = []
-    if not args.no_cycles:
-        for n_cyc, ls_style in [(1.0, "-"), (2.0, "--"), (3.0, ":")]:
-            mcz_cyc = mcz_for_n_lens_cycles(
-                n_cyc, td_arr, f_min=args.f_min, eta=args.eta
-            )
-            cycle_data.append((n_cyc, mcz_cyc, ls_style))
-
-    # Find mcz_trough and mcz_peak points (unless disabled)
-    td_trough_points, mcz_trough_points = (
-        find_mcz_troughs(td_arr, args.eta, mcz_min, mcz_max)
-        if not args.no_troughs
-        else (np.array([]), np.array([]))
-    )
-    td_peak_points, mcz_peak_points = (
-        find_mcz_peaks(td_arr, args.eta, mcz_min, mcz_max)
-        if not args.no_peaks
-        else (np.array([]), np.array([]))
-    )
-
     # Plot
     plt.figure(figsize=(8, 6))
     cf = plt.contourf(TD, MCZ, Z, levels=100, cmap="jet")
@@ -237,27 +297,18 @@ def main():
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
     # Overlay cycle lines (unless disabled)
-    for n_cyc, mcz_cyc, ls_style in cycle_data:
-        label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
-        plt.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
+    if not args.no_cycles:
+        plot_cycle_lines(td_arr, td_arr_ms, eta=args.eta, f_min=args.f_min)
 
-    # Overlay mcz extrema points
-    extrema_config = [
-        (td_trough_points, mcz_trough_points, "white", "mcz troughs"),
-        (td_peak_points, mcz_peak_points, "red", "mcz peaks"),
-    ]
-    for td_pts, mcz_pts, color, label in extrema_config:
-        if td_pts.size > 0:
-            plt.scatter(
-                td_pts * 1e3,  # Convert to ms
-                mcz_pts,
-                c=color,
-                marker=".",
-                s=5,
-                alpha=0.8,
-                label=label,
-                zorder=5,
-            )
+    # Overlay mcz extrema points (unless disabled)
+    plot_mcz_extrema(
+        td_arr,
+        mcz_min,
+        mcz_max,
+        eta=args.eta,
+        plot_troughs=not args.no_troughs,
+        plot_peaks=not args.no_peaks,
+    )
 
     # Optionally show legend if there are labeled artists
     if args.show_legend:
