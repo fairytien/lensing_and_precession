@@ -501,7 +501,6 @@ def _parse_args():
     parser.add_argument(
         "--paths",
         nargs="+",
-        required=True,
         help="List of 2+ dataset files to compare (.pkl or best_match .h5)",
     )
     parser.add_argument(
