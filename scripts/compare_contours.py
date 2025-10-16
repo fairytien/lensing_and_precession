@@ -262,7 +262,7 @@ def create_ratio_contour(
 
     # Overlay cycle lines if requested
     if overlay_cycles:
-        plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
+        plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min, ax=ax)
 
     # Overlay mcz extrema points if requested
     if overlay_peaks or overlay_troughs:
@@ -273,6 +273,7 @@ def create_ratio_contour(
             eta=eta,
             plot_troughs=overlay_troughs,
             plot_peaks=overlay_peaks,
+            ax=ax,
         )
 
     if hasattr(ax, "set_box_aspect"):
@@ -344,6 +345,9 @@ def create_comparison_contours(
     overlay_cycles=False,
     overlay_peaks=False,
     overlay_troughs=False,
+    overlay_cycles_for=None,
+    overlay_peaks_for=None,
+    overlay_troughs_for=None,
 ):
     """Create comparison contours (2+ datasets) with a unified color scale.
 
@@ -467,19 +471,38 @@ def create_comparison_contours(
             mcz_data_min = Ys[i].min()
             mcz_data_max = Ys[i].max()
 
-            # Overlay cycle lines if requested
-            if overlay_cycles:
-                plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
+            # Determine which overlays to apply to this panel (1-based index)
+            panel_idx = i + 1
 
-            # Overlay mcz extrema points if requested
-            if overlay_peaks or overlay_troughs:
+            # Check if cycles should be overlaid on this panel
+            should_overlay_cycles = overlay_cycles and (
+                overlay_cycles_for is None or panel_idx in overlay_cycles_for
+            )
+
+            # Check if peaks should be overlaid on this panel
+            should_overlay_peaks = overlay_peaks and (
+                overlay_peaks_for is None or panel_idx in overlay_peaks_for
+            )
+
+            # Check if troughs should be overlaid on this panel
+            should_overlay_troughs = overlay_troughs and (
+                overlay_troughs_for is None or panel_idx in overlay_troughs_for
+            )
+
+            # Overlay cycle lines if requested for this panel
+            if should_overlay_cycles:
+                plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min, ax=ax)
+
+            # Overlay mcz extrema points if requested for this panel
+            if should_overlay_peaks or should_overlay_troughs:
                 plot_mcz_extrema(
                     td_arr,
                     mcz_data_min,
                     mcz_data_max,
                     eta=eta,
-                    plot_troughs=overlay_troughs,
-                    plot_peaks=overlay_peaks,
+                    plot_troughs=should_overlay_troughs,
+                    plot_peaks=should_overlay_peaks,
+                    ax=ax,
                 )
 
         # Set square aspect ratio if supported
@@ -663,6 +686,24 @@ def _parse_args():
         help="Overlay mcz trough points on td-mcz plots",
     )
     parser.add_argument(
+        "--overlay-peaks-for",
+        nargs="+",
+        type=int,
+        help="Specify which panels (1-based indices) should get peak overlays. Default: all panels if --overlay-peaks is used.",
+    )
+    parser.add_argument(
+        "--overlay-troughs-for",
+        nargs="+",
+        type=int,
+        help="Specify which panels (1-based indices) should get trough overlays. Default: all panels if --overlay-troughs is used.",
+    )
+    parser.add_argument(
+        "--overlay-cycles-for",
+        nargs="+",
+        type=int,
+        help="Specify which panels (1-based indices) should get cycle overlays. Default: all panels if --overlay-cycles is used.",
+    )
+    parser.add_argument(
         "--ratio_of",
         nargs=2,
         metavar=("NUM", "DEN"),
@@ -724,6 +765,9 @@ if __name__ == "__main__":
             overlay_cycles=args.overlay_cycles,
             overlay_peaks=args.overlay_peaks,
             overlay_troughs=args.overlay_troughs,
+            overlay_cycles_for=args.overlay_cycles_for,
+            overlay_peaks_for=args.overlay_peaks_for,
+            overlay_troughs_for=args.overlay_troughs_for,
         )
 
 """Example CLI Usage:
@@ -733,10 +777,22 @@ python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contou
 --cbar_round_ticks 
 --cbar_resize_factor 0.85
 --overlay-cycles
+--overlay-peaks
+--overlay-troughs
+
+
+python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contours.py 
+--paths /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
+--labels 'Lensed Sources vs Non-Precessing Templates' 'Lensed Sources vs Regularly Precessing Templates' 
+--cbar_round_ticks 
+--cbar_resize_factor 0.85 
+--overlay-cycles 
+--overlay-troughs 
+--overlay-cycles-for 1 2 
+--overlay-troughs-for 1
 
 
 python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/compare_contours.py
 --ratio_of /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl
---cbar_round_ticks
 --overlay-cycles
 """

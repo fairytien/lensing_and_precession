@@ -90,8 +90,9 @@ def plot_mcz_extrema(
     eta: float = 0.25,
     plot_troughs: bool = True,
     plot_peaks: bool = True,
+    ax=None,
 ) -> None:
-    """Overlay mcz trough and/or peak points on current matplotlib axes.
+    """Overlay mcz trough and/or peak points on specified matplotlib axes.
 
     Parameters
     ----------
@@ -105,13 +106,18 @@ def plot_mcz_extrema(
         If True, plot mcz trough points (default: True)
     plot_peaks : bool
         If True, plot mcz peak points (default: True)
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, uses current axes.
     """
+    if ax is None:
+        ax = plt.gca()
+
     if plot_troughs:
         td_trough_pts, mcz_trough_pts = find_mcz_troughs(
             td_arr, eta=eta, mcz_min=mcz_min, mcz_max=mcz_max
         )
         if td_trough_pts.size > 0:
-            plt.scatter(
+            ax.scatter(
                 td_trough_pts * 1e3,  # Convert to ms
                 mcz_trough_pts,
                 c="white",
@@ -127,7 +133,7 @@ def plot_mcz_extrema(
             td_arr, eta=eta, mcz_min=mcz_min, mcz_max=mcz_max
         )
         if td_peak_pts.size > 0:
-            plt.scatter(
+            ax.scatter(
                 td_peak_pts * 1e3,  # Convert to ms
                 mcz_peak_pts,
                 c="red",
@@ -144,8 +150,9 @@ def plot_cycle_lines(
     td_arr_ms: np.ndarray,
     eta: float = 0.25,
     f_min: float = 20.0,
+    ax=None,
 ) -> None:
-    """Overlay 1/2/3 lensing cycle lines on current matplotlib axes.
+    """Overlay 1/2/3 lensing cycle lines on specified matplotlib axes.
 
     Parameters
     ----------
@@ -157,11 +164,16 @@ def plot_cycle_lines(
         Symmetric mass ratio (default: 0.25)
     f_min : float
         Minimum frequency in Hz (default: 20.0)
+    ax : matplotlib.axes.Axes, optional
+        Axes to plot on. If None, uses current axes.
     """
+    if ax is None:
+        ax = plt.gca()
+
     for n_cyc, ls_style in [(1.0, "-"), (2.0, "--"), (3.0, ":")]:
         mcz_cyc = mcz_for_n_lens_cycles(n_cyc, td_arr, f_min=f_min, eta=eta)
         label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
-        plt.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
+        ax.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
 
 
 def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
