@@ -13,7 +13,14 @@ from typing import Optional
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed
 if not hasattr(np, "alen"):
-    np.alen = lambda a: len(a)
+    try:
+        setattr(np, "alen", lambda a: len(a))  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover - environment-specific safeguard
+        # fallback: provide a local alias if numpy cannot be modified
+        def _local_alen(a):
+            return len(a)
+
+        alen = _local_alen
 if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
     for _name, _alias in (
         ("float", float),
@@ -875,23 +882,23 @@ class Precessing:
 
         if self.theta_tilde == 0:  # non-precessing
             return 0
-        # not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
+        # Not necessary to include this case, but just in case, check equations 17, 18a, A18 in Evangelos
 
         # Face-on case (precessing & non-precessing)
-        if np.abs(1 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD:
+        face_on = np.abs(1 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD
+        if face_on:
             return -Omega_LJ * np.cos(theta_LJ) / f_dot
 
         # L and N aligned case (coordinate singularity)
-        # if (
-        #     np.abs(np.abs(LdotN) - 1) < NEAR_ZERO_THRESHOLD
-        # ):  # allow for tolerance near 1
+        # aligned = np.isclose(np.abs(LdotN), 1.0, atol=NEAR_ZERO_THRESHOLD)
+        # if np.any(aligned):  # allow for tolerance near 1
         #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-        #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-        #     # a coordinate singularity!!!
+        #     # Very rare, L aligns with N only ONCE as it spirals out --> blows up???
+        #     # A coordinate singularity!!!
         #     # return 0
 
-        # Generic (non face-on) expression
-        return (
+        # Generic (non face-on) expression (matches original formula, just factored)
+        base = (
             (LdotN / (1 - LdotN**2))
             * Omega_LJ
             * np.sin(theta_LJ)
@@ -901,6 +908,13 @@ class Precessing:
             )
             / f_dot
         )
+
+        # Added correction term with theta_LJ/3f cos phi_LJ sin i_JN term (from Taman/regular_precession.py)
+        corr = (LdotN / (1 - LdotN**2)) * (
+            -(theta_LJ / (3.0 * f)) * np.cos(phi_LJ) * sin_i_JN
+        )
+
+        return base + corr
 
     def phase_delta_phi(self, f, rtol=1.49012e-8, atol=1.49012e-8):
         """
@@ -999,7 +1013,7 @@ class Precessing:
 
     def phi_L(self, f):
         """
-        Evolution of the orbital angular momentum vector in the detector frame (phase).
+        Evolution of the orbital angular momentum vector in the detector frame (azimuthal angle).
 
         Parameters
         ----------

@@ -11,7 +11,14 @@ from numpy.lib import NumpyVersion
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed
 if not hasattr(np, "alen"):
-    np.alen = lambda a: len(a)
+    try:
+        setattr(np, "alen", lambda a: len(a))  # type: ignore[attr-defined]
+    except Exception:  # pragma: no cover - environment-specific safeguard
+        # fallback: provide a local alias if numpy cannot be modified
+        def _local_alen(a):
+            return len(a)
+
+        alen = _local_alen
 if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
     for _name, _alias in (
         ("float", float),
@@ -481,7 +488,7 @@ class Precessing:
         if face_on:
             return -Omega_LJ * cos_t / f_dot
 
-        # aligned = np.isclose(np.abs(LdotN), 1.0, atol=1e-10)
+        # aligned = np.isclose(np.abs(LdotN), 1.0, atol=NEAR_ZERO_THRESHOLD)
 
         # Generic (non face-on) expression (matches original formula, just factored)
         base = (
@@ -492,16 +499,21 @@ class Precessing:
             / f_dot
         )
 
+        # Added correction term with theta_LJ/3f cos phi_LJ sin i_JN term (from Taman/regular_precession.py)
+        corr = (LdotN / (1.0 - LdotN**2)) * (
+            -(theta_LJ / (3.0 * f)) * np.cos(phi_LJ) * sin_i_JN
+        )
+
         # if np.any(aligned):  # Check if any LdotN values are close to 1
         #     # NOT face-on & STILL precessing, when L and N are aligned at some point in the precession cycle
-        #     # very rare, L aligns with N only ONCE as it spirals out --> blows up???
-        #     # a coordinate singularity!!!
+        #     # Very rare, L aligns with N only ONCE as it spirals out --> blows up???
+        #     # A coordinate singularity!!!
         #     # For now, handle this case by setting those values to 0
         #     # return np.where(aligned, 0.0, base)
         # else:
-        #     return base
+        #     return base + corr
 
-        return base
+        return base + corr
 
     def phase_delta_phi(self, f):
         """Integrate the delta_phi integrand using cumulative trapezoid (vectorized)."""
