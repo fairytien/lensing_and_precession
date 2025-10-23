@@ -712,7 +712,8 @@ class Precessing:
         with the detector orientation angle alpha.
         """
         cos_i_JN, sin_i_JN, cos_o_XH, sin_o_XH = self.precession_angles()
-        # for C
+
+        # For C
         C_amp = np.sqrt(
             0.25
             * (1 + (np.cos(self.theta_S)) ** 2) ** 2
@@ -720,13 +721,13 @@ class Precessing:
             + ((np.cos(self.theta_S)) ** 2 * (np.sin(2 * self.phi_S)) ** 2)
         )
 
-        # define alpha based on equation 4b
+        # Define alpha based on equation 4b
         sin_alpha = np.cos(self.theta_S) * np.sin(2 * self.phi_S) / C_amp
         cos_alpha = (
             (1 + np.cos(self.theta_S) ** 2) * np.cos(2 * self.phi_S) / (2 * C_amp)
         )
 
-        # define tan_psi from equation 3
+        # Define tan_psi from equation 3
         num_psi = (
             np.sin(self.theta_LJ(f))
             * (
@@ -743,12 +744,12 @@ class Precessing:
             )
             + np.cos(self.theta_LJ(f)) * sin_i_JN * sin_o_XH
         )
-        if self.phi_S == self.phi_J:
-            if self.theta_S == self.theta_J:
-                tan_psi = np.tan(self.phi_LJ(f))
-            else:
-                tan_psi = num_psi / den_psi
-
+        # Hybrid handling: tolerant face-on special case uses Taman's closed-form tan(psi),
+        # otherwise use the generic quotient (algebraic and stable).
+        face_on = np.abs(1 - np.abs(cos_i_JN)) < NEAR_ZERO_THRESHOLD
+        if face_on:
+            o_XH = np.arctan2(sin_o_XH, cos_o_XH)
+            tan_psi = np.tan(o_XH + np.sign(cos_i_JN) * self.phi_LJ(f))
         else:
             tan_psi = num_psi / den_psi
 
@@ -756,7 +757,7 @@ class Precessing:
         #     if self.theta_tilde == 0:  # WRONG!!! Refer to Eq A14 in Taman's paper!
         #         return C_amp, 0, -1
 
-        # define  2 * Psi + alpha
+        # Define  2 * Psi + alpha
         sin_2pa = (2 * cos_alpha * tan_psi + sin_alpha * (1 - (tan_psi) ** 2)) / (
             1 + (tan_psi) ** 2
         )
