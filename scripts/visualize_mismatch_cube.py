@@ -86,10 +86,8 @@ def save_movie(
 
     # First frame
     X, Y = np.meshgrid(omega, theta)
-    cf = [
-        ax.contourf(X, Y, eps_grid[0], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax)
-    ]
-    cbar = fig.colorbar(cf[0])
+    cf = ax.contourf(X, Y, eps_grid[0], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax)
+    cbar = fig.colorbar(cf)
     cbar.set_label(r"$\epsilon(\tilde{h}_L, \tilde{h}_P)$")
     ax.set_xlabel(r"$\tilde{\Omega}$")
     ax.set_ylabel(r"$\tilde{\theta}$")
@@ -97,14 +95,13 @@ def save_movie(
     fig.tight_layout()
 
     def _update(i):
-        # Remove previous collections
-        for coll in cf[0].collections:
+        # Clear previous contours by removing all collections from axes
+        for coll in ax.collections:
             coll.remove()
-        cf[0] = ax.contourf(
-            X, Y, eps_grid[i], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax
-        )
+        # Create new contour
+        ax.contourf(X, Y, eps_grid[i], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax)
         ttl.set_text(f"td = {td_ms[i]:.1f} ms")
-        return cf[0].collections + [ttl]
+        return ax.collections + [ttl]
 
     ani = animation.FuncAnimation(
         fig, _update, frames=len(td_ms), blit=False, interval=1000 / max(fps, 1)
@@ -223,8 +220,8 @@ def save_html_slider(
 
     fig.update_layout(
         title="Epsilon contours over (theta, omega)",
-        xaxis_title=r"$\\tilde{\\Omega}$",
-        yaxis_title=r"$\\tilde{\\theta}$",
+        xaxis_title=r"$\tilde{\Omega}$",
+        yaxis_title=r"$\tilde{\theta}$",
         sliders=sliders,
         updatemenus=[
             dict(
@@ -295,7 +292,7 @@ def main():
         help="Force MP4; fallback to GIF if ffmpeg missing",
     )
     p.add_argument("--gif", action="store_true", help="Force GIF output")
-    p.add_argument("--no_html", action="store_true", help="Skip HTML slider output")
+    p.add_argument("--html", action="store_true", help="Generate HTML slider output")
     args = p.parse_args()
 
     if not os.path.isfile(args.input):
@@ -339,7 +336,7 @@ def main():
     )
 
     # HTML slider
-    if not args.no_html:
+    if args.html:
         html_path = os.path.join(args.outdir, base + ".html")
         save_html_slider(
             omega=omega,
@@ -356,3 +353,11 @@ if __name__ == "__main__":
     # Ensure project root is on PYTHONPATH
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     main()
+
+
+"""
+Example CLI Usage on TACC:
+    conda activate fairytien_gw 
+    && python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/visualize_mismatch_cube.py 
+    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30Msun_td20-70ms_Taman_edgeon.h5 --gif
+"""
