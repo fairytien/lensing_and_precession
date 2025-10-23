@@ -758,12 +758,21 @@ class Precessing:
         #         return C_amp, 0, -1
 
         # Define  2 * Psi + alpha
-        sin_2pa = (2 * cos_alpha * tan_psi + sin_alpha * (1 - (tan_psi) ** 2)) / (
+        # Algebraic forms (naturally stable when tan_psi is finite)
+        sin_2pa_alg = (2 * cos_alpha * tan_psi + sin_alpha * (1 - (tan_psi) ** 2)) / (
             1 + (tan_psi) ** 2
         )
-        cos_2pa = (cos_alpha * (1 - (tan_psi) ** 2) - 2 * sin_alpha * tan_psi) / (
+        cos_2pa_alg = (cos_alpha * (1 - (tan_psi) ** 2) - 2 * sin_alpha * tan_psi) / (
             1 + (tan_psi) ** 2
         )
+
+        # Asymptotic guard: when tan_psi blows up or den_psi is tiny, use limits
+        # sin(2ψ+α) -> -sin α, cos(2ψ+α) -> -cos α as tan_psi -> ±∞
+        T_bad = (
+            ~np.isfinite(tan_psi) | (np.abs(tan_psi) > 1e12) | (np.abs(den_psi) < 1e-12)
+        )
+        sin_2pa = np.where(T_bad, -sin_alpha, sin_2pa_alg)
+        cos_2pa = np.where(T_bad, -cos_alpha, cos_2pa_alg)
 
         return C_amp, sin_2pa, cos_2pa
 
