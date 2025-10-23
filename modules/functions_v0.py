@@ -18,19 +18,9 @@ import matplotlib
 
 matplotlib.rcParams["figure.dpi"] = 150
 import matplotlib.pyplot as plt
-from matplotlib import colors
-import matplotlib.image as mpimg
-from scipy.integrate import simps
-from scipy.integrate import odeint
-import scipy.special as sc
-import math
-import sympy as sp
-import pandas as pd
-import mpmath as mp
+from scipy.integrate import simpson
 from pycbc.filter import match
 from pycbc.types import FrequencySeries
-import ipywidgets
-from ipywidgets import interact, interactive, fixed, interact_manual
 from datetime import datetime
 import pickle
 import copy

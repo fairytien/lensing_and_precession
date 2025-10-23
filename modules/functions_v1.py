@@ -20,20 +20,9 @@ import matplotlib
 matplotlib.rcParams["figure.dpi"] = 150
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
-from matplotlib import colors
-import matplotlib.image as mpimg
-from scipy.integrate import simps
-from scipy.integrate import odeint
-import scipy.special as sc
-import math
-import sympy as sp
-import pandas as pd
-import mpmath as mp
+from scipy.integrate import simpson
 from pycbc.filter import match, optimized_match, make_frequency_series
 from pycbc.types import FrequencySeries, TimeSeries
-from pycbc import catalog
-import ipywidgets
-from ipywidgets import interact, interactive, fixed, interact_manual
 from datetime import datetime
 import pickle
 import copy
@@ -402,7 +391,7 @@ def SNR(
 
     # calculate SNR
     integrand = np.abs(h) ** 2 / psd_n
-    integrated_inner_product = simps(integrand, f_arr)
+    integrated_inner_product = simpson(integrand, x=f_arr)
     snr = np.sqrt(4 * np.real(integrated_inner_product))
 
     return snr

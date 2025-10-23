@@ -29,9 +29,8 @@ for _name, _alias in (
         setattr(np, _name, _alias)
 
 error_handler = np.seterr(invalid="raise")
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.optimize import fsolve
-import math
 from pycbc.filter import match, optimized_match, make_frequency_series
 from pycbc.types import FrequencySeries, TimeSeries
 import os
@@ -607,7 +606,7 @@ def SNR(
 
     # calculate SNR
     integrand = np.abs(h) ** 2 / psd
-    integrated_inner_product = simps(integrand, f_arr)
+    integrated_inner_product = simpson(integrand, x=f_arr)
     snr = np.sqrt(4 * np.real(integrated_inner_product))
 
     return snr

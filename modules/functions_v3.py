@@ -33,7 +33,7 @@ if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
             setattr(np, _name, _alias)
 
 error_handler = np.seterr(invalid="raise")
-from scipy.integrate import simps
+from scipy.integrate import simpson
 from scipy.optimize import fsolve, minimize_scalar
 from pycbc.filter import match, optimized_match
 from pycbc.types import FrequencySeries, TimeSeries
@@ -754,7 +754,7 @@ def SNR(
 
     # calculate SNR
     integrand = np.abs(h) ** 2 / psd
-    integrated_inner_product = simps(integrand, f_arr)
+    integrated_inner_product = simpson(integrand, x=f_arr)
     snr = np.sqrt(4 * np.real(integrated_inner_product))
 
     return snr
