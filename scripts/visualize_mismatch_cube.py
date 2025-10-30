@@ -16,6 +16,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import h5py
+from modules.filenames import get_mismatch_cube_resolution
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
@@ -42,6 +43,12 @@ def _infer_mcz_from_filename(path: str) -> str:
     if m:
         return m.group(1)
     return "unknown"
+
+
+def _format_resolution_suffix(h5_file) -> str:
+    """Build resolution suffix using get_mismatch_cube_resolution (td-o-t-g)."""
+    td_pts, omega_pts, theta_pts, gamma_pts = get_mismatch_cube_resolution(h5_file)
+    return f"td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
 
 
 def _global_min_max(zcube: np.ndarray) -> Tuple[float, float]:
@@ -310,6 +317,9 @@ def main():
         omega = np.array(h5["omega"], dtype=float)
         eps = np.array(h5["epsilon_min_grid"], dtype=float)  # (td, theta, omega)
 
+        # Get resolution suffix before orientation tag
+        res_suffix = _format_resolution_suffix(h5)
+
     if eps.ndim != 3 or eps.shape[1:] != (theta.size, omega.size):
         raise ValueError(
             f"Unexpected epsilon_min_grid shape {eps.shape}; expected (n_td, {theta.size}, {omega.size})"
@@ -319,7 +329,7 @@ def main():
     tag = _infer_orientation_tag_from_filename(args.input)
     mcz_tag = _infer_mcz_from_filename(args.input)
 
-    base = f"epsilon_contours_mcz{mcz_tag}_td20-70ms_{tag}"
+    base = f"epsilon_contours_mcz{mcz_tag}_td20-70ms_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 

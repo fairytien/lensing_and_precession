@@ -9,7 +9,7 @@ Pipeline:
 3. scripts/create_contour_td_mcz_from_best_match.py (this script) - plot contour
 """
 
-import os, argparse, sys
+import os, argparse, sys, glob
 
 import numpy as np
 import h5py
@@ -18,10 +18,7 @@ import matplotlib.pyplot as plt
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.filenames import (
-    best_match_filename,
-    contour_td_mcz_filename,
-)
+from modules.filenames import contour_td_mcz_filename
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 # Add scripts directory to path to allow importing from other scripts
@@ -71,10 +68,21 @@ def main(
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Load best-match file
-    summary_path = best_match_filename(
-        results_dir, td_min_ms, td_max_ms, mcz_min, mcz_max, orientation_tag
+    # Load best-match file (support optional resolution suffix in filename)
+    pattern = os.path.join(
+        results_dir,
+        "best_match",
+        f"best_match_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun*_{orientation_tag}.h5",
     )
+    matches = sorted(glob.glob(pattern))
+    if not matches:
+        raise FileNotFoundError(
+            "No best-match file found. Expected pattern: " + pattern
+        )
+    if len(matches) > 1:
+        # Choose the most recent if multiple files match
+        matches.sort(key=lambda p: os.path.getmtime(p), reverse=True)
+    summary_path = matches[0]
 
     if not os.path.isfile(summary_path):
         raise FileNotFoundError(

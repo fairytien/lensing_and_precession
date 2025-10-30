@@ -5,6 +5,8 @@ can locate outputs deterministically.
 """
 
 import os
+from typing import Optional, Tuple
+import h5py
 
 
 def _format_min_precision(value: float) -> str:
@@ -61,11 +63,15 @@ def bank_filename(
     return os.path.join(bank_dir, name)
 
 
-def mismatch_cubes_filename(
+def mismatch_cube_filename(
     results_dir: str,
     mcz_msun: float,
     td_min_ms: float,
     td_max_ms: float,
+    td_pts: int,
+    omega_pts: int,
+    theta_pts: int,
+    gamma_pts: int,
     orientation_tag: str,
 ) -> str:
     """Build the HDF5 path for per-mcz mismatch cube outputs.
@@ -77,6 +83,7 @@ def mismatch_cubes_filename(
     name = (
         f"mismatch_cubes_mcz{_format_min_precision(mcz_msun)}Msun"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
+        f"_td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
     return os.path.join(mismatch_dir, name)
@@ -86,8 +93,13 @@ def best_match_filename(
     results_dir: str,
     td_min_ms: float,
     td_max_ms: float,
+    td_pts: Optional[int],
     mcz_min: float,
     mcz_max: float,
+    mcz_pts: Optional[int],
+    omega_pts: Optional[int],
+    theta_pts: Optional[int],
+    gamma_pts: Optional[int],
     orientation_tag: str,
 ) -> str:
     """Build the HDF5 path for the aggregated best-match outputs across all mcz.
@@ -98,8 +110,19 @@ def best_match_filename(
     os.makedirs(best_match_dir, exist_ok=True)
     name = (
         f"best_match_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
-        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun_{orientation_tag}.h5"
+        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun"
     )
+    # Append resolution suffix in td-mcz-o-t-g order if all are present
+    if (
+        td_pts is not None
+        and mcz_pts is not None
+        and omega_pts is not None
+        and theta_pts is not None
+        and gamma_pts is not None
+    ):
+        name += f"_td{td_pts}-mcz{mcz_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+
+    name += f"_{orientation_tag}.h5"
     return os.path.join(best_match_dir, name)
 
 
@@ -123,3 +146,14 @@ def contour_td_mcz_filename(
         f"_min_mismatch_{orientation_tag}.{ext}"
     )
     return os.path.join(fig_dir, name)
+
+
+def get_mismatch_cube_resolution(h5_file) -> Tuple[int, int, int, int]:
+    """Infer (td_pts, omega_pts, theta_pts, gamma_pts) from an opened HDF5 cube.
+    Expects explicit axis datasets: 'td', 'omega', 'theta', 'gamma'.
+    """
+    td_pts = int(h5_file["td"].shape[0])
+    omega_pts = int(h5_file["omega"].shape[0])
+    theta_pts = int(h5_file["theta"].shape[0])
+    gamma_pts = int(h5_file["gamma"].shape[0])
+    return td_pts, omega_pts, theta_pts, gamma_pts

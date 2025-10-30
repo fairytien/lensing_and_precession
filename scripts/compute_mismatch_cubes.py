@@ -32,10 +32,7 @@ from modules.functions_v3 import (
 )
 from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets
-from modules.filenames import (
-    bank_filename,
-    mismatch_cubes_filename,
-)
+from modules.filenames import bank_filename, mismatch_cube_filename
 from modules.match_utils import (
     build_source_strain_for_td,
     init_mismatch_worker,
@@ -168,11 +165,15 @@ def main(
             psd = Sn(s_f, f_min=f_min, delta_f=delta_f)
 
             # Prepare HDF5 output for mismatch cubes (per-mcz)
-            mm_out_path = mismatch_cubes_filename(
+            mm_out_path = mismatch_cube_filename(
                 results_dir,
                 mcz_msun=mcz,
                 td_min_ms=td_min_ms,
                 td_max_ms=td_max_ms,
+                td_pts=td_pts,
+                omega_pts=omega_pts,
+                theta_pts=theta_pts,
+                gamma_pts=gamma_pts,
                 orientation_tag=tag,
             )
             mmh5, dsets = create_mismatch_cube(

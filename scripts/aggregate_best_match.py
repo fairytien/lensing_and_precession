@@ -13,7 +13,10 @@ import numpy as np
 # Ensure project root is on path for local invocation
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.filenames import best_match_filename
+from modules.filenames import (
+    best_match_filename,
+    get_mismatch_cube_resolution,
+)
 from modules.functions_v3 import timer_decorator
 
 
@@ -31,7 +34,7 @@ def main(
             os.path.join(
                 results_dir,
                 "mismatch_cubes",
-                f"mismatch_cubes_mcz*Msun_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_{orientation_tag}.h5",
+                f"mismatch_cubes_mcz*Msun_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_td*-o*-t*-g*_{orientation_tag}.h5",
             )
         )
     )
@@ -133,9 +136,34 @@ def main(
             Tmap[j, :] = Tr
             Gmap[j, :] = Gr
 
-    # Save combined best-match file
+    # Determine mcz resolution from number of cubes within range
+    mcz_pts = len(cube_paths)
+    # Infer td/o/t/g resolution directly from HDF5 contents of the first cube
+    td_pts = omega_pts = theta_pts = gamma_pts = None
+    if cube_paths:
+        try:
+            with h5py.File(cube_paths[0], "r") as h5:
+                td_i, omega_i, theta_i, gamma_i = get_mismatch_cube_resolution(h5)
+                td_pts = int(td_i) if td_i > 0 else None
+                omega_pts = int(omega_i) if omega_i > 0 else None
+                theta_pts = int(theta_i) if theta_i > 0 else None
+                gamma_pts = int(gamma_i) if gamma_i > 0 else None
+        except Exception:
+            td_pts = omega_pts = theta_pts = gamma_pts = None
+
+    # Save combined best-match file with resolution encoded
     summary_path = best_match_filename(
-        results_dir, td_min_ms, td_max_ms, mcz_min, mcz_max, orientation_tag
+        results_dir,
+        td_min_ms,
+        td_max_ms,
+        td_pts,
+        mcz_min,
+        mcz_max,
+        mcz_pts,
+        omega_pts,
+        theta_pts,
+        gamma_pts,
+        orientation_tag,
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("mcz", data=desired_mcz)
