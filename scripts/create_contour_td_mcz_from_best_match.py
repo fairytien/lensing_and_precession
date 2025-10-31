@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.filenames import contour_td_mcz_filename
+from modules.filenames import contour_td_mcz_filename, _format_min_precision
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 # Add scripts directory to path to allow importing from other scripts
@@ -72,7 +72,7 @@ def main(
     pattern = os.path.join(
         results_dir,
         "best_match",
-        f"best_match_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_mcz{mcz_min:.0f}-{mcz_max:.0f}Msun*_{orientation_tag}.h5",
+        f"best_match_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun*_{orientation_tag}.h5",
     )
     matches = sorted(glob.glob(pattern))
     if not matches:

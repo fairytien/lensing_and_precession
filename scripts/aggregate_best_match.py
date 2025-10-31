@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.filenames import (
     best_match_filename,
+    _format_min_precision,
     get_mismatch_cube_resolution,
 )
 from modules.functions_v3 import timer_decorator
@@ -34,7 +35,7 @@ def main(
             os.path.join(
                 results_dir,
                 "mismatch_cubes",
-                f"mismatch_cubes_mcz*Msun_td{td_min_ms:.0f}-{td_max_ms:.0f}ms_td*-o*-t*-g*_{orientation_tag}.h5",
+                f"mismatch_cubes_mcz*Msun_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms_td*-o*-t*-g*_{orientation_tag}.h5",
             )
         )
     )
