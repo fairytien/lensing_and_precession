@@ -291,6 +291,55 @@ def _discover_cube_files(inputs_dir: str, orientation_tag: Optional[str]) -> Lis
     return sorted(files)
 
 
+def save_grid_with_individual_colorbars(
+    omega: np.ndarray,
+    theta: np.ndarray,
+    eps_grid_over_mcz: np.ndarray,
+    mcz_list: np.ndarray,
+    out_path: str,
+    cmap: str = "jet",
+    levels: int = 100,
+    cols: int = 4,
+    max_panels: int = 12,
+) -> str:
+    """Create a static grid figure with each panel having its own colorbar.
+
+    Slices a subset of mcz frames (evenly spaced up to max_panels).
+    """
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+
+    n_frames = eps_grid_over_mcz.shape[0]
+    if n_frames == 0:
+        raise ValueError("No frames available to plot")
+
+    # Choose indices evenly spaced across available frames
+    panels = min(int(max_panels), n_frames)
+    sel_idx = np.linspace(0, n_frames - 1, panels).round().astype(int)
+    rows = int(np.ceil(panels / max(int(cols), 1)))
+
+    X, Y = np.meshgrid(omega, theta)
+    fig, axes = plt.subplots(rows, int(cols), figsize=(3.2 * cols, 2.8 * rows), squeeze=False)
+
+    for k, ax in enumerate(axes.flat):
+        if k >= panels:
+            ax.axis("off")
+            continue
+        i = int(sel_idx[k])
+        Z = eps_grid_over_mcz[i]
+        cf = ax.contourf(X, Y, Z, levels=levels, cmap=cmap)
+        cbar = fig.colorbar(cf, ax=ax)
+        cbar.set_label(r"$\epsilon$")
+        ax.set_xlabel(r"$\tilde{\Omega}$")
+        ax.set_ylabel(r"$\tilde{\theta}$")
+        ax.set_title(f"mcz = {mcz_list[i]:.2f} Msun", fontsize=10)
+
+    fig.tight_layout()
+    fig.savefig(out_path, dpi=160, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved grid figure: {out_path}")
+    return out_path
+
+
 def main():
     repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -329,6 +378,13 @@ def main():
     )
     p.add_argument("--gif", action="store_true", help="Force GIF output")
     p.add_argument("--html", action="store_true", help="Generate HTML slider output")
+    p.add_argument(
+        "--grid",
+        action="store_true",
+        help="Also create a multi-panel static figure with individual colorbars",
+    )
+    p.add_argument("--grid_cols", type=int, default=4)
+    p.add_argument("--grid_max_panels", type=int, default=12)
     args = p.parse_args()
 
     files = _discover_cube_files(args.inputs_dir, args.orientation_tag)
@@ -426,6 +482,21 @@ def main():
             out_path=html_path,
             cmap="Jet",
             levels=args.levels,
+        )
+
+    # Grid with individual colorbars
+    if args.grid:
+        grid_path = os.path.join(args.outdir, base + "_grid.png")
+        save_grid_with_individual_colorbars(
+            omega=omega_ref,
+            theta=theta_ref,
+            eps_grid_over_mcz=eps_stack,
+            mcz_list=mcz_arr,
+            out_path=grid_path,
+            cmap=args.cmap,
+            levels=args.levels,
+            cols=args.grid_cols,
+            max_panels=args.grid_max_panels,
         )
 
 
