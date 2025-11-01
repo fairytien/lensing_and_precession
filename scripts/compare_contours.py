@@ -1,8 +1,4 @@
-import sys
-import os
-import argparse
-import pickle
-import re
+import sys, os, argparse, pickle, re
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
@@ -31,6 +27,7 @@ def load_generic_dataset(path):
     - Pickle with keys: 'omega_matrix', 'theta_matrix', 'epsilon_matrix'
     - Pickle with keys: 'td_arr' (s), 'mcz_arr' (Msun), 'epsilon_matrix' (mcz x td)
     - HDF5 best_match: datasets 'mcz', 'td', 'epsilon_min'
+    - HDF5 mismatch_cube: datasets 'td', 'theta', 'omega', 'epsilon_min_grid' (uses first td slice)
 
     Returns
     -------
@@ -68,6 +65,7 @@ def load_generic_dataset(path):
         import h5py
 
         with h5py.File(path, "r") as h5:
+            # Case 1: best_match file
             if all(k in h5 for k in ("mcz", "td", "epsilon_min")):
                 mcz = np.asarray(h5["mcz"], dtype=float)
                 td = np.asarray(h5["td"], dtype=float)
@@ -81,8 +79,37 @@ def load_generic_dataset(path):
                     r"$\mathcal{M}_s\ [M_\odot]$",
                     "td_mcz",
                 )
+            # Case 2: mismatch cube file (td, theta, omega)
+            elif all(k in h5 for k in ("td", "theta", "omega", "epsilon_min_grid")):
+                td = np.asarray(h5["td"], dtype=float)  # (n_td,)
+                theta = np.asarray(h5["theta"], dtype=float)  # (n_theta,)
+                omega = np.asarray(h5["omega"], dtype=float)  # (n_omega,)
+                eps_grid = np.asarray(
+                    h5["epsilon_min_grid"], dtype=float
+                )  # (n_td, n_theta, n_omega)
+
+                # For single td value, extract that slice
+                if td.size == 1:
+                    Z = eps_grid[0]  # (n_theta, n_omega)
+                else:
+                    # Multiple td values: use first one
+                    Z = eps_grid[0]  # (n_theta, n_omega)
+
+                # Create meshgrid: X (omega), Y (theta)
+                # For Z[i,j], i indexes theta, j indexes omega
+                X, Y = np.meshgrid(omega, theta)
+                # Z shape is (n_theta, n_omega) which matches meshgrid output
+                return (
+                    X,
+                    Y,
+                    Z,
+                    r"$\tilde{\Omega}$",
+                    r"$\tilde{\theta}$",
+                    "omega_theta",
+                )
         raise ValueError(
-            "Unsupported HDF5 structure: expecting best_match with mcz, td, epsilon_min"
+            "Unsupported HDF5 structure: expecting best_match (mcz, td, epsilon_min) "
+            "or mismatch_cube (td, theta, omega, epsilon_min_grid)"
         )
     else:
         raise ValueError(f"Unsupported extension: {ext}")
