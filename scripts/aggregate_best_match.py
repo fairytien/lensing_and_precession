@@ -3,7 +3,7 @@
 Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
 (theta, omega), stacks over mcz, and writes a combined best_match_*.h5.
 
-Use scripts/create_contour_td_mcz_from_best_match.py to plot the aggregated results.
+Use scripts/create_contour_mcz_td_from_best_match.py to plot the aggregated results.
 """
 
 import os, sys, argparse, glob
@@ -14,7 +14,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from modules.filenames import (
-    best_match_filename,
+    best_match_mcz_td_filename,
     _format_min_precision,
     get_mismatch_cube_resolution,
 )
@@ -35,7 +35,7 @@ def main(
             os.path.join(
                 results_dir,
                 "mismatch_cubes",
-                f"mismatch_cubes_mcz*Msun_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms_td*-o*-t*-g*_{orientation_tag}.h5",
+                f"mismatch_cubes_mcz*Msun_I*_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms_td*-o*-t*-g*_{orientation_tag}.h5",
             )
         )
     )
@@ -140,7 +140,9 @@ def main(
     # Determine mcz resolution from number of cubes within range
     mcz_pts = len(cube_paths)
     # Infer td/o/t/g resolution directly from HDF5 contents of the first cube
+    # Also extract I from attributes for filename
     td_pts = omega_pts = theta_pts = gamma_pts = None
+    I_value = None
     if cube_paths:
         try:
             with h5py.File(cube_paths[0], "r") as h5:
@@ -149,22 +151,28 @@ def main(
                 omega_pts = int(omega_i) if omega_i > 0 else None
                 theta_pts = int(theta_i) if theta_i > 0 else None
                 gamma_pts = int(gamma_i) if gamma_i > 0 else None
+                if "I" in h5.attrs:
+                    I_value = float(h5.attrs["I"])
         except Exception:
             td_pts = omega_pts = theta_pts = gamma_pts = None
+            I_value = None
 
     # Save combined best-match file with resolution encoded
-    summary_path = best_match_filename(
+    if I_value is None:
+        raise ValueError("Could not infer I value from mismatch cube files")
+    summary_path = best_match_mcz_td_filename(
         results_dir,
-        td_min_ms,
-        td_max_ms,
-        td_pts,
-        mcz_min,
-        mcz_max,
-        mcz_pts,
-        omega_pts,
-        theta_pts,
-        gamma_pts,
-        orientation_tag,
+        I=I_value,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        mcz_pts=mcz_pts,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        td_pts=td_pts,
+        omega_pts=omega_pts,
+        theta_pts=theta_pts,
+        gamma_pts=gamma_pts,
+        orientation_tag=orientation_tag,
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("mcz", data=desired_mcz)
@@ -177,7 +185,7 @@ def main(
         for key, val in source_attrs.items():
             h5.attrs[key] = val
     print(f"Saved aggregated best-match results: {summary_path}")
-    print(f"Use scripts/create_contour_td_mcz_from_best_match.py to plot the results.")
+    print(f"Use scripts/create_contour_mcz_td_from_best_match.py to plot the results.")
 
 
 if __name__ == "__main__":

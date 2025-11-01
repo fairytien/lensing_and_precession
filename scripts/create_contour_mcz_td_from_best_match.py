@@ -6,7 +6,7 @@ and generates a contour plot of the minimal mismatch across (td, mcz).
 Pipeline:
 1. scripts/compute_mismatch_cubes.py - compute per-mcz mismatch cubes
 2. scripts/aggregate_best_match.py - consolidate cubes into best-match file
-3. scripts/create_contour_td_mcz_from_best_match.py (this script) - plot contour
+3. scripts/create_contour_mcz_td_from_best_match.py (this script) - plot contour
 """
 
 import os, argparse, sys, glob
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.filenames import contour_td_mcz_filename, _format_min_precision
+from modules.filenames import contour_mcz_td_filename, _format_min_precision
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 # Add scripts directory to path to allow importing from other scripts
@@ -69,10 +69,11 @@ def main(
     os.makedirs(output_dir, exist_ok=True)
 
     # Load best-match file (support optional resolution suffix in filename)
+    # Pattern now includes I: best_match_I*_mcz*_td*_*_tag.h5
     pattern = os.path.join(
         results_dir,
         "best_match",
-        f"best_match_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun*_{orientation_tag}.h5",
+        f"best_match_I*_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms*_{orientation_tag}.h5",
     )
     matches = sorted(glob.glob(pattern))
     if not matches:
@@ -118,7 +119,13 @@ def main(
 
     var_info = variable_mapping[variable]
 
+    # Read all data and extract I from a single file open
+    I_value = None
     with h5py.File(summary_path, "r") as h5:
+        # Extract I from attributes
+        if "I" in h5.attrs:
+            I_value = float(h5.attrs["I"])
+
         # Validate that required datasets exist
         required_datasets = ["mcz", "td", var_info["dataset"]]
         missing = [ds for ds in required_datasets if ds not in h5]
@@ -131,6 +138,9 @@ def main(
         mcz_arr = np.array(h5["mcz"])
         td_arr = np.array(h5["td"])
         Zmap = np.array(h5[var_info["dataset"]])
+
+    if I_value is None:
+        raise ValueError("Could not infer I value from best-match file")
 
     # Convert td from seconds to ms for plotting
     td_arr_ms = td_arr * 1e3
@@ -172,12 +182,13 @@ def main(
     plt.tight_layout()
 
     # Generate filename with variable suffix and overlay suffixes
-    base_path = contour_td_mcz_filename(
+    base_path = contour_mcz_td_filename(
         output_dir,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
+        I=I_value,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
         ext="pdf",
     )

@@ -10,7 +10,7 @@ Outputs per-mcz HDF5 files to results_dir/mismatch_cubes/ containing:
   - optional mismatch (td, theta, omega, gamma) if --save_full_mismatch
 
 Use scripts/aggregate_best_match.py to consolidate cubes into a single best-match file.
-Use scripts/create_contour_td_mcz_from_best_match.py to plot the contour from the best-match file.
+Use scripts/create_contour_mcz_td_from_best_match.py to plot the contour from the best-match file.
 """
 
 import os, argparse, sys
@@ -123,7 +123,7 @@ def main(
     for i in sel:
         mcz = float(mcz_arr[i])
         logging.info(
-            f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz:.1f} Msun (omega {omega_min:.0f}-{omega_max:.0f}, theta {theta_min:.0f}-{theta_max:.0f})"
+            f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
         )
 
         # Bank path (must have been created already)
@@ -168,6 +168,7 @@ def main(
             mm_out_path = mismatch_cube_filename(
                 results_dir,
                 mcz_msun=mcz,
+                I=I,
                 td_min_ms=td_min_ms,
                 td_max_ms=td_max_ms,
                 td_pts=td_pts,

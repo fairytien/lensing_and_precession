@@ -16,7 +16,7 @@ import matplotlib.ticker as ticker
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from modules.filenames import contour_td_mcz_filename
+from modules.filenames import contour_mcz_td_filename
 
 
 def main(
@@ -54,6 +54,11 @@ def main(
         mcz = np.array(h5["mcz"], dtype=np.float64)  # (mcz_pts,)
         td_s = np.array(h5["td"], dtype=np.float64)  # (td_pts,) in seconds
         Z = np.array(h5["epsilon_min"], dtype=np.float64)  # (mcz_pts, td_pts)
+
+        # Extract I from attributes for filename
+        I_value = None
+        if "I" in h5.attrs:
+            I_value = float(h5.attrs["I"])
 
     td_ms = td_s * 1e3
 
@@ -95,12 +100,14 @@ def main(
         if end_tag is not None:
             orientation_tag = f"{orientation_tag}_{end_tag}"
 
-        output_path = contour_td_mcz_filename(
+        # Use I_value (may be None for legacy files)
+        output_path = contour_mcz_td_filename(
             fig_dir=fig_dir,
-            td_min_ms=td_min_ms,
-            td_max_ms=td_max_ms,
+            I=I_value,
             mcz_min=mcz_min,
             mcz_max=mcz_max,
+            td_min_ms=td_min_ms,
+            td_max_ms=td_max_ms,
             orientation_tag=orientation_tag,
             ext="pdf",
         )

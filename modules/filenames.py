@@ -66,6 +66,7 @@ def bank_filename(
 def mismatch_cube_filename(
     results_dir: str,
     mcz_msun: float,
+    I: float,
     td_min_ms: float,
     td_max_ms: float,
     td_pts: int,
@@ -77,11 +78,13 @@ def mismatch_cube_filename(
     """Build the HDF5 path for per-mcz mismatch cube outputs.
 
     Returns a path under results_dir/mismatch_cubes; creates directories.
+    Order: mcz, I, td ranges, td-o-t-g resolution, orientation_tag.
     """
     mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
     os.makedirs(mismatch_dir, exist_ok=True)
     name = (
         f"mismatch_cubes_mcz{_format_min_precision(mcz_msun)}Msun"
+        f"_I{_format_min_precision(I)}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
         f"_td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
         f"_{orientation_tag}.h5"
@@ -89,14 +92,15 @@ def mismatch_cube_filename(
     return os.path.join(mismatch_dir, name)
 
 
-def best_match_filename(
+def best_match_mcz_td_filename(
     results_dir: str,
-    td_min_ms: float,
-    td_max_ms: float,
-    td_pts: Optional[int],
+    I: float,
     mcz_min: float,
     mcz_max: float,
     mcz_pts: Optional[int],
+    td_min_ms: float,
+    td_max_ms: float,
+    td_pts: Optional[int],
     omega_pts: Optional[int],
     theta_pts: Optional[int],
     gamma_pts: Optional[int],
@@ -105,14 +109,16 @@ def best_match_filename(
     """Build the HDF5 path for the aggregated best-match outputs across all mcz.
 
     Returns a path under results_dir/best_match; creates directories.
+    Order: I, mcz ranges, td ranges, mcz-td-o-t-g resolution, orientation_tag.
     """
     best_match_dir = os.path.join(results_dir, "best_match")
     os.makedirs(best_match_dir, exist_ok=True)
     name = (
-        f"best_match_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
+        f"best_match_I{_format_min_precision(I)}"
         f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
     )
-    # Append resolution suffix in td-mcz-o-t-g order if all are present
+    # Append resolution suffix in m-td-o-t-g order if all are present
     if (
         td_pts is not None
         and mcz_pts is not None
@@ -120,29 +126,32 @@ def best_match_filename(
         and theta_pts is not None
         and gamma_pts is not None
     ):
-        name += f"_td{td_pts}-mcz{mcz_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+        name += f"_m{mcz_pts}-td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
 
     name += f"_{orientation_tag}.h5"
     return os.path.join(best_match_dir, name)
 
 
-def contour_td_mcz_filename(
+def contour_mcz_td_filename(
     fig_dir: str,
-    td_min_ms: float,
-    td_max_ms: float,
+    I: float,
     mcz_min: float,
     mcz_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
     orientation_tag: str,
     ext: str = "pdf",
 ) -> str:
     """Build the figure path for the final mismatch contour over (td, mcz).
 
     Returns a path under fig_dir; creates directories.
+    Order: I, mcz ranges, td ranges, suffix, orientation_tag.
     """
     os.makedirs(fig_dir, exist_ok=True)
     name = (
-        f"contour_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
+        f"contour_I{_format_min_precision(I)}"
         f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
         f"_min_mismatch_{orientation_tag}.{ext}"
     )
     return os.path.join(fig_dir, name)

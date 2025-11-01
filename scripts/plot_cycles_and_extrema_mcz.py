@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from modules.functions_v3 import mcz_for_n_lens_cycles
-from modules.filenames import contour_td_mcz_filename
+from modules.filenames import contour_mcz_td_filename
 
 
 SOLMASS2SEC = 4.92624076e-6
@@ -176,11 +176,13 @@ def plot_cycle_lines(
         ax.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
 
 
-def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Load (mcz_arr [Msun], td_arr [s], epsilon_matrix) from .pkl or .h5 file.
+def _load_data(
+    input_path: str,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[float]]:
+    """Load (mcz_arr [Msun], td_arr [s], epsilon_matrix, I) from .pkl or .h5 file.
 
     - Pickle must contain keys: 'mcz_arr' (Msun), 'td_arr' (seconds), 'epsilon_matrix'.
-    - HDF5 (best_match) must contain datasets: 'mcz', 'td', 'epsilon_min'.
+    - HDF5 (best_match) must contain datasets: 'mcz', 'td', 'epsilon_min', and 'I' attr.
     """
     if not os.path.exists(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
@@ -193,7 +195,9 @@ def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         mcz_arr = np.asarray(data["mcz_arr"], dtype=float)
         td_arr = np.asarray(data["td_arr"], dtype=float)
         Z = np.asarray(data["epsilon_matrix"], dtype=float)
-        return mcz_arr, td_arr, Z
+        # Old pickle format may not have I; leave as None if missing
+        I_value = float(data["I"]) if "I" in data else None
+        return mcz_arr, td_arr, Z, I_value
     elif ext == ".h5":
         import h5py  # local import to avoid hard dep if unused
 
@@ -205,7 +209,9 @@ def _load_data(input_path: str) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             mcz_arr = np.asarray(h5["mcz"], dtype=float)
             td_arr = np.asarray(h5["td"], dtype=float)
             Z = np.asarray(h5["epsilon_min"], dtype=float)
-            return mcz_arr, td_arr, Z
+            # Extract I from attributes (may be absent)
+            I_value = float(h5.attrs["I"]) if "I" in h5.attrs else None
+            return mcz_arr, td_arr, Z, I_value
     else:
         raise ValueError(f"Unsupported input extension '{ext}'. Use .pkl or .h5")
 
@@ -279,7 +285,7 @@ def main():
 
     input_path = args.input_path
 
-    mcz_arr, td_arr, Z = _load_data(input_path)
+    mcz_arr, td_arr, Z, I_value = _load_data(input_path)
 
     # Validate data
     if mcz_arr.size == 0 or td_arr.size == 0:
@@ -333,12 +339,13 @@ def main():
     orientation_tag = _infer_orientation_tag(input_path)
 
     # Build filename with overlayed suffix
-    base_fig = contour_td_mcz_filename(
+    base_fig = contour_mcz_td_filename(
         fig_dir,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
+        I=I_value,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
         ext="pdf",
     )

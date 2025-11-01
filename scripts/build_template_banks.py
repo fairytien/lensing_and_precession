@@ -90,7 +90,7 @@ def main(
     for i in sel:
         mcz = float(mcz_arr[i])
         logging.info(
-            f"[{i+1}/{len(mcz_arr)}] Building bank for mcz={mcz:.1f} Msun with omega {omega_min:.0f}-{omega_max:.0f} x{omega_pts}, theta {theta_min:.0f}-{theta_max:.0f} x{theta_pts}, gamma x{gamma_pts}"
+            f"[{i+1}/{len(mcz_arr)}] Building bank for mcz={mcz} Msun with omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
         )
         out_path = build_and_save_bank(
             base_params,
