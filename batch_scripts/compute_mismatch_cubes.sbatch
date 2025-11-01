@@ -36,7 +36,7 @@ NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 # NOTE: This array job computes per-mcz mismatch cubes in chunks.
 # After ALL array tasks complete, run:
 # 1. python scripts/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 16 --mcz_max 25 --orientation_tag Taman_edgeon
-# 2. python scripts/create_contour_td_mcz_from_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 16 --mcz_max 25 --orientation_tag Taman_edgeon
+# 2. python scripts/create_contour_mcz_td_from_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 16 --mcz_max 25 --orientation_tag Taman_edgeon
 
 python scripts/compute_mismatch_cubes.py \
   --I 0.5 \
