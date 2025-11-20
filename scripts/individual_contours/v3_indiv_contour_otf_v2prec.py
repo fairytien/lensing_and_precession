@@ -6,7 +6,9 @@ import numpy as np
 import copy
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.functions_v3 import (
     get_gw,
@@ -248,12 +250,33 @@ def main(
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
         cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
+
+        # Find minimum mismatch and mark it with a green dot
+        min_idx = np.unravel_index(np.argmin(Z), Z.shape)
+        min_omega = X[min_idx]
+        min_theta = Y[min_idx]
+        min_epsilon = Z[min_idx]
+
+        plt.plot(
+            min_omega,
+            min_theta,
+            "go",
+            markersize=5,
+            markeredgecolor="darkgreen",
+            markeredgewidth=1,
+            label=r"min $\epsilon$",
+        )
+        plt.legend()
+
         plt.xlabel(r"$\tilde{\Omega}$")
         plt.ylabel(r"$\tilde{\theta}$")
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
         plt.savefig(fig_path, dpi=200)
         print("Figure saved as", fig_path)
+        print(
+            f"Minimum mismatch: {min_epsilon:.6f} at (omega={min_omega:.4f}, theta={min_theta:.4f})"
+        )
 
     print("Pickle saved as", pkl_path)
 

@@ -1,0 +1,13 @@
+Using 128 workers over a 81x151 grid
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:951: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:951: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:951: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
+/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:951: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
+  integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
+Results saved as /work/10000/fairytien33/ls6/lensing_and_precession/scripts/data/v2_indiv_contour_mcz40_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ2.793_phiJ0.785_res_81x151_2025-11-20_17-13-41.pkl
+Figure saved as /work/10000/fairytien33/ls6/lensing_and_precession/scripts/figures/v2_indiv_contour_mcz40_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ2.793_phiJ0.785_res_81x151.pdf
+Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/scripts/data/v2_indiv_contour_mcz40_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ2.793_phiJ0.785_res_81x151_2025-11-20_17-13-41.pkl
+Total time to run the script: 0:1:53.14 (h:m:s)
