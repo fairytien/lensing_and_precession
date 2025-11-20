@@ -35,7 +35,7 @@ export NUMEXPR_NUM_THREADS=1
 NWORKERS=${NWORKERS:-32}
 
 
-python scripts/build_template_banks.py \
+python scripts/template_banks/build_template_banks.py \
   --orient_preset Taman_random \
   --mcz_min 30 --mcz_max 30 --mcz_pts 1 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \

@@ -34,7 +34,7 @@ export NUMEXPR_NUM_THREADS=1
 # NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 NWORKERS=${NWORKERS:-32}
 
-python scripts/build_template_banks.py \
+python scripts/template_banks/build_template_banks.py \
   --orient_preset Taman_edgeon \
   --mcz_min 14 --mcz_max 19 --mcz_pts 6 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \

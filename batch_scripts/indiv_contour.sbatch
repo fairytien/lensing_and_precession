@@ -21,4 +21,4 @@ conda activate fairytien_gw
 # TEMPLATE_GRID_PATH="$WORK_DIR/data/sys2_template_grid_mcz${MCZ_VALUE}.npz"
 # export TEMPLATE_GRID_PATH
 
-srun python scripts/v3_indiv_contour_otf_v2prec.py --I 0.4 --omega_min 3 --omega_max 4 --omega_points 101 --theta_min 6 --theta_max 10 --theta_points 101 --compare_both --tag res_101x101
+srun python scripts/individual_contours/v3_indiv_contour_otf_v2prec.py --I 0.4 --omega_min 3 --omega_max 4 --omega_points 101 --theta_min 6 --theta_max 10 --theta_points 101 --compare_both --tag res_101x101

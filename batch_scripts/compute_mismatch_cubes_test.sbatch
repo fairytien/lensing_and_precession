@@ -35,10 +35,10 @@ NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
 # Test run: compute mismatch cubes for small mcz range
 # After completion, aggregate and plot:
-# python scripts/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 26 --mcz_max 29 --orientation_tag Taman_edgeon
-# python scripts/create_contour_mcz_td_from_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 26 --mcz_max 29 --orientation_tag Taman_edgeon
+# python scripts/mismatch_mcz_td/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 26 --mcz_max 29 --orientation_tag Taman_edgeon
+# python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 26 --mcz_max 29 --orientation_tag Taman_edgeon
 
-python scripts/compute_mismatch_cubes.py \
+python scripts/mismatch_mcz_td/compute_mismatch_cubes.py \
   --I 0.5 \
   --orient_preset Taman_edgeon \
   --mcz_min 30 --mcz_max 30 --mcz_pts 1 \
