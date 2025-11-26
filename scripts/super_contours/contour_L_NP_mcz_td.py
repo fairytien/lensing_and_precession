@@ -1,10 +1,11 @@
 import sys, os, argparse
 from typing import Tuple
 from multiprocessing import Pool, cpu_count
-import functools
+from datetime import datetime
 
 import numpy as np
 import matplotlib.pyplot as plt
+import h5py
 
 # Ensure project root is on path
 sys.path.insert(
@@ -23,6 +24,44 @@ def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
     return fig_dir, data_dir
+
+
+def _save_contour_hdf5(
+    filepath: str,
+    mcz_arr: np.ndarray,
+    td_arr: np.ndarray,
+    epsilon_matrix: np.ndarray,
+    I: float,
+    z: float,
+    location: str,
+    template: str,
+    optimize_mcz: bool,
+) -> str:
+    """
+    Save contour results to HDF5 file with compression.
+
+    Returns the filepath of the saved file.
+    """
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    with h5py.File(filepath, "w") as h5:
+        # Store arrays as datasets
+        h5.create_dataset("mcz_arr", data=mcz_arr.astype(np.float64))
+        h5.create_dataset("td_arr", data=td_arr.astype(np.float64))
+        h5.create_dataset(
+            "epsilon_matrix",
+            data=epsilon_matrix.astype(np.float32),
+            compression="gzip",
+            compression_opts=4,
+            shuffle=True,
+        )
+        # Store scalar metadata as attributes
+        h5.attrs["I"] = float(I)
+        h5.attrs["z"] = np.nan if z is None else float(z)
+        h5.attrs["location"] = location
+        h5.attrs["template"] = template
+        h5.attrs["optimize_mcz"] = optimize_mcz
+        h5.attrs["created"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    return filepath
 
 
 def _compute_mismatch_for_mcz(args):
@@ -180,23 +219,25 @@ def main(
     # Convert results to numpy array
     Z = np.array(results)
 
-    # Package results and save
-    results = {
-        "mcz_arr": mcz_arr,
-        "td_arr": td_arr,
-        "epsilon_matrix": Z,
-        "I": I,
-        "z": z,
-        "location": "Taman.edgeon",
-        "template": "NP",
-        "optimize_mcz": optimize_mcz,
-    }
-
+    # Build output filename
     filename_suffix = f"I{I}_opt_mcz" if optimize_mcz else f"I{I}"
     base_name = f"contour_L_NP_mcz_td_{filename_suffix}"
     if tag:
         base_name = f"{base_name}_{tag}"
-    pkl_path = pickle_data(results, data_dir, base_name)
+
+    # Save results to HDF5
+    h5_path = os.path.join(data_dir, f"{base_name}.h5")
+    _save_contour_hdf5(
+        filepath=h5_path,
+        mcz_arr=mcz_arr,
+        td_arr=td_arr,
+        epsilon_matrix=Z,
+        I=I,
+        z=z,
+        location="Taman.edgeon",
+        template="NP",
+        optimize_mcz=optimize_mcz,
+    )
 
     if not no_plot:
         TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
@@ -220,7 +261,7 @@ def main(
         plt.savefig(fig_path, dpi=200)
         print("Figure saved as", fig_path)
 
-    print("Pickle saved as", pkl_path)
+    print("HDF5 saved as", h5_path)
 
 
 if __name__ == "__main__":
