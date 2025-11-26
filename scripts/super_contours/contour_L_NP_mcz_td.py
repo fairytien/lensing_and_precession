@@ -7,11 +7,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 # Reuse utilities and defaults
 from modules.functions_v3 import *
 from modules.default_params_v3 import *
+from modules.cosmology import apply_z
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -27,7 +30,7 @@ def _compute_mismatch_for_mcz(args):
     Compute mismatch for a single mcz value across all time delays.
     This function is designed to be used with multiprocessing.
     """
-    mcz, td_arr, y, f_min, delta_f, compare_both = args
+    mcz, td_arr, y, f_min, delta_f, compare_both, z = args
 
     # Build fresh parameter dictionaries for this process
     lens_params, NP_params = set_orientation(
@@ -36,6 +39,11 @@ def _compute_mismatch_for_mcz(args):
 
     # Set chirp mass for both source and template (convert Msun -> sec)
     lens_params["mcz"] = NP_params["mcz"] = mcz * SOLMASS2SEC
+
+    # Apply redshift if provided (updates mcz to detector-frame and sets dist)
+    if z is not None:
+        lens_params = apply_z(lens_params, z)
+        NP_params = apply_z(NP_params, z)
 
     # Precompute PSD for this mcz once (depends on mcz via f_cut)
     f_cut = get_fcut_from_mcz(mcz, lens_params["eta"])  # mcz in Msun
@@ -72,7 +80,7 @@ def _compute_mismatch_for_mcz_optimized(args):
     Compute optimized mismatch for a single mcz value across all time delays.
     This function optimizes over template mcz for each (source_mcz, td) pair.
     """
-    mcz, td_arr, y, f_min, delta_f, compare_both = args
+    mcz, td_arr, y, f_min, delta_f, compare_both, z = args
 
     # Build fresh parameter dictionaries for this process
     lens_params, NP_params = set_orientation(
@@ -81,6 +89,11 @@ def _compute_mismatch_for_mcz_optimized(args):
 
     # Set source chirp mass (convert Msun -> sec)
     lens_params["mcz"] = mcz * SOLMASS2SEC
+
+    # Apply redshift if provided (updates mcz to detector-frame and sets dist)
+    if z is not None:
+        lens_params = apply_z(lens_params, z)
+        NP_params = apply_z(NP_params, z)
 
     # Precompute PSD for this mcz once (depends on mcz via f_cut)
     f_cut = get_fcut_from_mcz(mcz, lens_params["eta"])  # mcz in Msun
@@ -128,6 +141,7 @@ def main(
     optimize_mcz: bool = False,
     tag: str = "",
     compare_both: bool = False,
+    z: float = None,
 ):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir, data_dir = _ensure_dirs(base_dir)
@@ -145,9 +159,11 @@ def main(
         n_processes = min(cpu_count(), len(mcz_arr))
 
     print(f"Using {n_processes} processes for computation")
+    if z is not None:
+        print(f"Applying redshift z={z} (mcz treated as source-frame)")
 
     # Prepare arguments for parallel computation
-    args_list = [(mcz, td_arr, y, f_min, delta_f, compare_both) for mcz in mcz_arr]
+    args_list = [(mcz, td_arr, y, f_min, delta_f, compare_both, z) for mcz in mcz_arr]
 
     # Choose computation function based on optimization option
     if optimize_mcz:
@@ -170,6 +186,7 @@ def main(
         "td_arr": td_arr,
         "epsilon_matrix": Z,
         "I": I,
+        "z": z,
         "location": "Taman.edgeon",
         "template": "NP",
         "optimize_mcz": optimize_mcz,
@@ -244,6 +261,13 @@ if __name__ == "__main__":
         default="",
         help="Optional suffix to append to dataset/figure names to avoid overwriting",
     )
+    parser.add_argument(
+        "--redshift",
+        "-z",
+        type=float,
+        default=None,
+        help="Redshift. If provided, mcz values are treated as source-frame and dist is computed from z.",
+    )
 
     args = parser.parse_args()
     main(
@@ -259,4 +283,5 @@ if __name__ == "__main__":
         optimize_mcz=args.optimize_mcz,
         tag=args.tag,
         compare_both=args.compare_both,
+        z=args.redshift,
     )
