@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1 # Single task (not MPI)
 #SBATCH --cpus-per-task=128 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
-#SBATCH -t 00:30:00 # Walltime
+#SBATCH -t 00:15:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
 #SBATCH -o batch_outputs/contour_L_NP_mcz_td_%A.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
@@ -28,21 +28,27 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
+export MPLBACKEND=Agg
 
-# Use all allocated CPUs for multiprocessing workers
-NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
+# Keep grid sizing configurable and consistent with worker cap
+MCZ_POINTS=${MCZ_POINTS:-81}
+
+# Use allocated CPUs, but do not exceed number of mcz rows to compute
+ALLOC_CPUS=${SLURM_CPUS_PER_TASK:-64}
+DEFAULT_WORKERS=$(( ALLOC_CPUS < MCZ_POINTS ? ALLOC_CPUS : MCZ_POINTS ))
+NWORKERS=${NWORKERS:-$DEFAULT_WORKERS}
 
 # Run the contour script with all available CPUs
 python scripts/super_contours/contour_L_NP_mcz_td.py \
   --I 0.5 \
   --mcz_min 10.0 \
   --mcz_max 90.0 \
-  --mcz_points 81 \
+  --mcz_points ${MCZ_POINTS} \
   --td_min_ms 20.0 \
   --td_max_ms 70.0 \
   --td_points 51 \
   --f_min 20.0 \
   --delta_f 0.25 \
   --n_processes ${NWORKERS} \
-  --redshift 0.5
+  --redshift 0.1
 

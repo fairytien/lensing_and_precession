@@ -153,9 +153,7 @@ def _compute_mismatch_row(args, optimize_mcz: bool):
                     use_opt_match=True,
                     compare_both=compare_both,
                 )
-                mismatch_row[j] = float(
-                    res["mismatch"]
-                )  # ensure JSON/pickle friendly
+                mismatch_row[j] = float(res["mismatch"])  # ensure JSON/pickle friendly
         except Exception:
             mismatch_row[j] = np.nan
 
@@ -309,6 +307,13 @@ if __name__ == "__main__":
     parser.add_argument("--td_min_ms", type=float, default=20.0)
     parser.add_argument("--td_max_ms", type=float, default=70.0)
     parser.add_argument("--td_points", type=int, default=51)
+    parser.add_argument(
+        "--redshift",
+        "-z",
+        type=float,
+        default=None,
+        help="Redshift. If provided, mcz values are treated as source-frame and dist is computed from z.",
+    )
     parser.add_argument("--no_plot", action="store_true")
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--delta_f", type=float, default=0.25)
@@ -334,13 +339,6 @@ if __name__ == "__main__":
         default="",
         help="Optional suffix to append to dataset/figure names to avoid overwriting",
     )
-    parser.add_argument(
-        "--redshift",
-        "-z",
-        type=float,
-        default=None,
-        help="Redshift. If provided, mcz values are treated as source-frame and dist is computed from z.",
-    )
 
     args = parser.parse_args()
     main(
@@ -351,10 +349,10 @@ if __name__ == "__main__":
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
         td_points=args.td_points,
+        z=args.redshift,
         no_plot=args.no_plot,
         n_processes=args.n_processes,
         optimize_mcz=args.optimize_mcz,
         tag=args.tag,
         compare_both=args.compare_both,
-        z=args.redshift,
     )
