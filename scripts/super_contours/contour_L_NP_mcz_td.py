@@ -1,5 +1,5 @@
 import sys, os, argparse
-from typing import Tuple
+from typing import Any, Optional, Tuple, cast
 from multiprocessing import Pool, cpu_count
 from datetime import datetime
 
@@ -12,10 +12,24 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-# Reuse utilities and defaults
-from modules.functions_v3 import *
-from modules.default_params_v3 import *
-from modules.cosmology import apply_z
+# Reuse utilities and defaults (explicit imports only)
+from modules.functions_v3 import (
+    set_orientation,
+    get_fcut_from_mcz,
+    Sn,
+    get_MLz_from_td,
+    mismatch_from_params,
+    optimize_mismatch_mcz,
+    timer_decorator,
+    get_y_from_I,
+)
+from modules.default_params_v3 import (
+    SOLMASS2SEC,
+    lens_params_1,
+    NP_params_1,
+    orient_params,
+)
+from modules.cosmology import apply_z, mcz_src_to_det
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -69,6 +83,18 @@ def _compute_mismatch_for_mcz(args):
     Compute mismatch for a single mcz value across all time delays.
     This function is designed to be used with multiprocessing.
     """
+    return _compute_mismatch_row(args, optimize_mcz=False)
+
+
+def _compute_mismatch_for_mcz_optimized(args):
+    """
+    Compute optimized mismatch for a single mcz value across all time delays.
+    This function optimizes over template mcz for each (source_mcz, td) pair.
+    """
+    return _compute_mismatch_row(args, optimize_mcz=True)
+
+
+def _compute_mismatch_row(args, optimize_mcz: bool):
     mcz, td_arr, y, f_min, delta_f, compare_both, z = args
 
     # Build fresh parameter dictionaries for this process
@@ -81,16 +107,19 @@ def _compute_mismatch_for_mcz(args):
 
     # Apply redshift if provided (updates mcz to detector-frame and sets dist)
     if z is not None:
-        lens_params = apply_z(lens_params, z)
-        NP_params = apply_z(NP_params, z)
+        apply_z(lens_params, z)
+        apply_z(NP_params, z)
 
     # Precompute PSD for this mcz once (depends on mcz via f_cut)
-    f_cut = get_fcut_from_mcz(mcz, lens_params["eta"])  # mcz in Msun
+    mcz_for_fcut = mcz if z is None else float(mcz_src_to_det(mcz, z))
+    f_cut = get_fcut_from_mcz(mcz_for_fcut, lens_params["eta"])  # mcz in Msun
     if f_cut <= f_min + delta_f:
         # Not enough bandwidth above f_min; return NaNs for this row
         return np.full(len(td_arr), np.nan, dtype=float)
     f_array = np.arange(f_min, f_cut, delta_f)
-    psd = Sn(f_array, f_min=f_min, delta_f=delta_f)
+    if f_array.size < 2:
+        return np.full(len(td_arr), np.nan, dtype=float)
+    psd = cast(Any, Sn(f_array, f_min=f_min, delta_f=delta_f))
 
     # Compute mismatch for all time delays for this mcz
     mismatch_row = np.zeros(len(td_arr))
@@ -100,66 +129,35 @@ def _compute_mismatch_for_mcz(args):
         lens_params["MLz"] = get_MLz_from_td(td, y) * SOLMASS2SEC
 
         # Mismatch: NP template vs Lensed source
-        res = mismatch_from_params(
-            NP_params,
-            lens_params,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            use_opt_match=True,
-            compare_both=compare_both,
-        )
-        mismatch_row[j] = float(res["mismatch"])  # ensure JSON/pickle friendly
-
-    return mismatch_row
-
-
-def _compute_mismatch_for_mcz_optimized(args):
-    """
-    Compute optimized mismatch for a single mcz value across all time delays.
-    This function optimizes over template mcz for each (source_mcz, td) pair.
-    """
-    mcz, td_arr, y, f_min, delta_f, compare_both, z = args
-
-    # Build fresh parameter dictionaries for this process
-    lens_params, NP_params = set_orientation(
-        orient_params["Taman"]["edgeon"], lens_params_1, NP_params_1
-    )  # Location shouldn't matter for lensed and unlensed waveforms
-
-    # Set source chirp mass (convert Msun -> sec)
-    lens_params["mcz"] = mcz * SOLMASS2SEC
-
-    # Apply redshift if provided (updates mcz to detector-frame and sets dist)
-    if z is not None:
-        lens_params = apply_z(lens_params, z)
-        NP_params = apply_z(NP_params, z)
-
-    # Precompute PSD for this mcz once (depends on mcz via f_cut)
-    f_cut = get_fcut_from_mcz(mcz, lens_params["eta"])  # mcz in Msun
-    if f_cut <= f_min + delta_f:
-        # Not enough bandwidth above f_min; return NaNs for this row
-        return np.full(len(td_arr), np.nan, dtype=float)
-    f_array = np.arange(f_min, f_cut, delta_f)
-    psd = Sn(f_array, f_min=f_min, delta_f=delta_f)
-
-    # Compute mismatch for all time delays for this mcz
-    mismatch_row = np.zeros(len(td_arr))
-
-    for j, td in enumerate(td_arr):
-        lens_params["y"] = y
-        lens_params["MLz"] = get_MLz_from_td(td, y) * SOLMASS2SEC
-
-        # Optimize mismatch over template mcz: NP template vs Lensed source
-        opt_ep_results = optimize_mismatch_mcz(
-            NP_params,
-            lens_params,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            use_opt_match=True,
-            compare_both=compare_both,
-        )
-        mismatch_row[j] = float(opt_ep_results["ep_min"])  # ensure JSON/pickle friendly
+        try:
+            if optimize_mcz:
+                opt_ep_results = optimize_mismatch_mcz(
+                    NP_params,
+                    lens_params,
+                    f_min=f_min,
+                    delta_f=delta_f,
+                    psd=psd,
+                    use_opt_match=True,
+                    compare_both=compare_both,
+                )
+                mismatch_row[j] = float(
+                    opt_ep_results["ep_min"]
+                )  # ensure JSON/pickle friendly
+            else:
+                res = mismatch_from_params(
+                    NP_params,
+                    lens_params,
+                    f_min=f_min,
+                    delta_f=delta_f,
+                    psd=psd,
+                    use_opt_match=True,
+                    compare_both=compare_both,
+                )
+                mismatch_row[j] = float(
+                    res["mismatch"]
+                )  # ensure JSON/pickle friendly
+        except Exception:
+            mismatch_row[j] = np.nan
 
     return mismatch_row
 
@@ -176,12 +174,29 @@ def main(
     f_min: float = 20.0,
     delta_f: float = 0.25,
     no_plot: bool = False,
-    n_processes: int = None,
+    n_processes: Optional[int] = None,
     optimize_mcz: bool = False,
     tag: str = "",
     compare_both: bool = False,
-    z: float = None,
+    z: Optional[float] = None,
 ):
+    if I <= 0:
+        raise ValueError("I must be > 0")
+    if mcz_points < 2 or td_points < 2:
+        raise ValueError("mcz_points and td_points must both be >= 2")
+    if mcz_min >= mcz_max:
+        raise ValueError("mcz_min must be smaller than mcz_max")
+    if td_min_ms >= td_max_ms:
+        raise ValueError("td_min_ms must be smaller than td_max_ms")
+    if f_min <= 0:
+        raise ValueError("f_min must be > 0")
+    if delta_f <= 0:
+        raise ValueError("delta_f must be > 0")
+    if n_processes is not None and n_processes <= 0:
+        raise ValueError("n_processes must be positive when provided")
+    if z is not None and z < 0:
+        raise ValueError("redshift z must be non-negative")
+
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir, data_dir = _ensure_dirs(base_dir)
 
@@ -196,6 +211,8 @@ def main(
     # Determine number of processes
     if n_processes is None:
         n_processes = min(cpu_count(), len(mcz_arr))
+    else:
+        n_processes = min(n_processes, len(mcz_arr))
 
     print(f"Using {n_processes} processes for computation")
     if z is not None:
@@ -240,9 +257,23 @@ def main(
     )
 
     if not no_plot:
+        finite_values = Z[np.isfinite(Z)]
+        if finite_values.size == 0:
+            print("Skipping plot: epsilon grid has no finite values.")
+            print("HDF5 saved as", h5_path)
+            return
+
         TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
         plt.figure(figsize=(8, 6))
-        cf = plt.contourf(TD, MCZ, Z, levels=100, cmap="jet")
+        z_min = float(np.min(finite_values))
+        z_max = float(np.max(finite_values))
+        if z_min == z_max:
+            eps = max(abs(z_min), 1.0) * 1e-12
+            levels = np.linspace(z_min - eps, z_max + eps, 3)
+        else:
+            levels = 100
+
+        cf = plt.contourf(TD, MCZ, Z, levels=levels, cmap="jet")
         cbar = plt.colorbar(cf)
 
         if optimize_mcz:
@@ -259,6 +290,7 @@ def main(
         fig_filename = f"{base_name}.pdf"
         fig_path = os.path.join(fig_dir, fig_filename)
         plt.savefig(fig_path, dpi=200)
+        plt.close()
         print("Figure saved as", fig_path)
 
     print("HDF5 saved as", h5_path)

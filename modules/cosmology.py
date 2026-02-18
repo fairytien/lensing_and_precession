@@ -7,7 +7,6 @@ Primary implementation uses astropy; falls back to pure scipy if astropy is
 unavailable or incompatible with the installed NumPy version.
 """
 
-import copy
 from typing import Union
 import numpy as np
 
@@ -183,9 +182,10 @@ def apply_z(params: dict, z: float, mcz_is_source: bool = True) -> dict:
             and converts to detector-frame. If False, leaves `mcz` unchanged.
 
     Returns:
-        A deep copy of `params` with `dist` set from z and `mcz` redshifted if requested.
+        The input `params` dict, updated with `dist` set from z and `mcz` redshifted
+        if requested.
     """
-    out = copy.deepcopy(params)
+    out = params
     out["dist"] = z_to_DL(z) * GIGAPC2SEC
 
     if mcz_is_source:
