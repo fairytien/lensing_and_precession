@@ -33,6 +33,23 @@ from modules.cosmology import apply_z
 from modules.filenames import format_z_tag
 
 
+def _source_mcz_threshold_for_band(
+    f_min: float, delta_f: float, eta: float, z: Optional[float]
+) -> float:
+    """Approx source-frame mcz threshold (Msun) where f_cut == f_min + delta_f.
+
+    Above this source mass, there is insufficient frequency bandwidth and rows may
+    be rejected by the f_cut guard.
+    """
+    f_guard = f_min + delta_f
+    mcz_det_threshold = (
+        eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * f_guard) / SOLMASS2SEC
+    )  # Msun
+    if z is None:
+        return float(mcz_det_threshold)
+    return float(mcz_det_threshold / (1 + z))
+
+
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
     fig_dir = os.path.join(base_dir, "figures")
     data_dir = os.path.join(base_dir, "data")
@@ -116,6 +133,14 @@ def _compute_mismatch_row(args, optimize_mcz: bool):
     f_cut = get_fcut_from_mcz(mcz_for_fcut, lens_params["eta"])  # mcz in Msun
     if f_cut <= f_min + delta_f:
         # Not enough bandwidth above f_min; return NaNs for this row
+        mcz_src = float(mcz)
+        print(
+            "Dropping mcz row due to insufficient bandwidth: "
+            f"mcz_src={mcz_src:.6g} Msun, "
+            f"mcz_det={mcz_for_fcut:.6g} Msun, "
+            f"f_cut={f_cut:.6g} Hz <= f_min+delta_f={f_min + delta_f:.6g} Hz",
+            flush=True,
+        )
         return np.full(len(td_arr), np.nan, dtype=float)
     f_array = np.arange(f_min, f_cut, delta_f)
     if f_array.size < 2:
@@ -217,6 +242,17 @@ def main(
     if z is not None:
         print(f"Applying redshift z={z} (mcz treated as source-frame)")
 
+    mcz_src_threshold = _source_mcz_threshold_for_band(
+        f_min=f_min,
+        delta_f=delta_f,
+        eta=lens_params_1["eta"],
+        z=z,
+    )
+    print(
+        "Approx source-frame mcz threshold for f_cut guard "
+        f"(f_cut <= f_min+delta_f): {mcz_src_threshold:.6g} Msun",
+    )
+
     # Prepare arguments for parallel computation
     args_list = [(mcz, td_arr, y, f_min, delta_f, compare_both, z) for mcz in mcz_arr]
 
@@ -234,6 +270,15 @@ def main(
 
     # Convert results to numpy array
     Z = np.array(results)
+
+    dropped_mask = np.all(~np.isfinite(Z), axis=1)
+    dropped_count = int(np.sum(dropped_mask))
+    if dropped_count > 0:
+        dropped_mcz = mcz_arr[dropped_mask]
+        print(
+            f"Dropped {dropped_count}/{len(mcz_arr)} mcz rows (all-NaN). "
+            f"Range: {float(dropped_mcz[0]):.6g} to {float(dropped_mcz[-1]):.6g} Msun"
+        )
 
     # Build output filename
     filename_suffix = f"I{I}_opt_mcz" if optimize_mcz else f"I{I}"
