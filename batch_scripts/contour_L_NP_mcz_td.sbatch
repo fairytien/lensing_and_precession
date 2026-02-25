@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1 # Single task (not MPI)
 #SBATCH --cpus-per-task=128 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
-#SBATCH -t 00:15:00 # Walltime
+#SBATCH -t 00:10:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
 #SBATCH -o batch_outputs/contour_L_NP_mcz_td_%A.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
@@ -50,5 +50,6 @@ python scripts/super_contours/contour_L_NP_mcz_td.py \
   --f_min 20.0 \
   --delta_f 0.25 \
   --n_processes ${NWORKERS} \
-  --redshift 0.1
+  --redshift 0.1 \
+  --compare_both
 
