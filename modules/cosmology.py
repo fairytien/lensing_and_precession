@@ -182,13 +182,13 @@ def apply_z(params: dict, z: float, mcz_is_source: bool = True) -> dict:
             and converts to detector-frame. If False, leaves `mcz` unchanged.
 
     Returns:
-        The input `params` dict, updated with `dist` set from z and `mcz` redshifted
-        if requested.
+        A shallow-copied dict with `dist` set from z and `mcz` redshifted if
+        requested. The input `params` dict is not mutated.
     """
-    out = params
+    out = params.copy()
     out["dist"] = z_to_DL(z) * GIGAPC2SEC
 
     if mcz_is_source:
-        out["mcz"] = mcz_src_to_det(params["mcz"], z)
+        out["mcz"] = mcz_src_to_det(out["mcz"], z)
 
     return out

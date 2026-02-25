@@ -35,6 +35,34 @@ def _format_min_precision(value: float) -> str:
     return s
 
 
+def format_z_tag(z: Optional[float], prefix: str = "_z") -> str:
+    """Format redshift as a filename-safe tag.
+
+    Examples:
+        None -> ""
+        0.5 -> "_z0.5"
+        1.23456 -> "_z1.23456"
+    """
+    if z is None:
+        return ""
+    z_str = _format_min_precision(float(z))
+    return f"{prefix}{z_str}"
+
+
+def append_z_tag_to_path(path: Optional[str], z: Optional[float]) -> Optional[str]:
+    """Append redshift tag to file path stem, preserving extension.
+
+    Examples:
+        "fig.pdf", 0.5 -> "fig_z0.5.pdf"
+        None, 0.5 -> None
+        "fig.pdf", None -> "fig.pdf"
+    """
+    if (path is None) or (z is None):
+        return path
+    root, ext = os.path.splitext(path)
+    return f"{root}{format_z_tag(z)}{ext}"
+
+
 def bank_filename(
     bank_dir: str,
     mcz_msun: float,

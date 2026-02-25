@@ -30,6 +30,7 @@ from modules.default_params_v3 import (
     orient_params,
 )
 from modules.cosmology import apply_z, mcz_src_to_det
+from modules.filenames import format_z_tag
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -46,7 +47,7 @@ def _save_contour_hdf5(
     td_arr: np.ndarray,
     epsilon_matrix: np.ndarray,
     I: float,
-    z: float,
+    z: Optional[float],
     location: str,
     template: str,
     optimize_mcz: bool,
@@ -236,7 +237,7 @@ def main(
 
     # Build output filename
     filename_suffix = f"I{I}_opt_mcz" if optimize_mcz else f"I{I}"
-    base_name = f"contour_L_NP_mcz_td_{filename_suffix}"
+    base_name = f"contour_L_NP_mcz_td_{filename_suffix}{format_z_tag(z)}"
     if tag:
         base_name = f"{base_name}_{tag}"
 
@@ -283,6 +284,8 @@ def main(
 
         plt.xlabel(r"$\Delta t_d$ [ms]")
         plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
+        if z is not None:
+            plt.title(rf"$z={z:.3g}$")
         plt.tight_layout()
 
         fig_filename = f"{base_name}.pdf"
