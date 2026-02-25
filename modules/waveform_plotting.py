@@ -4,8 +4,10 @@ from fractions import Fraction
 from typing import Any, Optional, Sequence
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from modules.functions_v2 import *
-from modules.plot_utils import *
+from modules.Classes_v3 import LensingGeo, Precessing
+from modules.default_params_v3 import SOLMASS2SEC
+from modules.functions_v3 import get_MLz_from_td, get_y_from_I
+from modules.plot_utils import customize_2x2_axes
 from modules.cosmology import apply_z
 from modules.filenames import append_z_tag_to_path
 
@@ -210,7 +212,7 @@ def plot_lensing_figure(
     for i, td in enumerate(np.atleast_1d(td_arr)):
         lens_params = lens_params_base.copy()
         MLz = get_MLz_from_td(td, def_y)
-        lens_params["MLz"] = MLz * solar_mass
+        lens_params["MLz"] = MLz * SOLMASS2SEC
         if z is not None:
             lens_params = apply_z(lens_params, z)
         lens_inst = LensingGeo(lens_params)
@@ -252,7 +254,7 @@ def plot_lensing_figure(
         y = get_y_from_I(I)
         MLz = get_MLz_from_td(def_td, y)
         lens_params["y"] = y
-        lens_params["MLz"] = MLz * solar_mass
+        lens_params["MLz"] = MLz * SOLMASS2SEC
         if z is not None:
             lens_params = apply_z(lens_params, z)
         lens_inst = LensingGeo(lens_params)
@@ -325,10 +327,8 @@ def plot_lensing_figure(
     # Optional save (format inferred from extension)
     if save_path:
         out_path = append_z_tag_to_path(save_path, z)
-        if out_path is None:
-            raise ValueError("append_z_tag_to_path returned None for save_path")
         fig.savefig(
-            out_path,
+            str(out_path),
             bbox_inches=bbox_inches,
             pad_inches=pad_inches,
         )
@@ -480,10 +480,8 @@ def plot_precessing_figure(
     # Optional save (format inferred from extension)
     if save_path:
         out_path = append_z_tag_to_path(save_path, z)
-        if out_path is None:
-            raise ValueError("append_z_tag_to_path returned None for save_path")
         fig.savefig(
-            out_path,
+            str(out_path),
             bbox_inches=bbox_inches,
             pad_inches=pad_inches,
         )
