@@ -29,7 +29,7 @@ from modules.default_params_v3 import (
     NP_params_1,
     orient_params,
 )
-from modules.cosmology import apply_z, mcz_src_to_det
+from modules.cosmology import apply_z
 from modules.filenames import format_z_tag
 
 
@@ -108,11 +108,11 @@ def _compute_mismatch_row(args, optimize_mcz: bool):
 
     # Apply redshift if provided (updates mcz to detector-frame and sets dist)
     if z is not None:
-        apply_z(lens_params, z)
-        apply_z(NP_params, z)
+        lens_params = apply_z(lens_params, z)
+        NP_params = apply_z(NP_params, z)
 
-    # Precompute PSD for this mcz once (depends on mcz via f_cut)
-    mcz_for_fcut = mcz if z is None else float(mcz_src_to_det(mcz, z))
+    # Precompute PSD for this mcz once (depends on detector-frame mcz via f_cut)
+    mcz_for_fcut = float(lens_params["mcz"] / SOLMASS2SEC)
     f_cut = get_fcut_from_mcz(mcz_for_fcut, lens_params["eta"])  # mcz in Msun
     if f_cut <= f_min + delta_f:
         # Not enough bandwidth above f_min; return NaNs for this row
@@ -285,7 +285,9 @@ def main(
         plt.xlabel(r"$\Delta t_d$ [ms]")
         plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
         if z is not None:
-            plt.title(rf"$z={z:.3g}$")
+            z_label = format_z_tag(z, prefix="z = ")
+            plt.plot([], [], " ", label=z_label)
+            plt.legend(loc="best", framealpha=0.6)
         plt.tight_layout()
 
         fig_filename = f"{base_name}.pdf"

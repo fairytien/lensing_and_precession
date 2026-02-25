@@ -3,7 +3,7 @@
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes
 #SBATCH --ntasks=1 # Single task (not MPI)
-#SBATCH --cpus-per-task=128 # Use all CPUs on node
+#SBATCH --cpus-per-task=81 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
 #SBATCH -t 00:15:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
