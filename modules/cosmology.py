@@ -12,6 +12,9 @@ import numpy as np
 
 from .default_params_v3 import SOLMASS2SEC, GIGAPC2SEC
 
+ZMIN = 1e-8
+ZMAX = 20.0
+
 
 #############################
 # Section 1: Cosmology Setup #
@@ -62,9 +65,9 @@ if not _USE_ASTROPY:
         return DH * integral
 
 
-################################
+##################################
 # Section 3: z ↔ D_L Conversions #
-################################
+##################################
 
 
 def z_to_DL(z: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
@@ -93,14 +96,14 @@ def z_to_DL(z: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     return DL_gpc
 
 
-def DL_to_z(DL_gpc: float, zmin: float = 1e-8, zmax: float = 20.0) -> float:
+def DL_to_z(DL_gpc: float, zmin: float = ZMIN, zmax: float = ZMAX) -> float:
     """
     Convert luminosity distance to redshift by numerical inversion.
 
     Args:
         DL_gpc: Luminosity distance in Gpc.
-        zmin: Lower bound for root finding. Default 1e-8.
-        zmax: Upper bound for root finding. Default 20.
+        zmin: Lower bound for root finding. Default ZMIN.
+        zmax: Upper bound for root finding. Default ZMAX.
 
     Returns:
         Redshift corresponding to the given luminosity distance.
@@ -125,9 +128,9 @@ def DL_to_z(DL_gpc: float, zmin: float = 1e-8, zmax: float = 20.0) -> float:
     return float(z)
 
 
-###################################
+#####################################
 # Section 3: Mass Frame Conversions #
-###################################
+#####################################
 
 
 def mcz_src_to_det(
