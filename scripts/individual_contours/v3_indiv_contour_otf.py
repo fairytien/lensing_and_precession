@@ -25,7 +25,7 @@ from modules.default_params_v3 import (
     SOLMASS2SEC,
 )
 from modules.cosmology import apply_z
-from modules.filenames import format_z_tag
+from modules.filenames import format_z_tag, timestamp_path
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -266,14 +266,14 @@ def main(
             [],
             [],
             linestyle="None",
-            label=rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={mcz_src_str}\,M_\odot$",
+            label=rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={mcz_src_str}\,\mathrm{{M}}_\odot$",
         )
-        plt.legend(loc="best", framealpha=1.0)
+        plt.legend(loc="best", framealpha=1.0, edgecolor="black")
         plt.xlabel(r"$\tilde{\Omega}$")
         plt.ylabel(r"$\tilde{\theta}$")
         plt.tight_layout()
-        fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
-        plt.savefig(fig_path)
+        fig_path = timestamp_path(os.path.join(fig_dir, f"{base_name}.pdf"))
+        plt.savefig(fig_path, bbox_inches="tight")
         print("Figure saved as", fig_path)
 
     print("Pickle saved as", pkl_path)
