@@ -6,7 +6,9 @@ import numpy as np
 import copy
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.functions_v3 import (
     get_gw,
@@ -26,7 +28,7 @@ from modules.Classes_v4 import Precessing as P4
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
-    fig_dir = os.path.join(base_dir, "figures")
+    fig_dir = os.path.join(base_dir, "figures", "individual_contours")
     data_dir = os.path.join(base_dir, "data")
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
@@ -177,7 +179,9 @@ def main(
     maxiter: int = 50,
     ivp_method: str = "RK45",
 ):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     fig_dir, data_dir = _ensure_dirs(base_dir)
 
     td_s = td_ms / 1e3

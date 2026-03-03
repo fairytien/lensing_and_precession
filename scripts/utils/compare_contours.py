@@ -5,7 +5,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
@@ -179,7 +181,7 @@ def create_ratio_contour(
     num_path,
     den_path,
     tag=None,
-    outdir="figures",
+    outdir="figures/utils",
     n_levels=100,
     cmap="jet",
     cbar_round_ticks=False,
@@ -356,7 +358,7 @@ def create_comparison_contours(
     paths,
     labels=None,
     tag=None,
-    outdir="figures",
+    outdir="figures/utils",
     scale_from="auto",
     n_levels=100,
     cmap="jet",
@@ -632,7 +634,7 @@ def _parse_args():
         help="Optional tag appended to output filename",
     )
     parser.add_argument(
-        "--outdir", dest="outdir", default="figures", help="Output directory"
+        "--outdir", dest="outdir", default="figures/utils", help="Output directory"
     )
     parser.add_argument(
         "--n_levels",

@@ -279,8 +279,10 @@ def main():
     )
     args = parser.parse_args()
 
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    fig_dir = os.path.join(base_dir, "figures")
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
+    fig_dir = os.path.join(base_dir, "figures", "utils")
     os.makedirs(fig_dir, exist_ok=True)
 
     input_path = args.input_path

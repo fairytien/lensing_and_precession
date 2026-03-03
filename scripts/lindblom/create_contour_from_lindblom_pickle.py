@@ -5,7 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.filenames import _format_min_precision
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
@@ -57,13 +59,17 @@ def main(
 
     if variable == "lindblom":
         if "lindblom_matrix" not in data:
-            raise KeyError(f"Missing 'lindblom_matrix' in pickle file. Available keys: {list(data.keys())}")
+            raise KeyError(
+                f"Missing 'lindblom_matrix' in pickle file. Available keys: {list(data.keys())}"
+            )
         Zmap = np.array(data["lindblom_matrix"])
         label = r"$\epsilon(\tilde{h}_L, \tilde{h}_{\rm NP}) - \frac{1}{2\rho^2}$"
         title = "Lindblom Criterion: Lensed Sources vs Non-Precessing Templates"
     elif variable == "snr":
         if "snr_matrix" not in data:
-            raise KeyError(f"Missing 'snr_matrix' in pickle file. Available keys: {list(data.keys())}")
+            raise KeyError(
+                f"Missing 'snr_matrix' in pickle file. Available keys: {list(data.keys())}"
+            )
         Zmap = np.array(data["snr_matrix"])
         label = r"$\rho(\tilde{h}_L, \tilde{h}_{\rm NP})$"
         title = "SNR Between Lensed Sources and Non-Precessing Templates"
@@ -138,6 +144,9 @@ def main(
 
 
 if __name__ == "__main__":
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     p = argparse.ArgumentParser(
         description="Create contour plots from pickle file with Lindblom data."
     )
@@ -150,7 +159,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--output_dir",
         type=str,
-        default="figures",
+        default=os.path.join(project_root, "figures", "lindblom"),
         help="Directory where the figure will be saved.",
     )
     p.add_argument(
@@ -227,4 +236,3 @@ if __name__ == "__main__":
         cmap=args.cmap,
         extend=args.extend,
     )
-

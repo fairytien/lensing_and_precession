@@ -15,7 +15,9 @@ import h5py
 import matplotlib.pyplot as plt
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.filenames import _format_min_precision
 
@@ -110,7 +112,7 @@ def main(
                 f"Expected 'lindblom_at_best_match' or 'lindblom_min'. "
                 f"Available datasets: {list(h5.keys())}"
             )
-        
+
         required_datasets = ["mcz", "td"]
         missing = [ds for ds in required_datasets if ds not in h5]
         if missing:
@@ -139,7 +141,7 @@ def main(
     # Set vmin = -0.05 to saturate values below -0.05
     vmin = -0.05
     vmax = np.nanmax(Lmap)
-    
+
     # Create contour levels from vmin to vmax
     if isinstance(contour_levels, int):
         levels = np.linspace(vmin, vmax, contour_levels)
@@ -147,7 +149,9 @@ def main(
         levels = contour_levels
 
     # Create filled contours with vmin saturation
-    cf = plt.contourf(TD, MCZ, Lmap, levels=levels, cmap=cmap, extend="min", vmin=vmin, vmax=vmax)
+    cf = plt.contourf(
+        TD, MCZ, Lmap, levels=levels, cmap=cmap, extend="min", vmin=vmin, vmax=vmax
+    )
 
     # Draw zero contour line if requested
     if zero_contour:
@@ -203,18 +207,20 @@ def main(
     fig_path_pdf = os.path.join(output_dir, f"{base_name}.pdf")
     plt.savefig(fig_path_pdf, dpi=200, bbox_inches="tight")
     logging.info(f"Figure saved as {fig_path_pdf}")
-    
+
     # Save as PNG (higher DPI for better quality)
     fig_path_png = os.path.join(output_dir, f"{base_name}.png")
     plt.savefig(fig_path_png, dpi=300, bbox_inches="tight")
     logging.info(f"Figure saved as {fig_path_png}")
-    
+
     plt.close()
 
 
 if __name__ == "__main__":
     # Get project root directory (used for default paths)
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 
     p = argparse.ArgumentParser(
         description=(
@@ -261,7 +267,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--output_dir",
         type=str,
-        default=os.path.join(project_root, "figures"),
+        default=os.path.join(project_root, "figures", "lindblom"),
         help="Directory where the figure will be saved.",
     )
     p.add_argument(

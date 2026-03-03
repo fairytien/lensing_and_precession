@@ -19,7 +19,9 @@ import numpy as np
 import h5py
 
 # Ensure project root is on PYTHONPATH before local imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.filenames import get_mismatch_cube_resolution
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -318,7 +320,9 @@ def save_grid_with_individual_colorbars(
     rows = int(np.ceil(panels / max(int(cols), 1)))
 
     X, Y = np.meshgrid(omega, theta)
-    fig, axes = plt.subplots(rows, int(cols), figsize=(3.2 * cols, 2.8 * rows), squeeze=False)
+    fig, axes = plt.subplots(
+        rows, int(cols), figsize=(3.2 * cols, 2.8 * rows), squeeze=False
+    )
 
     for k, ax in enumerate(axes.flat):
         if k >= panels:
@@ -341,7 +345,9 @@ def save_grid_with_individual_colorbars(
 
 
 def main():
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 
     p = argparse.ArgumentParser(
         description="Make movie and/or slider sweeping mcz at fixed td"
@@ -502,5 +508,7 @@ def main():
 
 if __name__ == "__main__":
     # Ensure project root is on PYTHONPATH
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    sys.path.insert(
+        0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
     main()

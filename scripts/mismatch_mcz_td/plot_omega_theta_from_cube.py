@@ -10,7 +10,9 @@ import h5py
 import matplotlib.pyplot as plt
 
 # Ensure project root is on PYTHONPATH
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 
 def _find_td_index(td_seconds: np.ndarray, target_td_ms: float) -> int:
@@ -56,9 +58,11 @@ def main(
     if output_path is None:
         base = os.path.splitext(os.path.basename(input_h5))[0]
         output_dir = os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
             "figures",
-            "indiv",
+            "mismatch_cubes",
         )
         os.makedirs(output_dir, exist_ok=True)
         td_tag = f"td{float(td_ms):.1f}ms".replace(".", "p")

@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import h5py
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.filenames import _format_min_precision
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
@@ -24,7 +26,7 @@ def main(
     mcz_max: float,
     I: float,
     orientation_tag: str,
-    output_dir: str = "figures",
+    output_dir: str = "figures/lindblom",
     overlay_cycles: bool = False,
     overlay_peaks: bool = False,
     overlay_troughs: bool = False,
@@ -165,7 +167,9 @@ def main(
 
 if __name__ == "__main__":
     # Get project root directory (used for default paths)
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    project_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 
     p = argparse.ArgumentParser(
         description="Plot optimal SNR (SNR of source waveform) contour from HDF5 file."
@@ -215,7 +219,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--output_dir",
         type=str,
-        default=os.path.join(project_root, "figures"),
+        default=os.path.join(project_root, "figures", "lindblom"),
         help="Directory where the figure will be saved.",
     )
     p.add_argument(
@@ -290,4 +294,3 @@ if __name__ == "__main__":
         cmap=args.cmap,
         extend=args.extend,
     )
-

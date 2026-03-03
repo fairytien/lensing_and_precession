@@ -14,7 +14,9 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.filenames import contour_mcz_td_filename
 
@@ -42,7 +44,9 @@ def main(
     if mcz_decimals < 0:
         raise ValueError(f"mcz_decimals must be non-negative, got {mcz_decimals}")
 
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 
     with h5py.File(input_h5, "r") as h5:
         # Check required datasets exist
@@ -81,7 +85,7 @@ def main(
         td_max_ms = float(np.max(td_ms))
         mcz_min = float(np.min(mcz))
         mcz_max = float(np.max(mcz))
-        fig_dir = os.path.join(repo_root, "figures")
+        fig_dir = os.path.join(repo_root, "figures", "utils")
 
         # Extract orientation tag from filename
         input_basename = os.path.basename(input_h5)

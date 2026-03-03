@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 def derive_fig_path_from_pickle(pickle_path: str, tag: Optional[str] = None) -> str:
     data_dir = os.path.dirname(pickle_path)
     root_dir = os.path.dirname(data_dir)
-    figures_dir = os.path.join(root_dir, "figures")
+    figures_dir = os.path.join(root_dir, "figures", "utils")
     os.makedirs(figures_dir, exist_ok=True)
 
     filename = os.path.basename(pickle_path)

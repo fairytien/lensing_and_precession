@@ -51,7 +51,7 @@ def _source_mcz_threshold_for_band(
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
-    fig_dir = os.path.join(base_dir, "figures")
+    fig_dir = os.path.join(base_dir, "figures", "super_contours")
     data_dir = os.path.join(base_dir, "data")
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
@@ -221,7 +221,9 @@ def main(
     if z is not None and z < 0:
         raise ValueError("redshift z must be non-negative")
 
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     fig_dir, data_dir = _ensure_dirs(base_dir)
 
     # Arrays (units: mcz in Msun; td in seconds, but plot in ms)

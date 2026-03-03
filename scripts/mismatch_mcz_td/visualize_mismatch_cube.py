@@ -272,7 +272,9 @@ def save_html_slider(
 
 
 def main():
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 
     p = argparse.ArgumentParser(
         description="Make movie and/or slider from mismatch cube"
@@ -361,7 +363,9 @@ def main():
 
 if __name__ == "__main__":
     # Ensure project root is on PYTHONPATH
-    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    sys.path.insert(
+        0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    )
     main()
 
 

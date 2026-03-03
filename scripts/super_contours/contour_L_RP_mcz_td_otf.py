@@ -6,7 +6,9 @@ import numpy as np
 import copy
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 # Reuse utilities and defaults
 from modules.functions_v3 import *
@@ -16,7 +18,7 @@ from pycbc.types import FrequencySeries
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
-    fig_dir = os.path.join(base_dir, "figures")
+    fig_dir = os.path.join(base_dir, "figures", "super_contours")
     data_dir = os.path.join(base_dir, "data")
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
@@ -617,7 +619,9 @@ def main(
     use_opt_match: bool = True,
     gamma_points: int = 51,
 ):
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base_dir = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
     fig_dir, data_dir = _ensure_dirs(base_dir)
 
     # Arrays (units: mcz in Msun; td in seconds, but plot/save in ms)
