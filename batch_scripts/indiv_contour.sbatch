@@ -2,7 +2,7 @@
 #SBATCH -J indiv_otf_v3 # Job name
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes and cores per node required
-#SBATCH -t 00:05:00 # Walltime
+#SBATCH -t 00:01:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
 #SBATCH -o batch_outputs/v3_indiv_otf.out # Output file
 #SBATCH --mail-type=NONE # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
@@ -41,4 +41,5 @@ srun python scripts/individual_contours/v3_indiv_contour_otf.py \
     --theta_points 151 \
     --f_min 20.0 \
     --delta_f 0.25 \
-    --redshift 0.1
+    --compare_both
+    # --redshift 0.28 \
