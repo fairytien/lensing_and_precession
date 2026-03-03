@@ -1,12 +1,14 @@
 import sys, os, argparse
-from typing import Tuple, Dict, Any, List
+from typing import Tuple, List, Optional
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
 import copy
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.functions_v3 import (
     get_gw,
@@ -22,6 +24,8 @@ from modules.default_params_v3 import (
     RP_params_1,
     SOLMASS2SEC,
 )
+from modules.cosmology import apply_z
+from modules.filenames import format_z_tag
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -40,6 +44,7 @@ def _build_params(
     phi_S: float,
     theta_J: float,
     phi_J: float,
+    z: Optional[float] = None,
 ) -> Tuple[dict, dict]:
     """
     Build and return (source_params_lensed, template_params_precessing) for v3 APIs.
@@ -60,6 +65,11 @@ def _build_params(
 
     # Set chirp mass (in seconds)
     s_params["mcz"] = t_params["mcz"] = float(mcz_msun) * SOLMASS2SEC
+
+    # Apply optional redshift (treat input mcz as source-frame)
+    if z is not None:
+        s_params = apply_z(s_params, z)
+        t_params = apply_z(t_params, z)
 
     # Set lensing params from I, td (MLz expected in seconds)
     y = get_y_from_I(I)
@@ -129,21 +139,21 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
 @timer_decorator
 def main(
     mcz_msun: float = 20.0,
-    td_ms: float = 22.0,
-    I: float = 0.6,
-    theta_S: float = np.pi / 3,
-    phi_S: float = np.pi / 4,
-    theta_J: float = np.pi / 6,
-    phi_J: float = np.pi / 3,
-    omega_min: float = 3.5,
-    omega_max: float = 4.0,
-    omega_points: int = 51,
-    theta_min: float = 7.5,
-    theta_max: float = 8.5,
-    theta_points: int = 101,
+    td_ms: float = 30.0,
+    I: float = 0.5,
+    theta_S: float = np.pi / 4,
+    phi_S: float = 0.0,
+    theta_J: float = np.pi / 2,
+    phi_J: float = np.pi / 2,
+    omega_min: float = 0.0,
+    omega_max: float = 6.0,
+    omega_points: int = 61,
+    theta_min: float = 0.0,
+    theta_max: float = 15.0,
+    theta_points: int = 151,
     f_min: float = 20.0,
     delta_f: float = 0.25,
-    use_opt_match: bool = True,
+    use_opt_match: bool = False,
     compare_both: bool = False,
     n_workers: int = None,
     no_plot: bool = False,
@@ -152,6 +162,7 @@ def main(
     coarse_points: int = 17,
     xatol: float = 1e-3,
     maxiter: int = 50,
+    z: Optional[float] = None,
 ):
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fig_dir, data_dir = _ensure_dirs(base_dir)
@@ -160,7 +171,7 @@ def main(
 
     # Build params and PSD once
     s_params, t_params_base = _build_params(
-        mcz_msun, td_s, I, theta_S, phi_S, theta_J, phi_J
+        mcz_msun, td_s, I, theta_S, phi_S, theta_J, phi_J, z
     )
     s_gw = get_gw(s_params, f_min=f_min, delta_f=delta_f)
     f_arr = s_gw["f_array"]
@@ -234,6 +245,8 @@ def main(
         f"v3_indiv_contour_mcz{int(mcz_msun)}_td{int(td_ms)}ms_I{I}_"
         f"thetaS{round(theta_S,3)}_phiS{round(phi_S,3)}_thetaJ{round(theta_J,3)}_phiJ{round(phi_J,3)}"
     )
+    if z is not None:
+        base_name += format_z_tag(z)
     if tag:
         base_name = f"{base_name}_{tag}"
 
@@ -242,14 +255,23 @@ def main(
     if not no_plot:
         import matplotlib.pyplot as plt
 
+        mcz_src_str = f"{float(mcz_msun):.15g}"
+
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
         cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
+        plt.plot(
+            [],
+            [],
+            linestyle="None",
+            label=rf"$\mathcal{{M}}_{{\mathrm{{src}}}}={mcz_src_str}\,M_\odot$",
+        )
+        plt.legend(loc="best", framealpha=1.0)
         plt.xlabel(r"$\tilde{\Omega}$")
         plt.ylabel(r"$\tilde{\theta}$")
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
-        plt.savefig(fig_path, dpi=200)
+        plt.savefig(fig_path)
         print("Figure saved as", fig_path)
 
     print("Pickle saved as", pkl_path)
@@ -262,18 +284,18 @@ if __name__ == "__main__":
         )
     )
     parser.add_argument("--mcz_msun", type=float, default=20.0)
-    parser.add_argument("--td_ms", type=float, default=22.0)
-    parser.add_argument("--I", type=float, default=0.6)
-    parser.add_argument("--theta_S", type=float, default=float(np.pi / 3))
-    parser.add_argument("--phi_S", type=float, default=float(np.pi / 4))
-    parser.add_argument("--theta_J", type=float, default=float(np.pi / 6))
-    parser.add_argument("--phi_J", type=float, default=float(np.pi / 3))
-    parser.add_argument("--omega_min", type=float, default=3.5)
-    parser.add_argument("--omega_max", type=float, default=4.0)
-    parser.add_argument("--omega_points", type=int, default=51)
-    parser.add_argument("--theta_min", type=float, default=7.5)
-    parser.add_argument("--theta_max", type=float, default=8.5)
-    parser.add_argument("--theta_points", type=int, default=101)
+    parser.add_argument("--td_ms", type=float, default=30.0)
+    parser.add_argument("--I", type=float, default=0.5)
+    parser.add_argument("--theta_S", type=float, default=float(np.pi / 4))
+    parser.add_argument("--phi_S", type=float, default=float(0))
+    parser.add_argument("--theta_J", type=float, default=float(np.pi / 2))
+    parser.add_argument("--phi_J", type=float, default=float(np.pi / 2))
+    parser.add_argument("--omega_min", type=float, default=0.0)
+    parser.add_argument("--omega_max", type=float, default=6.0)
+    parser.add_argument("--omega_points", type=int, default=61)
+    parser.add_argument("--theta_min", type=float, default=0.0)
+    parser.add_argument("--theta_max", type=float, default=15.0)
+    parser.add_argument("--theta_points", type=int, default=151)
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--delta_f", type=float, default=0.25)
     parser.add_argument("--use_opt_match", action="store_true")
@@ -289,6 +311,14 @@ if __name__ == "__main__":
     parser.add_argument("--coarse_points", type=int, default=17)
     parser.add_argument("--xatol", type=float, default=1e-3)
     parser.add_argument("--maxiter", type=int, default=50)
+    parser.add_argument(
+        "--z",
+        "--redshift",
+        dest="z",
+        type=float,
+        default=None,
+        help="Source redshift (alias: --redshift). If provided, mcz value is treated as source-frame and dist is computed from z.",
+    )
 
     args = parser.parse_args()
     main(
@@ -316,4 +346,5 @@ if __name__ == "__main__":
         coarse_points=args.coarse_points,
         xatol=args.xatol,
         maxiter=args.maxiter,
+        z=args.z,
     )

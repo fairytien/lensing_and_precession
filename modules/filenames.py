@@ -5,6 +5,7 @@ can locate outputs deterministically.
 """
 
 import os
+from datetime import datetime
 from typing import Optional, Tuple
 import h5py
 
@@ -61,6 +62,26 @@ def append_z_tag_to_path(path: Optional[str], z: Optional[float]) -> Optional[st
         return path
     root, ext = os.path.splitext(path)
     return f"{root}{format_z_tag(z)}{ext}"
+
+
+def timestamp_path(
+    path: Optional[str], dt: Optional[datetime] = None, prefix: str = "_"
+) -> Optional[str]:
+    """Append date-time tag to file path stem, preserving extension.
+
+    Uses local current time when dt is not provided.
+
+    Examples:
+        "fig.pdf", datetime(2026, 3, 3, 14, 5, 9) -> "fig_20260303_140509.pdf"
+        None, datetime(...) -> None
+        "fig.pdf", None -> "fig_YYYYMMDD_HHMMSS.pdf" (current local time)
+    """
+    if path is None:
+        return None
+
+    timestamp = (dt or datetime.now()).strftime("%Y%m%d_%H%M%S")
+    root, ext = os.path.splitext(path)
+    return f"{root}{prefix}{timestamp}{ext}"
 
 
 def bank_filename(
