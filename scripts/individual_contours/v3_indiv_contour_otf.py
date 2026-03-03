@@ -268,7 +268,15 @@ def main(
             linestyle="None",
             label=rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={mcz_src_str}\,\mathrm{{M}}_\odot$",
         )
-        plt.legend(loc="best", framealpha=1.0, edgecolor="black")
+        plt.legend(
+            loc="best",
+            framealpha=0.6,
+            edgecolor="black",
+            borderpad=0.2,
+            handlelength=0.0,
+            handletextpad=0.2,
+            labelspacing=0.2,
+        )
         plt.xlabel(r"$\tilde{\Omega}$")
         plt.ylabel(r"$\tilde{\theta}$")
         plt.tight_layout()
