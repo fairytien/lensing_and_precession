@@ -453,7 +453,7 @@ def pickle_data(data, dir: str, filename: str) -> str:
     filepath = os.path.join(dir, filename)
     with open(filepath, "wb") as f:
         pickle.dump(data, f)
-        print("Results saved as", filepath)
+        print("Pickle saved as", filepath)
     return filepath
 
 

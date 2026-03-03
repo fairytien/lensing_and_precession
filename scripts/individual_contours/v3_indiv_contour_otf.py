@@ -266,7 +266,7 @@ def main(
             [],
             [],
             linestyle="None",
-            label=rf"$\mathcal{{M}}_{{\mathrm{{src}}}}={mcz_src_str}\,M_\odot$",
+            label=rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={mcz_src_str}\,M_\odot$",
         )
         plt.legend(loc="best", framealpha=1.0)
         plt.xlabel(r"$\tilde{\Omega}$")

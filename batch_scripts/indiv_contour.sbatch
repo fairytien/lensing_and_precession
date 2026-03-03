@@ -34,8 +34,8 @@ srun python scripts/individual_contours/v3_indiv_contour_otf.py \
     --theta_J "$theta_J" \
     --phi_J "$phi_J" \
     --omega_min 0.0 \
-    --omega_max 6.0 \
-    --omega_points 61 \
+    --omega_max 4.0 \
+    --omega_points 41 \
     --theta_min 0.0 \
     --theta_max 15.0 \
     --theta_points 151 \
