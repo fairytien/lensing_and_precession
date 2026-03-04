@@ -3,32 +3,17 @@ from typing import Tuple, Dict, Any, List
 from multiprocessing import Pool, cpu_count
 
 import numpy as np
-import copy
 
 # Ensure project root is on path
 sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.functions_v3 import (
-    get_gw,
-    Sn,
-    optimize_mismatch_gammaP,
-    get_y_from_I,
-    get_MLz_from_td,
-    pickle_data,
-    timer_decorator,
-)
-from modules.default_params_v3 import (
-    lens_params_1,
-    RP_params_1,
-    SOLMASS2SEC,
-)
-from modules.Classes_v2 import Precessing as P2
+from modules.contours_v2 import *  # noqa: F401,F403
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
-    fig_dir = os.path.join(base_dir, "figures", "individual_contours")
+    fig_dir = os.path.join(base_dir, "figures", "indiv_contours")
     data_dir = os.path.join(base_dir, "data")
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
@@ -44,16 +29,11 @@ def _build_params(
     theta_J: float,
     phi_J: float,
 ) -> Tuple[dict, dict]:
-    """
-    Build and return (source_params_lensed, template_params_precessing) for v3 APIs.
-    - Lensed source params must contain keys "MLz" and "y" to be routed to Lensing classes
-    - Precessing template params use Regular Precession model without lensing keys
-    """
-    s_params = copy.deepcopy(lens_params_1)
-    t_params = copy.deepcopy(RP_params_1)
+    lens_p = copy.deepcopy(lens_params_1)
+    rp_p = copy.deepcopy(RP_params_1)
 
-    # Set sky/orientation for both
-    for p in (s_params, t_params):
+    # Set sky/orientation explicitly for both source and template
+    for p in (lens_p, rp_p):
         p["theta_S"], p["phi_S"], p["theta_J"], p["phi_J"] = (
             theta_S,
             phi_S,
@@ -61,19 +41,15 @@ def _build_params(
             phi_J,
         )
 
-    # Set chirp mass (in seconds)
-    s_params["mcz"] = t_params["mcz"] = float(mcz_msun) * SOLMASS2SEC
+    # Set chirp mass (sec)
+    lens_p["mcz"] = rp_p["mcz"] = mcz_msun * solar_mass
 
-    # Set lensing params from I, td (MLz expected in seconds)
+    # Set lensing params from I, td
     y = get_y_from_I(I)
-    s_params["y"] = y
-    s_params["MLz"] = float(get_MLz_from_td(td_s, y)) * SOLMASS2SEC
+    lens_p["y"] = y
+    lens_p["MLz"] = get_MLz_from_td(td_s, y) * solar_mass
 
-    # Ensure template has an initial gamma_P (required by optimize_mismatch_gammaP)
-    if "gamma_P" not in t_params:
-        t_params["gamma_P"] = 0.0
-
-    return s_params, t_params
+    return lens_p, rp_p
 
 
 def _compute_cell_min_ep(args: tuple) -> tuple:
@@ -85,34 +61,37 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
         f_min,
         delta_f,
         psd,
-        compare_both,
+        compute_both_modes,
         use_opt_match,
-        two_stage,
-        coarse_points,
-        xatol,
-        maxiter,
     ) = args
 
     t_params = copy.deepcopy(t_params_base)
-    t_params["omega_tilde"] = float(omega_val)
-    t_params["theta_tilde"] = float(theta_val)
+    t_params["omega_tilde"] = omega_val
+    t_params["theta_tilde"] = theta_val
 
-    if compare_both:
-        # Use new API to compare match and optimized_match internally
-        res = optimize_mismatch_gammaP(
+    if compute_both_modes:
+        # Evaluate both matching modes and take the minimum
+        res_no_opt = optimize_mismatch_gammaP(
             t_params,
             s_params,
             f_min=f_min,
             delta_f=delta_f,
             psd=psd,
-            compare_both=True,
-            two_stage=two_stage,
-            coarse_points=coarse_points,
-            xatol=xatol,
-            maxiter=maxiter,
-            prec_Class=P2,
+            use_opt_match=False,
         )
-        return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
+        res_opt = optimize_mismatch_gammaP(
+            t_params,
+            s_params,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd,
+            use_opt_match=True,
+        )
+
+        if res_no_opt["ep_min"] <= res_opt["ep_min"]:
+            return float(res_no_opt["ep_min"]), float(res_no_opt["ep_min_gammaP"])
+        else:
+            return float(res_opt["ep_min"]), float(res_opt["ep_min_gammaP"])
     else:
         res = optimize_mismatch_gammaP(
             t_params,
@@ -121,14 +100,8 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
             delta_f=delta_f,
             psd=psd,
             use_opt_match=use_opt_match,
-            compare_both=False,
-            two_stage=two_stage,
-            coarse_points=coarse_points,
-            xatol=xatol,
-            maxiter=maxiter,
-            prec_Class=P2,
         )
-        return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
+        return float(res["ep_min"]), float(res["ep_min_gammaP"])
 
 
 @timer_decorator
@@ -149,14 +122,10 @@ def main(
     f_min: float = 20.0,
     delta_f: float = 0.25,
     use_opt_match: bool = True,
-    compare_both: bool = False,
+    compute_both_modes: bool = True,
     n_workers: int = None,
     no_plot: bool = False,
     tag: str = "",
-    two_stage: bool = False,
-    coarse_points: int = 17,
-    xatol: float = 1e-3,
-    maxiter: int = 50,
 ):
     base_dir = os.path.dirname(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -171,17 +140,17 @@ def main(
     )
     s_gw = get_gw(s_params, f_min=f_min, delta_f=delta_f)
     f_arr = s_gw["f_array"]
-    psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
+    psd = Sn(f_arr)
 
     # Build grids
-    omega_arr = np.linspace(omega_min, omega_max, int(omega_points))
-    theta_arr = np.linspace(theta_min, theta_max, int(theta_points))
+    omega_arr = np.linspace(omega_min, omega_max, omega_points)
+    theta_arr = np.linspace(theta_min, theta_max, theta_points)
     X, Y = np.meshgrid(omega_arr, theta_arr)
 
     # Prepare jobs
     jobs: List[tuple] = []
-    for r in range(int(theta_points)):
-        for c in range(int(omega_points)):
+    for r in range(theta_points):
+        for c in range(omega_points):
             jobs.append(
                 (
                     X[r, c],
@@ -191,12 +160,8 @@ def main(
                     f_min,
                     delta_f,
                     psd,
-                    compare_both,
+                    compute_both_modes,
                     use_opt_match,
-                    two_stage,
-                    int(coarse_points),
-                    float(xatol),
-                    int(maxiter),
                 )
             )
 
@@ -212,8 +177,8 @@ def main(
     Z = np.zeros_like(X, dtype=float)
     G = np.zeros_like(X, dtype=float)
     k = 0
-    for r in range(int(theta_points)):
-        for c in range(int(omega_points)):
+    for r in range(theta_points):
+        for c in range(omega_points):
             Z[r, c], G[r, c] = results[k]
             k += 1
 
@@ -234,7 +199,7 @@ def main(
             "theta_J": theta_J,
             "phi_J": phi_J,
         },
-        "compare_both": compare_both,
+        "min_over_use_opt_match": compute_both_modes,
     }
 
     base_name = (
@@ -251,34 +216,13 @@ def main(
 
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
-
-        # Find minimum mismatch and mark it with a green dot
-        min_idx = np.unravel_index(np.argmin(Z), Z.shape)
-        min_omega = X[min_idx]
-        min_theta = Y[min_idx]
-        min_epsilon = Z[min_idx]
-
-        plt.plot(
-            min_omega,
-            min_theta,
-            "go",
-            markersize=5,
-            markeredgecolor="darkgreen",
-            markeredgewidth=1,
-            label=r"min $\epsilon$",
-        )
-        plt.legend()
-
+        cbar.set_label(r"$\epsilon(\tilde{h}_\mathrm{L}, \tilde{h}_\mathrm{RP})$")
         plt.xlabel(r"$\tilde{\Omega}$")
         plt.ylabel(r"$\tilde{\theta}$")
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
         plt.savefig(fig_path, dpi=200)
         print("Figure saved as", fig_path)
-        print(
-            f"Minimum mismatch: {min_epsilon:.6f} at (omega={min_omega:.4f}, theta={min_theta:.4f})"
-        )
 
     print("Pickle saved as", pkl_path)
 
@@ -286,7 +230,7 @@ def main(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Individual mismatch contour (L vs RP) over (omega_tilde, theta_tilde) with fixed mcz, td, I, and angles (v3, Precessing from Classes_v2)."
+            "Individual mismatch contour (L vs RP) over (omega_tilde, theta_tilde) with fixed mcz, td, I, and angles."
         )
     )
     parser.add_argument("--mcz_msun", type=float, default=20.0)
@@ -306,17 +250,13 @@ if __name__ == "__main__":
     parser.add_argument("--delta_f", type=float, default=0.25)
     parser.add_argument("--use_opt_match", action="store_true")
     parser.add_argument(
-        "--compare_both",
+        "--single_mode",
         action="store_true",
-        help="Use both match and optimized_match internally and take the best.",
+        help="If set, compute only one match mode controlled by --use_opt_match. Otherwise compute both modes and take the min.",
     )
     parser.add_argument("--n_workers", type=int, default=None)
     parser.add_argument("--no_plot", action="store_true")
     parser.add_argument("--tag", type=str, default="")
-    parser.add_argument("--two_stage", action="store_true")
-    parser.add_argument("--coarse_points", type=int, default=17)
-    parser.add_argument("--xatol", type=float, default=1e-3)
-    parser.add_argument("--maxiter", type=int, default=50)
 
     args = parser.parse_args()
     main(
@@ -336,12 +276,8 @@ if __name__ == "__main__":
         f_min=args.f_min,
         delta_f=args.delta_f,
         use_opt_match=args.use_opt_match,
-        compare_both=args.compare_both,
+        compute_both_modes=not args.single_mode,
         n_workers=args.n_workers,
         no_plot=args.no_plot,
         tag=args.tag,
-        two_stage=args.two_stage,
-        coarse_points=args.coarse_points,
-        xatol=args.xatol,
-        maxiter=args.maxiter,
     )
