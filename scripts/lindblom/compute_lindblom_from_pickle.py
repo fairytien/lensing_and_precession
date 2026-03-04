@@ -10,7 +10,9 @@ import numpy as np
 from scipy.integrate import simpson
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.functions_v3 import (
     get_gw,
@@ -200,7 +202,10 @@ def main(
         orientation_name = "edgeon"
 
     # Get orientation parameters
-    if location_name in orient_params and orientation_name in orient_params[location_name]:
+    if (
+        location_name in orient_params
+        and orientation_name in orient_params[location_name]
+    ):
         orient_dict = orient_params[location_name][orientation_name]
     else:
         logging.warning(f"Unknown location/orientation: {location}, using Taman.edgeon")
@@ -210,7 +215,7 @@ def main(
     y = get_y_from_I(I)
     from modules.functions_v3 import set_orientation
     from modules.default_params_v3 import NP_params_1
-    
+
     lens_base = set_orientation(orient_dict, lens_params_1)[0]
     lens_base["y"] = float(y)
 
@@ -286,7 +291,7 @@ def main(
         "template": "NP",
     }
 
-    output_path = os.path.join(output_dir, "lindblom_from_pickle.pkl")
+    output_path = os.path.join(output_dir, "lindblom.pkl")
     with open(output_path, "wb") as f:
         pickle.dump(output_data, f)
     logging.info(f"Results saved to: {output_path}")
@@ -317,7 +322,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--output_dir",
         type=str,
-        default="data/lindblom_from_pickle",
+        default="data/lindblom",
         help="Directory to save output files",
     )
     p.add_argument(
@@ -347,4 +352,3 @@ if __name__ == "__main__":
         delta_f=args.delta_f,
         n_workers=args.n_workers,
     )
-

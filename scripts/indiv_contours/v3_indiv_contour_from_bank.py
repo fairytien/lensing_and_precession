@@ -1,6 +1,8 @@
 import sys, os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.contours_v3 import *
 
 
@@ -36,7 +38,7 @@ def main():
     home_dir = os.environ.get("HOME", ".")
     filepath = pickle_data(
         results,
-        os.path.join(home_dir, "lensing_and_precession/data"),
+        os.path.join(home_dir, "lensing_and_precession/data/indiv_contours"),
         "v3_sys2_indiv_contour_mcz" + str(mcz_msun),
     )
 

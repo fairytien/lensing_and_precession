@@ -51,7 +51,7 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default="figures/dist_vs_z.pdf",
+        default="figures/utils/dist_vs_z.pdf",
         help="Output path for plot image",
     )
     args = parser.parse_args()

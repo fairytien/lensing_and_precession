@@ -1,6 +1,8 @@
 import sys, os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.contours_v2 import *
 from modules.default_params_v1 import *
 
@@ -23,7 +25,9 @@ def main():
 
     results = create_mismatch_contour_parallel(RP_params, lens_params)
 
-    filepath = pickle_data(results, "data", "null_indiv_contour_mcz" + str(mcz))
+    filepath = pickle_data(
+        results, "data/indiv_contours", "null_indiv_contour_mcz" + str(mcz)
+    )
 
 
 if __name__ == "__main__":

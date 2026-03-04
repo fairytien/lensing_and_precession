@@ -30,7 +30,7 @@ from modules.filenames import format_z_tag, timestamp_path
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
     fig_dir = os.path.join(base_dir, "figures", "indiv_contours")
-    data_dir = os.path.join(base_dir, "data")
+    data_dir = os.path.join(base_dir, "data", "indiv_contours")
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
     return fig_dir, data_dir

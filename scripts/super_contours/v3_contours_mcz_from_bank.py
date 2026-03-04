@@ -1,6 +1,8 @@
 import sys, os, argparse
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.contours_v3 import *
 
 
@@ -38,7 +40,7 @@ def main(output_dir):
         lens_params["mcz"] = mcz_msun * SOLMASS2SEC
         results[mcz_msun] = create_mismatch_contour(template_grid, lens_params)
 
-    filepath = pickle_data(results, "data", "sys2_contours_mcz")
+    filepath = pickle_data(results, "data/super_contours", "sys2_contours_mcz")
 
 
 if __name__ == "__main__":

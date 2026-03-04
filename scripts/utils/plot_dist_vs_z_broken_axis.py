@@ -44,7 +44,7 @@ def main():
     parser.add_argument(
         "--output",
         type=str,
-        default="figures/dist_vs_z_broken_axis.pdf",
+        default="figures/utils/dist_vs_z_broken_axis.pdf",
     )
     args = parser.parse_args()
 

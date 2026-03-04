@@ -1,6 +1,8 @@
 import sys, os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.contours_v2 import *
 
 import argparse
@@ -111,7 +113,7 @@ def _parse_args():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="data",
+        default="data/super_contours",
         help="Output directory for pickle.",
     )
     parser.add_argument(

@@ -1,6 +1,8 @@
 import sys, os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.contours_v2 import *
 
 
@@ -26,7 +28,9 @@ def main():
 
     results = create_contours_td(RP_params, lens_params, 0.5, td_arr)
 
-    filepath = pickle_data(results, "data", "TACC_contours_mcz" + str(mcz) + "_td")
+    filepath = pickle_data(
+        results, "data/super_contours", "TACC_contours_mcz" + str(mcz) + "_td"
+    )
 
 
 if __name__ == "__main__":
