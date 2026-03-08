@@ -10,7 +10,9 @@ from typing import Optional, Tuple
 import h5py
 
 
-def _format_min_precision(value: float) -> str:
+def _format_min_precision(
+    value: Optional[float] = None, prefix: str = "", suffix: str = ""
+) -> str:
     """Format a number with minimal precision needed to represent it accurately.
 
     Examples:
@@ -19,12 +21,15 @@ def _format_min_precision(value: float) -> str:
         46.25 → "46.25"
         46.123 → "46.123"
     """
+    if value is None:
+        return ""
+
     # Convert to string to preserve input precision
     s = str(value)
 
     # If it's already an integer string (no decimal point), return as-is
     if "." not in s:
-        return s
+        return f"{prefix}{s}{suffix}"
 
     # Remove trailing zeros after decimal point, but keep at least one digit if all zeros
     s = s.rstrip("0")
@@ -33,35 +38,7 @@ def _format_min_precision(value: float) -> str:
     if s.endswith("."):
         s = s[:-1]
 
-    return s
-
-
-def format_z_tag(z: Optional[float], prefix: str = "_z") -> str:
-    """Format redshift as a filename-safe tag.
-
-    Examples:
-        None -> ""
-        0.5 -> "_z0.5"
-        1.23456 -> "_z1.23456"
-    """
-    if z is None:
-        return ""
-    z_str = _format_min_precision(float(z))
-    return f"{prefix}{z_str}"
-
-
-def append_z_tag_to_path(path: Optional[str], z: Optional[float]) -> Optional[str]:
-    """Append redshift tag to file path stem, preserving extension.
-
-    Examples:
-        "fig.pdf", 0.5 -> "fig_z0.5.pdf"
-        None, 0.5 -> None
-        "fig.pdf", None -> "fig.pdf"
-    """
-    if (path is None) or (z is None):
-        return path
-    root, ext = os.path.splitext(path)
-    return f"{root}{format_z_tag(z)}{ext}"
+    return f"{prefix}{s}{suffix}"
 
 
 def timestamp_path(
@@ -95,6 +72,7 @@ def bank_filename(
     theta_pts: int,
     gamma_pts: int,
     orientation_tag: str,
+    z: Optional[float] = None,
     prefix: str = "rp_bank",
 ) -> str:
     """Build the HDF5 path for a single 4D bank at fixed mcz and orientation.
@@ -103,7 +81,8 @@ def bank_filename(
     """
     os.makedirs(bank_dir, exist_ok=True)
     name = (
-        f"{prefix}_mcz{_format_min_precision(mcz_msun)}Msun"
+        f"{prefix}{_format_min_precision(z, prefix='_z')}"
+        f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
         f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}"
         f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}"
         f"_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
@@ -123,6 +102,7 @@ def mismatch_cube_filename(
     theta_pts: int,
     gamma_pts: int,
     orientation_tag: str,
+    z: Optional[float] = None,
 ) -> str:
     """Build the HDF5 path for per-mcz mismatch cube outputs.
 
@@ -132,9 +112,10 @@ def mismatch_cube_filename(
     mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
     os.makedirs(mismatch_dir, exist_ok=True)
     name = (
-        f"mismatch_cubes_mcz{_format_min_precision(mcz_msun)}Msun"
+        f"mismatch_cubes{_format_min_precision(z, prefix='_z')}"
+        f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
         f"_I{_format_min_precision(I)}"
-        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
         f"_td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
@@ -154,6 +135,7 @@ def best_match_mcz_td_filename(
     theta_pts: Optional[int],
     gamma_pts: Optional[int],
     orientation_tag: str,
+    z: Optional[float] = None,
 ) -> str:
     """Build the HDF5 path for the aggregated best-match outputs across all mcz.
 
@@ -164,8 +146,9 @@ def best_match_mcz_td_filename(
     os.makedirs(best_match_dir, exist_ok=True)
     name = (
         f"best_match_I{_format_min_precision(I)}"
-        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun"
-        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
+        f"{_format_min_precision(z, prefix='_z')}"
+        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max, suffix='Msun')}"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
     )
     # Append resolution suffix in m-td-o-t-g order if all are present
     if (
@@ -189,6 +172,7 @@ def contour_mcz_td_filename(
     td_min_ms: float,
     td_max_ms: float,
     orientation_tag: str,
+    z: Optional[float] = None,
     ext: str = "pdf",
 ) -> str:
     """Build the figure path for the final mismatch contour over (td, mcz).
@@ -199,8 +183,9 @@ def contour_mcz_td_filename(
     os.makedirs(fig_dir, exist_ok=True)
     name = (
         f"contour_I{_format_min_precision(I)}"
-        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun"
-        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms"
+        f"{_format_min_precision(z, prefix='_z')}"
+        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max, suffix='Msun')}"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
         f"_min_mismatch_{orientation_tag}.{ext}"
     )
     return os.path.join(fig_dir, name)

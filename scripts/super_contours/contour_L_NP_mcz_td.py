@@ -30,7 +30,7 @@ from modules.default_params_v3 import (
     orient_params,
 )
 from modules.cosmology import apply_z
-from modules.filenames import format_z_tag
+from modules.filenames import _format_min_precision
 
 
 def _source_mcz_threshold_for_band(
@@ -284,7 +284,9 @@ def main(
 
     # Build output filename
     filename_suffix = f"I{I}_opt_mcz" if optimize_mcz else f"I{I}"
-    base_name = f"contour_L_NP_mcz_td_{filename_suffix}{format_z_tag(z)}"
+    base_name = (
+        f"contour_L_NP_mcz_td_{filename_suffix}{_format_min_precision(z, prefix='_z')}"
+    )
     if tag:
         base_name = f"{base_name}_{tag}"
 
@@ -303,23 +305,9 @@ def main(
     )
 
     if not no_plot:
-        finite_values = Z[np.isfinite(Z)]
-        if finite_values.size == 0:
-            print("Skipping plot: epsilon grid has no finite values.")
-            print("HDF5 saved as", h5_path)
-            return
-
         TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
         plt.figure(figsize=(8, 6))
-        z_min = float(np.min(finite_values))
-        z_max = float(np.max(finite_values))
-        if z_min == z_max:
-            eps = max(abs(z_min), 1.0) * 1e-12
-            levels = np.linspace(z_min - eps, z_max + eps, 3)
-        else:
-            levels = 100
-
-        cf = plt.contourf(TD, MCZ, Z, levels=levels, cmap="jet")
+        cf = plt.contourf(TD, MCZ, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
 
         if optimize_mcz:
@@ -332,7 +320,7 @@ def main(
         plt.xlabel(r"$\Delta t_d$ [ms]")
         plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
         if z is not None:
-            z_label = format_z_tag(z, prefix="z = ")
+            z_label = _format_min_precision(z, prefix="z = ")
             plt.plot([], [], " ", label=z_label)
             plt.legend(loc="best", framealpha=0.6)
         plt.tight_layout()
@@ -401,6 +389,8 @@ if __name__ == "__main__":
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
         td_points=args.td_points,
+        f_min=args.f_min,
+        delta_f=args.delta_f,
         z=args.redshift,
         no_plot=args.no_plot,
         n_processes=args.n_processes,

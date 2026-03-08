@@ -25,7 +25,7 @@ from modules.default_params_v3 import (
     SOLMASS2SEC,
 )
 from modules.cosmology import apply_z
-from modules.filenames import format_z_tag, timestamp_path
+from modules.filenames import _format_min_precision, timestamp_path
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -248,7 +248,7 @@ def main(
         f"thetaS{round(theta_S,3)}_phiS{round(phi_S,3)}_thetaJ{round(theta_J,3)}_phiJ{round(phi_J,3)}"
     )
     if z is not None:
-        base_name += format_z_tag(z)
+        base_name += _format_min_precision(z, prefix="_z")
     if tag:
         base_name = f"{base_name}_{tag}"
 
