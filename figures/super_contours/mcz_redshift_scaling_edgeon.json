@@ -1,0 +1,45 @@
+{
+  "corrcoef": 0.9999999999838722,
+  "grid_match": true,
+  "max_abs_diff": 2.4713836034029324e-06,
+  "max_mass_grid_abs_diff": 4.499999999296733e-05,
+  "max_residual_location": {
+    "mcz": 38.0,
+    "scaled_z0": 0.08969597297528584,
+    "td_ms": 70.0,
+    "z1": 0.08969350159168243
+  },
+  "mean_abs_diff": 2.8065439953388845e-07,
+  "mean_relative_diff": 8.608337081517207e-06,
+  "median_abs_diff": 1.6219398596547738e-07,
+  "out_pdf": "figures/super_contours/mcz_redshift_scaling_edgeon.pdf",
+  "p95_abs_diff": 9.833079503085409e-07,
+  "points_compared": 4080,
+  "residual_pdf": "figures/super_contours/mcz_redshift_scaling_edgeon_residual.pdf",
+  "rms_diff": 4.470539491096181e-07,
+  "thresholds": {
+    "0.001": {
+      "area_frac_scaled_z0": 0.05759803921568627,
+      "area_frac_z1": 0.05759803921568627,
+      "classification_disagree": 0.0
+    },
+    "0.003": {
+      "area_frac_scaled_z0": 0.1034313725490196,
+      "area_frac_z1": 0.1034313725490196,
+      "classification_disagree": 0.0
+    },
+    "0.01": {
+      "area_frac_scaled_z0": 0.17965686274509804,
+      "area_frac_z1": 0.17965686274509804,
+      "classification_disagree": 0.0
+    },
+    "0.03": {
+      "area_frac_scaled_z0": 0.2769607843137255,
+      "area_frac_z1": 0.2769607843137255,
+      "classification_disagree": 0.0
+    }
+  },
+  "z0": 1e-06,
+  "z0_path": "data/super_contours/contour_L_NP_I0.5_z1e-06_mcz10-90Msun_td20-70ms_min_mismatch_Taman.edgeon.h5",
+  "z1_path": "data/super_contours/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman.edgeon.h5"
+}
