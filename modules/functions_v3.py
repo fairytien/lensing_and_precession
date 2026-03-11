@@ -35,7 +35,6 @@ if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
 error_handler = np.seterr(invalid="raise")
 from scipy.integrate import simpson
 from scipy.optimize import fsolve, minimize_scalar
-from pycbc.filter import match, optimized_match
 from pycbc.types import FrequencySeries, TimeSeries
 import os
 from datetime import datetime
@@ -765,6 +764,31 @@ def SNR(
 #######################
 
 
+def optimized_match_bounded(
+    vec1,
+    vec2,
+    psd=None,
+    low_frequency_cutoff=None,
+    high_frequency_cutoff=None,
+    v1_norm=None,
+    v2_norm=None,
+    return_phase=False,
+):
+    """Compatibility wrapper; canonical implementation lives in modules.match_utils."""
+    from modules.match_utils import optimized_match_bounded as _optimized_match_bounded
+
+    return _optimized_match_bounded(
+        vec1,
+        vec2,
+        psd=psd,
+        low_frequency_cutoff=low_frequency_cutoff,
+        high_frequency_cutoff=high_frequency_cutoff,
+        v1_norm=v1_norm,
+        v2_norm=v2_norm,
+        return_phase=return_phase,
+    )
+
+
 def mismatch_from_params(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
@@ -776,81 +800,22 @@ def mismatch_from_params(
     use_opt_match=True,
     compare_both=False,
 ) -> dict:
-    """
-    Calculates the mismatch between two waveforms using the given parameters.
+    """Compatibility wrapper; canonical implementation lives in modules.match_utils."""
+    from modules.match_utils import mismatch_from_params as _mismatch_from_params
 
-    Parameters
-    ----------
-    t_params : dict
-        The parameters for the template waveform.
-    s_params : dict
-        The parameters for the source waveform.
-    f_min : float, optional
-        The minimum frequency for the waveform. Default is 20 Hz.
-    delta_f : float, optional
-        The frequency spacing between samples. Default is 0.25 Hz.
-    psd : FrequencySeries, optional
-        The power spectral density of the detector noise. If not provided, it will be calculated based on the aLIGO noise curve from arXiv:0903.0338, as a function of the source waveform's frequency range. Default is None.
-    lens_Class : class, optional
-        A class representing the lensed waveform. Default is LensingGeo.
-    prec_Class : class, optional
-        A class representing the precessing waveform. Default is Precessing.
-    use_opt_match : bool, optional
-        If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
-    compare_both : bool, optional
-        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the following keys:
-        - "mismatch" (float): The mismatch between the two waveforms.
-        - "index" (int): The number of samples to shift the source waveform to match with the template.
-        - "phi" (float): The phase to rotate the complex source waveform to match with the template.
-        - "match_method" (str, optional): The method used to obtain the result (`match` or `optimized_match`) if `compare_both` is True.
-    """
-
-    t_gw = get_gw(t_params, f_min, delta_f, lens_Class, prec_Class)
-    t_h = t_gw["strain"]
-    s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)
-    s_h = s_gw["strain"]
-    t_h.resize(len(s_h))
-
-    if psd is None:
-        f_arr = s_gw["f_array"]
-        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
-
-    if compare_both:
-        # Compute both `match` and `optimized_match`, take the one with the highest match (lowest mismatch)
-        results = []
-        for func, name in zip([match, optimized_match], ["match", "optimized_match"]):
-            try:
-                match_val, index, phi = func(t_h, s_h, psd, return_phase=True)  # type: ignore
-                results.append(
-                    {
-                        "mismatch": 1 - match_val,
-                        "index": index,
-                        "phi": phi,
-                        "match_val": match_val,
-                        "match_method": name,
-                    }
-                )
-            except Exception as e:
-                # If one method fails, skip it
-                continue
-        if not results:
-            raise RuntimeError("Both match and optimized_match failed.")
-        # Take the result with the maximum match value (minimum mismatch)
-        best_result = max(results, key=lambda x: x["match_val"])
-        # Remove match_val from output
-        return {k: v for k, v in best_result.items() if k != "match_val"}
-    else:
-        func = optimized_match if use_opt_match else match
-        match_val, index, phi = func(t_h, s_h, psd, return_phase=True)  # type: ignore
-
-        mismatch = 1 - match_val
-
-        return {"mismatch": mismatch, "index": index, "phi": phi}
+    return _mismatch_from_params(
+        t_params,
+        s_params,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+        use_opt_match=use_opt_match,
+        compare_both=compare_both,
+        get_gw_func=get_gw,
+        sn_func=Sn,
+    )
 
 
 def mismatch_from_strains(
@@ -862,76 +827,19 @@ def mismatch_from_strains(
     use_opt_match=True,
     compare_both=False,
 ) -> dict:
-    """
-    Calculates the mismatch between two input strain FrequencySeries using the provided PSD.
+    """Compatibility wrapper; canonical implementation lives in modules.match_utils."""
+    from modules.match_utils import mismatch_from_strains as _mismatch_from_strains
 
-    Parameters
-    ----------
-    t_strain : np.ndarray or FrequencySeries
-        The template waveform.
-    s_strain : np.ndarray or FrequencySeries
-        The source waveform.
-    f_min : float, optional
-        The minimum frequency for the waveform. Default is 20 Hz.
-    delta_f : float, optional
-        The frequency spacing between samples. Default is 0.25 Hz.
-    psd : FrequencySeries, optional
-        The power spectral density of the detector noise.
-    use_opt_match : bool, optional
-        If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
-    compare_both : bool, optional
-        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the following keys:
-        - "mismatch" (float): The mismatch between the two waveforms.
-        - "index" (int): The number of samples to shift the source waveform to match with the template.
-        - "phi" (float): The phase to rotate the complex source waveform to match with the template.
-        - "match_method" (str, optional): The method used to obtain the result (`match` or `optimized_match`) if `compare_both` is True.
-    """
-
-    if not isinstance(t_strain, FrequencySeries):
-        t_strain = FrequencySeries(t_strain, delta_f)
-    if not isinstance(s_strain, FrequencySeries):
-        s_strain = FrequencySeries(s_strain, delta_f)
-
-    # Get the psd from s_strain; Should provide psd to avoid recomputing it and save time
-    if psd is None:
-        f_arr = s_strain.sample_frequencies + f_min
-        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
-
-    if compare_both:
-        results = []
-        for func, name in zip([match, optimized_match], ["match", "optimized_match"]):
-            try:
-                match_val, index, phi = func(t_strain, s_strain, psd, return_phase=True)  # type: ignore
-                results.append(
-                    {
-                        "mismatch": 1 - match_val,
-                        "index": index,
-                        "phi": phi,
-                        "match_val": match_val,
-                        "match_method": name,
-                    }
-                )
-            except Exception as e:
-                # If one method fails, skip it
-                continue
-        if not results:
-            raise RuntimeError("Both match and optimized_match failed.")
-        # Take the result with the maximum match value (minimum mismatch)
-        best_result = max(results, key=lambda x: x["match_val"])
-        # Remove match_val from output
-        return {k: v for k, v in best_result.items() if k != "match_val"}
-    else:
-        func = optimized_match if use_opt_match else match
-        match_val, index, phi = func(t_strain, s_strain, psd, return_phase=True)  # type: ignore
-
-        mismatch = 1 - match_val
-
-        return {"mismatch": mismatch, "index": index, "phi": phi}
+    return _mismatch_from_strains(
+        t_strain,
+        s_strain,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        use_opt_match=use_opt_match,
+        compare_both=compare_both,
+        sn_func=Sn,
+    )
 
 
 ################################################
@@ -950,87 +858,25 @@ def optimize_mismatch_mcz(
     use_opt_match=True,
     compare_both=False,
 ) -> dict:
-    """
-    Optimizes the mismatch between the unlensed template and the lensed signal by varying the chirp mass of the template.
+    """Compatibility wrapper; canonical implementation lives in modules.match_utils."""
+    from modules.match_utils import optimize_mismatch_mcz as _optimize_mismatch_mcz
 
-    Parameters
-    ----------
-    t_params : dict
-        The parameters for the template waveform.
-    s_params : dict
-        The parameters for the source waveform.
-    f_min : float, optional
-        The minimum frequency for the waveform. Default is 20 Hz.
-    delta_f : float, optional
-        The frequency spacing between samples. Default is 0.25 Hz.
-    psd : FrequencySeries, optional
-        The power spectral density of the detector noise. If not provided, it will be calculated based on the aLIGO noise curve from arXiv:0903.0338, as a function of the source waveform's frequency range. Default is None.
-    lens_Class : class, optional
-        A class representing the lensed waveform. Default is `LensingGeo`.
-    prec_Class : class, optional
-        A class representing the precessing waveform. Default is `Precessing`.
-    use_opt_match : bool, optional
-        If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
-    compare_both : bool, optional
-        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the following keys:
-        - "ep_min" (float): The minimum mismatch value.
-        - "ep_min_mcz" (float): The chirp mass value corresponding to the minimum mismatch.
-        - "ep_min_idx" (int): The number of samples to shift to get the minimum mismatch at `ep_min_mcz`.
-        - "ep_min_phi" (float): The phase to rotate the complex waveform to get the minimum mismatch at `ep_min_mcz`.
-    """
-
-    t_params_copy, s_params_copy = set_to_params(t_params, s_params)
-
-    n_pts = 101
-    mcz_src_msun = s_params_copy["mcz"] / SOLMASS2SEC
-    mcz_arr_msun = np.linspace(mcz_src_msun - 1, mcz_src_msun + 1, n_pts)
-
-    # Compute source strain once (and psd if not provided) and reuse for all mcz
-    s_gw = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)
-    s_h = s_gw["strain"]
-    f_arr = s_gw["f_array"]
-    if psd is None:
-        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
-
-    # Arrays to accumulate results
-    ep_arr = np.empty(n_pts, dtype=float)
-    idx_arr = np.empty(n_pts, dtype=int)
-    phi_arr = np.empty(n_pts, dtype=float)
-
-    for i, mcz in enumerate(mcz_arr_msun):
-        t_params_i = {**t_params_copy, "mcz": float(mcz) * SOLMASS2SEC}
-        t_h = get_gw(t_params_i, f_min, delta_f, lens_Class, prec_Class)["strain"]
-        if len(t_h) != len(s_h):
-            t_h.resize(len(s_h))
-
-        res = mismatch_from_strains(
-            t_h,
-            s_h,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
-        )
-        ep_arr[i] = res["mismatch"]
-        idx_arr[i] = res["index"]
-        phi_arr[i] = res["phi"]
-
-    ep_min_idx = np.argmin(ep_arr)
-
-    results = {
-        "ep_min": ep_arr[ep_min_idx],
-        "ep_min_mcz": mcz_arr_msun[ep_min_idx],
-        "ep_min_idx": idx_arr[ep_min_idx],
-        "ep_min_phi": phi_arr[ep_min_idx],
-    }
-
-    return results
+    return _optimize_mismatch_mcz(
+        t_params,
+        s_params,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+        use_opt_match=use_opt_match,
+        compare_both=compare_both,
+        set_to_params_func=set_to_params,
+        get_gw_func=get_gw,
+        sn_func=Sn,
+        mismatch_from_strains_func=mismatch_from_strains,
+        solmass2sec=SOLMASS2SEC,
+    )
 
 
 def optimize_mismatch_gammaP(
@@ -1051,216 +897,33 @@ def optimize_mismatch_gammaP(
     xatol: float = 1e-3,
     maxiter: int = 50,
 ) -> dict:
-    """
-    Optimizes the mismatch between the precessing template and the signal by varying the initial precessing phase `gamma_P` of the template.
-
-    Parameters
-    ----------
-    t_params : dict
-        The parameters for the template waveform.
-    s_params : dict or None, optional
-        The parameters for the source waveform. **Required only if `s_strain` is None.** If `s_strain` is provided, this parameter is ignored.
-    s_strain : FrequencySeries or None, optional
-        **Recommended for performance**: Precomputed source strain as a FrequencySeries. If provided, `s_params` is ignored and this strain is reused across all gamma_P evaluations, avoiding repeated waveform generation. If `psd` is also None, it will be constructed using `s_strain.delta_f`, `f_min`, and the inferred frequency array.
-    f_min : float, optional
-        The minimum frequency for the waveform. Default is 20 Hz.
-    delta_f : float, optional
-        The frequency spacing between samples. Default is 0.25 Hz.
-    psd : FrequencySeries or None, optional
-        The power spectral density of the detector noise. If not provided, it will be calculated based on the aLIGO noise curve from arXiv:0903.0338, as a function of the source waveform's frequency range. Default is None.
-    lens_Class : class, optional
-        A class representing the lensed waveform. Default is `LensingGeo`.
-    prec_Class : class, optional
-        A class representing the precessing waveform. Default is `Precessing`.
-    use_opt_match : bool, optional
-        If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
-    compare_both : bool, optional
-        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
-    grid_points : int, optional
-        Number of points in the full-grid evaluation when `two_stage=False` and `gamma_grid` is not provided. Default is 51.
-    gamma_grid : np.ndarray or None, optional
-        Custom gamma array (radians). If provided and `two_stage=False`, evaluates mismatch on this grid instead of a uniform linspace.
-    two_stage : bool, optional
-        If True, performs a two-stage search: coarse grid over gamma followed by a bounded scalar minimization in a local bracket around the best coarse point. If False, evaluates all points in the full gamma grid. Default is False.
-    coarse_points : int, optional
-        Number of points in the coarse grid when `two_stage=True`. Default is 17.
-    xatol : float, optional
-        Absolute error in gamma at which the bounded optimizer stops (two-stage only). Default is 1e-3.
-    maxiter : int, optional
-        Maximum iterations for the bounded optimizer (two-stage only). Default is 50.
-
-    Examples
-    --------
-    # Standard usage with parameters (backward compatible)
-    result = optimize_mismatch_gammaP(t_params, s_params, f_min=20, delta_f=0.25)
-
-    # Efficient usage with precomputed strain (recommended when calling repeatedly)
-    s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)
-    psd = Sn(s_gw["f_array"], f_min=f_min, delta_f=delta_f)
-    result = optimize_mismatch_gammaP(t_params, None, s_gw["strain"], f_min=f_min, delta_f=delta_f, psd=psd)
-
-    Returns
-    -------
-    dict
-        A dictionary containing the following keys:
-        - "ep_min" (float): The minimum mismatch value.
-        - "ep_min_gammaP" (float): The `gamma_P` value corresponding to the minimum mismatch.
-        - "ep_min_idx" (int): The number of samples to shift to get the minimum mismatch at `ep_min_gammaP`.
-        - "ep_min_phi" (float): The phase to rotate the complex waveform to get the minimum mismatch at `ep_min_gammaP`.
-    """
-
-    t_params_copy = copy.deepcopy(t_params)
-
-    # condition that t_params must be precessing parameters and already contain gamma_P
-    if "gamma_P" not in t_params_copy:
-        raise ValueError("t_params must be precessing parameters")
-
-    # Validate that either s_params or s_strain is provided
-    if s_strain is None and s_params is None:
-        raise ValueError("Either s_params or s_strain must be provided")
-
-    # Compute or reuse source strain once (and psd if not provided) for all gamma_P
-    if s_strain is None:
-        s_gw = get_gw(s_params, f_min, delta_f, lens_Class, prec_Class)
-        s_strain_local = s_gw["strain"]
-        f_arr = s_gw["f_array"]
-        psd_local = psd if psd is not None else Sn(f_arr, f_min=f_min, delta_f=delta_f)
-    else:
-        s_strain_local = s_strain
-        f_arr = s_strain_local.sample_frequencies + f_min
-        # honor the actual sampling of the provided source strain
-        psd_local = (
-            psd
-            if psd is not None
-            else Sn(f_arr, f_min=f_min, delta_f=s_strain_local.delta_f)
-        )
-
-    if not two_stage:
-        if gamma_grid is not None:
-            gamma_arr = np.asarray(gamma_grid, dtype=float)
-            gamma_arr = np.mod(gamma_arr, 2 * np.pi)
-        else:
-            gamma_arr = np.linspace(0, 2 * np.pi, int(grid_points), endpoint=False)
-
-        # Arrays to accumulate results (avoid dict of float keys)
-        n_gam = len(gamma_arr)
-        ep_arr = np.empty(n_gam, dtype=float)
-        idx_arr = np.empty(n_gam, dtype=int)
-        phi_arr = np.empty(n_gam, dtype=float)
-
-        for i, gamma_P in enumerate(gamma_arr):
-            t_params_i = {**t_params_copy, "gamma_P": float(gamma_P)}
-            t_strain = get_gw(t_params_i, f_min, delta_f, lens_Class, prec_Class)[
-                "strain"
-            ]
-            # Align template length to source
-            if len(t_strain) != len(s_strain_local):
-                t_strain.resize(len(s_strain_local))
-
-            res = mismatch_from_strains(
-                t_strain,
-                s_strain_local,
-                f_min=f_min,
-                delta_f=delta_f,
-                psd=psd_local,
-                use_opt_match=use_opt_match,
-                compare_both=compare_both,
-            )
-            ep_arr[i] = res["mismatch"]
-            idx_arr[i] = res["index"]
-            phi_arr[i] = res["phi"]
-
-        ep_min_idx = np.argmin(ep_arr)
-        return {
-            "ep_min": float(ep_arr[ep_min_idx]),
-            "ep_min_gammaP": float(gamma_arr[ep_min_idx]),
-            "ep_min_idx": int(idx_arr[ep_min_idx]),
-            "ep_min_phi": float(phi_arr[ep_min_idx]),
-        }
-
-    # Two-stage search: coarse grid then bounded refinement around best coarse point
-    if coarse_points < 3:
-        raise ValueError("coarse_points must be >= 3 for two-stage search")
-
-    gamma_coarse = np.linspace(0, 2 * np.pi, int(coarse_points), endpoint=False)
-    ep_coarse = np.empty_like(gamma_coarse)
-
-    def objective(gamma_val: float) -> float:
-        # periodic wrap to [0, 2*pi)
-        gamma = float(np.mod(gamma_val, 2 * np.pi))
-        t_params_i = {**t_params_copy, "gamma_P": gamma}
-        t_strain_local = get_gw(t_params_i, f_min, delta_f, lens_Class, prec_Class)[
-            "strain"
-        ]
-        if len(t_strain_local) != len(s_strain_local):
-            t_strain_local.resize(len(s_strain_local))
-        res_local = mismatch_from_strains(
-            t_strain_local,
-            s_strain_local,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd_local,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
-        )
-        return float(res_local["mismatch"])
-
-    # coarse evaluation
-    for i, g in enumerate(gamma_coarse):
-        ep_coarse[i] = objective(float(g))
-
-    best_idx = int(np.argmin(ep_coarse))
-    g0 = float(gamma_coarse[best_idx])
-    half_width = (2 * np.pi) / float(coarse_points)
-    a = g0 - half_width
-    b = g0 + half_width
-
-    # Build refinement segments handling wrap-around
-    segments: List[Tuple[float, float]]
-    if a < 0:
-        segments = [(0.0, b), (2 * np.pi + a, 2 * np.pi)]
-    elif b > 2 * np.pi:
-        segments = [(0.0, b - 2 * np.pi), (a, 2 * np.pi)]
-    else:
-        segments = [(a, b)]
-
-    best_fun = np.inf
-    best_x = g0
-    for lo, hi in segments:
-        res = minimize_scalar(
-            objective,
-            method="bounded",
-            bounds=(lo, hi),
-            options={"xatol": float(xatol), "maxiter": int(maxiter)},
-        )
-        if res.fun < best_fun:
-            best_fun = float(res.fun)
-            best_x = float(res.x)
-
-    # Final evaluation to extract index and phi at optimal gamma
-    gamma_star = float(np.mod(best_x, 2 * np.pi))
-    t_params_star = {**t_params_copy, "gamma_P": gamma_star}
-    t_strain_star = get_gw(t_params_star, f_min, delta_f, lens_Class, prec_Class)[
-        "strain"
-    ]
-    if len(t_strain_star) != len(s_strain_local):
-        t_strain_star.resize(len(s_strain_local))
-    res_star = mismatch_from_strains(
-        t_strain_star,
-        s_strain_local,
-        f_min=f_min,
-        delta_f=delta_f,
-        psd=psd_local,
-        use_opt_match=use_opt_match,
-        compare_both=compare_both,
+    """Compatibility wrapper; canonical implementation lives in modules.match_utils."""
+    from modules.match_utils import (
+        optimize_mismatch_gammaP as _optimize_mismatch_gammaP,
     )
 
-    return {
-        "ep_min": float(res_star["mismatch"]),
-        "ep_min_gammaP": gamma_star,
-        "ep_min_idx": int(res_star["index"]),
-        "ep_min_phi": float(res_star["phi"]),
-    }
+    return _optimize_mismatch_gammaP(
+        t_params,
+        s_params=s_params,
+        s_strain=s_strain,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+        use_opt_match=use_opt_match,
+        compare_both=compare_both,
+        grid_points=grid_points,
+        gamma_grid=gamma_grid,
+        two_stage=two_stage,
+        coarse_points=coarse_points,
+        xatol=xatol,
+        maxiter=maxiter,
+        set_to_params_func=set_to_params,
+        get_gw_func=get_gw,
+        sn_func=Sn,
+        mismatch_from_strains_func=mismatch_from_strains,
+    )
 
 
 def find_optimized_coalescence_params(
@@ -1277,141 +940,29 @@ def find_optimized_coalescence_params(
     verify_optimization=False,
     **kwargs,
 ) -> dict:
-    """
-    Finds the optimized time and phase of coalescence in the template parameters for the template waveform to match with the source waveform.
-
-    Parameters
-    ----------
-    t_params : dict
-        The parameters for the template waveform.
-    s_params : dict
-        The parameters for the source waveform.
-    f_min : float, optional
-        The minimum frequency for the waveform. Default is 20 Hz.
-    delta_f : float, optional
-        The frequency spacing between samples. Default is 0.25 Hz.
-    psd : FrequencySeries, optional
-        The power spectral density of the detector noise. If not provided, it will be calculated based on the aLIGO noise curve from arXiv:0903.0338, as a function of the source waveform's frequency range. Default is None.
-    lens_Class : class, optional
-        A class representing the lensed waveform. Default is `LensingGeo`.
-    prec_Class : class, optional
-        A class representing the precessing waveform. Default is `Precessing`.
-    use_opt_match : bool, optional
-        If True, uses the `optimized_match` function from `pycbc.filter`. Default is True.
-    compare_both : bool, optional
-        If True, computes both `match` and `optimized_match` and returns the result with the maximum match (minimum mismatch). Default is False.
-    optimize_gammaP : bool, optional
-        If True, optimizes the initial precessing phase `gamma_P` before finding optimal `t_c` and `phi_c`. If False, skips `gamma_P` optimization and finds optimal `t_c` directly, and then finds optimal `phi_c`. Default is True.
-    verify_optimization : bool, optional
-        If True, verifies the optimization by computing a final mismatch after `t_c` and `phi_c` are updated. The index and phi in the final mismatch should be ~0, indicating successful optimization. This is useful for debugging but adds an extra mismatch computation. Default is False.
-    **kwargs : dict, optional
-        Additional keyword arguments to pass to the `optimize_mismatch_gammaP` function.
-
-    Returns
-    -------
-    dict
-        A dictionary containing the following keys:
-        - "opt_t_params" (dict): The optimized template parameters with updated `t_c`, `phi_c`, and `gamma_P` (if optimized).
-        - "ep_min" (float): The final mismatch value after optimization.
-        - "ep_min_idx" (int): The optimal time shift index found during optimization.
-        - "ep_min_phi" (float): The optimal phase rotation found during optimization.
-        - "ep_min_gammaP" (float or None): The optimized `gamma_P` value if `optimize_gammaP=True`, otherwise None.
-    """
-
-    t_params_copy, s_params_copy = set_to_params(t_params, s_params)
-
-    # If psd is not provided, calculate it based on the source f_cut
-    if psd is None:
-        f_cut = get_fcut_from_mcz(s_params_copy["mcz"] / SOLMASS2SEC)
-        f_arr = np.arange(f_min, f_cut, delta_f)
-        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
-
-    if optimize_gammaP:
-        if "gamma_P" not in t_params:
-            raise ValueError("t_params must contain gamma_P")
-
-        gammaP_results = optimize_mismatch_gammaP(
-            t_params_copy,
-            s_params_copy,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            lens_Class=lens_Class,
-            prec_Class=prec_Class,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
-            **kwargs,
-        )
-        # Get the optimized gamma_P to plot the optimized precessing template waveform
-        ep_min_gammaP = gammaP_results["ep_min_gammaP"]
-        t_params_copy["gamma_P"] = ep_min_gammaP
-
-        # Get the optimized t_c using gamma_P optimization results
-        ep_min_idx = gammaP_results["ep_min_idx"]
-        src_strain = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
-            "strain"
-        ]
-        # Get the time step of the source waveform if it were a TimeSeries (assuming the TimeSeries is even in length) (https://pycbc.org/pycbc/latest/html/_modules/pycbc/types/frequencyseries.html#FrequencySeries)
-        delta_t = src_strain.delta_t
-        t_params_copy["t_c"] = t_params_copy["t_c"] - ep_min_idx * delta_t
-    else:
-        ep_min_gammaP = None
-        # When not optimizing gamma_P, we need to find the optimal t_c directly
-        # First get the current mismatch to find the optimal index for shifting the waveform and then find the optimal t_c
-        initial_mismatch = mismatch_from_params(
-            t_params_copy,
-            s_params_copy,
-            f_min,
-            delta_f,
-            psd,
-            lens_Class,
-            prec_Class,
-            use_opt_match,
-            compare_both,
-        )
-        ep_min_idx = initial_mismatch["index"]
-        src_strain = get_gw(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
-            "strain"
-        ]
-        delta_t = src_strain.delta_t
-        t_params_copy["t_c"] = t_params_copy["t_c"] - ep_min_idx * delta_t
-
-    # The optimized phi_c can only be found AFTER the optimized t_c (or index for shifting the waveform) is found
-    mismatch_results = mismatch_from_params(
-        t_params_copy,
-        s_params_copy,
-        f_min,
-        delta_f,
-        psd,
-        lens_Class,
-        prec_Class,
-        use_opt_match,
-        compare_both,
+    """Compatibility wrapper; canonical implementation lives in modules.match_utils."""
+    from modules.match_utils import (
+        find_optimized_coalescence_params as _find_optimized_coalescence_params,
     )
-    phi = mismatch_results["phi"]
-    t_params_copy["phi_c"] = phi
 
-    # After the optimized t_c and phi_c are updated in t_params_copy, the "index" and "phi" in the final mismatch should be ~0; this is useful for debugging but slows down the function
-    if verify_optimization:
-        mismatch_results = mismatch_from_params(
-            t_params_copy,
-            s_params_copy,
-            f_min,
-            delta_f,
-            psd,
-            lens_Class,
-            prec_Class,
-            use_opt_match,
-            compare_both,
-        )
-        print(
-            f"Verification results: index = {mismatch_results['index']:.3g}, phi = {mismatch_results['phi']:.3g}, both should be ~0 if optimization was successful"
-        )  # FOR DEBUGGING
-
-    return {
-        "opt_t_params": t_params_copy,
-        "ep_min": mismatch_results["mismatch"],
-        "ep_min_idx": mismatch_results["index"],
-        "ep_min_phi": mismatch_results["phi"],
-        "ep_min_gammaP": ep_min_gammaP,
-    }
+    return _find_optimized_coalescence_params(
+        t_params,
+        s_params,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+        use_opt_match=use_opt_match,
+        compare_both=compare_both,
+        optimize_gammaP=optimize_gammaP,
+        verify_optimization=verify_optimization,
+        set_to_params_func=set_to_params,
+        get_fcut_from_mcz_func=get_fcut_from_mcz,
+        sn_func=Sn,
+        optimize_mismatch_gammaP_func=optimize_mismatch_gammaP,
+        mismatch_from_params_func=mismatch_from_params,
+        get_gw_func=get_gw,
+        solmass2sec=SOLMASS2SEC,
+        **kwargs,
+    )
