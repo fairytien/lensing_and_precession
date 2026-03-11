@@ -30,7 +30,10 @@ from modules.default_params_v3 import (
     orient_params,
 )
 from modules.cosmology import apply_z
-from modules.filenames import _format_min_precision
+from modules.filenames import _format_min_precision, contour_mcz_td_filename
+
+
+ORIENTATION_TAG = "Taman.edgeon"
 
 
 def _source_mcz_threshold_for_band(
@@ -56,6 +59,15 @@ def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
     return fig_dir, data_dir
+
+
+def _with_l_np_contour_name(filepath: str, tag: str = "") -> str:
+    dirname, filename = os.path.split(filepath)
+    filename = filename.replace("contour_", "contour_L_NP_", 1)
+    if tag:
+        root, ext_with_dot = os.path.splitext(filename)
+        filename = f"{root}_{tag}{ext_with_dot}"
+    return os.path.join(dirname, filename)
 
 
 def _save_contour_hdf5(
@@ -96,24 +108,8 @@ def _save_contour_hdf5(
     return filepath
 
 
-def _compute_mismatch_for_mcz(args):
-    """
-    Compute mismatch for a single mcz value across all time delays.
-    This function is designed to be used with multiprocessing.
-    """
-    return _compute_mismatch_row(args, optimize_mcz=False)
-
-
-def _compute_mismatch_for_mcz_optimized(args):
-    """
-    Compute optimized mismatch for a single mcz value across all time delays.
-    This function optimizes over template mcz for each (source_mcz, td) pair.
-    """
-    return _compute_mismatch_row(args, optimize_mcz=True)
-
-
-def _compute_mismatch_row(args, optimize_mcz: bool):
-    mcz, td_arr, y, f_min, delta_f, compare_both, z = args
+def _compute_mismatch_row(args):
+    mcz, td_arr, y, f_min, delta_f, compare_both, z, optimize_mcz = args
 
     # Build fresh parameter dictionaries for this process
     lens_params, NP_params = set_orientation(
@@ -149,6 +145,7 @@ def _compute_mismatch_row(args, optimize_mcz: bool):
 
     # Compute mismatch for all time delays for this mcz
     mismatch_row = np.zeros(len(td_arr))
+    mismatch_func = optimize_mismatch_mcz if optimize_mcz else mismatch_from_params
 
     for j, td in enumerate(td_arr):
         lens_params["y"] = y
@@ -157,7 +154,7 @@ def _compute_mismatch_row(args, optimize_mcz: bool):
         # Mismatch: NP template vs Lensed source
         try:
             if optimize_mcz:
-                opt_ep_results = optimize_mismatch_mcz(
+                opt_ep_results = mismatch_func(
                     NP_params,
                     lens_params,
                     f_min=f_min,
@@ -170,7 +167,7 @@ def _compute_mismatch_row(args, optimize_mcz: bool):
                     opt_ep_results["ep_min"]
                 )  # ensure JSON/pickle friendly
             else:
-                res = mismatch_from_params(
+                res = mismatch_func(
                     NP_params,
                     lens_params,
                     f_min=f_min,
@@ -256,19 +253,19 @@ def main(
     )
 
     # Prepare arguments for parallel computation
-    args_list = [(mcz, td_arr, y, f_min, delta_f, compare_both, z) for mcz in mcz_arr]
+    args_list = [
+        (mcz, td_arr, y, f_min, delta_f, compare_both, z, optimize_mcz)
+        for mcz in mcz_arr
+    ]
 
-    # Choose computation function based on optimization option
     if optimize_mcz:
-        compute_func = _compute_mismatch_for_mcz_optimized
         print("Computing mismatch with mcz optimization")
     else:
-        compute_func = _compute_mismatch_for_mcz
         print("Computing mismatch without mcz optimization")
 
     # Compute epsilon grid in parallel
     with Pool(n_processes) as pool:
-        results = pool.map(compute_func, args_list)
+        results = pool.map(_compute_mismatch_row, args_list)
 
     # Convert results to numpy array
     Z = np.array(results)
@@ -282,16 +279,21 @@ def main(
             f"Range: {float(dropped_mcz[0]):.6g} to {float(dropped_mcz[-1]):.6g} Msun"
         )
 
-    # Build output filename
-    filename_suffix = f"I{I}_opt_mcz" if optimize_mcz else f"I{I}"
-    base_name = (
-        f"contour_L_NP_mcz_td_{filename_suffix}{_format_min_precision(z, prefix='_z')}"
-    )
-    if tag:
-        base_name = f"{base_name}_{tag}"
-
     # Save results to HDF5
-    h5_path = os.path.join(data_dir, f"{base_name}.h5")
+    h5_path = _with_l_np_contour_name(
+        contour_mcz_td_filename(
+            fig_dir=data_dir,
+            I=I,
+            mcz_min=mcz_min,
+            mcz_max=mcz_max,
+            td_min_ms=td_min_ms,
+            td_max_ms=td_max_ms,
+            orientation_tag=ORIENTATION_TAG,
+            z=z,
+            ext="h5",
+        ),
+        tag=tag,
+    )
     _save_contour_hdf5(
         filepath=h5_path,
         mcz_arr=mcz_arr,
@@ -299,7 +301,7 @@ def main(
         epsilon_matrix=Z,
         I=I,
         z=z,
-        location="Taman.edgeon",
+        location=ORIENTATION_TAG,
         template="NP",
         optimize_mcz=optimize_mcz,
     )
@@ -325,8 +327,20 @@ def main(
             plt.legend(loc="best", framealpha=0.6)
         plt.tight_layout()
 
-        fig_filename = f"{base_name}.pdf"
-        fig_path = os.path.join(fig_dir, fig_filename)
+        fig_path = _with_l_np_contour_name(
+            contour_mcz_td_filename(
+                fig_dir=fig_dir,
+                I=I,
+                mcz_min=mcz_min,
+                mcz_max=mcz_max,
+                td_min_ms=td_min_ms,
+                td_max_ms=td_max_ms,
+                orientation_tag=ORIENTATION_TAG,
+                z=z,
+                ext="pdf",
+            ),
+            tag=tag,
+        )
         plt.savefig(fig_path, dpi=200)
         plt.close()
         print("Figure saved as", fig_path)
