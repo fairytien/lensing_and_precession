@@ -37,42 +37,51 @@ def set_default_plot_style():
     plt.rcParams["figure.titlesize"] = 24
 
 
-def angle_to_pi_string(angle: float, denom_thres: int = 50) -> str:
+def angle_to_pi_string(
+    angle: float, denom_thres: int = 50, wrap_math: bool = True
+) -> str:
     """
     Converts an angle in radians to a string in pi format.
 
     Args:
         angle (float): The angle in radians.
         denom_thres (int): The threshold for the denominator of the fraction. Default is 50.
+        wrap_math (bool): If True, wrap non-zero pi expressions in `$...$`.
 
     Returns:
         str: The angle in pi format.
     """
 
-    # Handle special cases
-    if angle == 0:
+    def _wrap(expr: str) -> str:
+        return rf"${expr}$" if wrap_math else expr
+
+    if np.isclose(angle, 0.0, atol=1e-10):
         return "0"
-    elif angle == np.pi:
-        return r"$\pi$"
-    elif angle == -np.pi:
-        return r"-$\pi$"
-    elif angle % np.pi == 0:
-        return rf"{int(angle / np.pi)}$\pi$"
+    if np.isclose(angle, np.pi, atol=1e-10):
+        return _wrap(r"\pi")
+    if np.isclose(angle, -np.pi, atol=1e-10):
+        return _wrap(r"-\pi")
 
-    else:
-        # Convert the angle to a fraction of pi
-        fraction = Fraction(angle / np.pi).limit_denominator(1000)
+    fraction = Fraction(angle / np.pi).limit_denominator(1000)
 
-        # If the denominator is above the threshold, return the decimal form
-        if fraction.denominator > denom_thres:
-            return rf"{angle/np.pi:.3f}$\pi$"
+    if fraction.denominator > denom_thres:
+        return _wrap(rf"{angle / np.pi:.3f}\pi")
 
-        # If the numerator is 1, we don't need to show it
-        if fraction.numerator == 1:
-            return rf"$\pi$/{fraction.denominator}"
+    numerator = fraction.numerator
+    denominator = fraction.denominator
 
-        # Otherwise, return the fraction form
-        return rf"{fraction.numerator}$\pi$/{fraction.denominator}"
+    if denominator == 1:
+        if numerator == 1:
+            return _wrap(r"\pi")
+        if numerator == -1:
+            return _wrap(r"-\pi")
+        return _wrap(rf"{numerator}\pi")
+
+    if numerator == 1:
+        return _wrap(rf"\pi/{denominator}")
+    if numerator == -1:
+        return _wrap(rf"-\pi/{denominator}")
+    return _wrap(rf"{numerator}\pi/{denominator}")
 
 
 ##########################
@@ -440,6 +449,77 @@ def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
     y_min = min(y0_0[0], y1_0[0])
     axes[0, 0].set_ylim(y_min, y_max)
     axes[1, 0].set_ylim(y_min, y_max)
+
+
+def customize_2x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
+    # top panel
+    axes[0, 0].legend(
+        bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
+    )
+    axes[0, 0].tick_params(axis="both", which="major", labelsize=18)
+    axes[0, 0].grid()
+    axes[0, 1].tick_params(axis="both", which="major", labelsize=18)
+    axes[0, 1].grid()
+
+    # bottom panel
+    axes[1, 0].legend(
+        bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
+    )
+    axes[1, 0].set_xlabel("f (Hz)", fontsize=24)
+    axes[1, 0].tick_params(axis="both", which="major", labelsize=18)
+    axes[1, 0].grid()
+    axes[1, 1].set_xlabel("f (Hz)", fontsize=24)
+    axes[1, 1].tick_params(axis="both", which="major", labelsize=18)
+    axes[1, 1].grid()
+
+    for ax in (axes[0, 0], axes[1, 0]):
+        ax.set_yscale("linear")
+        ax.relim()
+        ax.autoscale_view()
+
+
+def customize_3x2_axes_abs(axes: matplotlib.axes._axes.Axes) -> None:
+    for row in range(3):
+        axes[row, 0].legend(
+            bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
+        )
+        axes[row, 0].tick_params(axis="both", which="major", labelsize=18)
+        axes[row, 0].grid()
+        axes[row, 0].set_yscale("log")
+        axes[row, 1].tick_params(axis="both", which="major", labelsize=18)
+        axes[row, 1].grid()
+
+    axes[2, 0].set_xlabel("f (Hz)", fontsize=24)
+    axes[2, 1].set_xlabel("f (Hz)", fontsize=24)
+
+
+def customize_3x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
+    for row in range(3):
+        axes[row, 0].legend(
+            bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
+        )
+        axes[row, 0].tick_params(axis="both", which="major", labelsize=18)
+        axes[row, 0].grid()
+        axes[row, 0].set_yscale("linear")
+        axes[row, 1].tick_params(axis="both", which="major", labelsize=18)
+        axes[row, 1].grid()
+
+    axes[2, 0].set_xlabel("f (Hz)", fontsize=24)
+    axes[2, 1].set_xlabel("f (Hz)", fontsize=24)
+
+
+def customize_2x1_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
+    axes[0].set_xlabel("f (Hz)", fontsize=24)
+    axes[0].set_ylabel(r"$\left(B/B_{\rm unlensed}\right) - 1$", fontsize=24)
+    axes[0].tick_params(axis="both", which="major", labelsize=18)
+    axes[0].grid()
+    axes[0].set_yscale("linear")
+    axes[0].legend(fontsize=20)
+
+    axes[1].set_xlabel("f (Hz)", fontsize=24)
+    axes[1].set_ylabel(r"$\Phi_{\rm L} - \Phi_{\rm RP}$ (rad)", fontsize=24)
+    axes[1].tick_params(axis="both", which="major", labelsize=18)
+    axes[1].grid()
 
 
 ##########################

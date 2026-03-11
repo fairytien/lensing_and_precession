@@ -1,18 +1,24 @@
 import os
 import sys
-from fractions import Fraction
 from typing import Any, Optional, Sequence
+
+import numpy as np
+import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from modules.Classes_v3 import LensingGeo, Precessing
 from modules.default_params_v3 import SOLMASS2SEC
 from modules.functions_v3 import get_MLz_from_td, get_y_from_I
-from modules.plot_utils import customize_2x2_axes
 from modules.cosmology import apply_z
-from modules.filenames import append_z_tag_to_path
-
-import numpy as np
-import matplotlib.pyplot as plt
+from modules.filenames import _format_min_precision
+from modules.plot_utils_v3 import (
+    angle_to_pi_string,
+    customize_2x1_axes_ratio,
+    customize_2x2_axes,
+    customize_2x2_axes_ratio,
+    customize_3x2_axes_abs,
+    customize_3x2_axes_ratio,
+)
 
 
 def make_frequency_array(f_min, f_cut, delta_f=None, npoints=None):
@@ -83,98 +89,6 @@ def _plot_baseline(
         color=baseline_color,
         label=label,
     )
-
-
-def _format_angle_pi(angle, max_den=24):
-    r"""Return a TeX-ready string for angle in radians as multiple of \pi.
-    Examples: 0 -> 0, \pi/3 -> '$\pi/3$', 2\pi/3 -> '$2\pi/3$', \pi -> '$\pi$', 3\pi/2 -> '$3\pi/2$'.
-    Returns a string already wrapped in math mode $...$.
-    """
-    x = angle / np.pi
-    if np.isclose(x, 0.0, atol=1e-10):
-        return "0"
-    frac = Fraction(x).limit_denominator(max_den)
-    n, d = frac.numerator, frac.denominator
-    sign = "-" if n < 0 else ""
-    n_abs = abs(n)
-    if d == 1:
-        # integer multiple
-        return rf"${sign}\pi$" if n_abs == 1 else rf"${sign}{n_abs}\pi$"
-    # general fraction
-    return rf"${sign}\pi/{d}$" if n_abs == 1 else rf"${sign}{n_abs}\pi/{d}$"
-
-
-def customize_2x2_axes_ratio(axes):
-    """Like modules.plot_utils.customize_2x2_axes but for ratio panels:
-    - Do NOT use log yscale
-    - Do NOT force the same y-limits across rows
-    Keeps legends, grids, labels, and tick sizes consistent.
-    """
-    # top panel
-    axes[0, 0].legend(
-        bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
-    )
-    axes[0, 0].tick_params(axis="both", which="major", labelsize=18)
-    axes[0, 0].grid()
-    axes[0, 1].tick_params(axis="both", which="major", labelsize=18)
-    axes[0, 1].grid()
-
-    # bottom panel
-    axes[1, 0].legend(
-        bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
-    )
-    axes[1, 0].set_xlabel("f (Hz)", fontsize=24)
-    axes[1, 0].tick_params(axis="both", which="major", labelsize=18)
-    axes[1, 0].grid()
-    axes[1, 1].set_xlabel("f (Hz)", fontsize=24)
-    axes[1, 1].tick_params(axis="both", which="major", labelsize=18)
-    axes[1, 1].grid()
-
-    # Ensure linear y-scale for amplitude panels and autoscale independently
-    for ax in (axes[0, 0], axes[1, 0]):
-        ax.set_yscale("linear")
-        ax.relim()
-        ax.autoscale_view()
-
-
-def customize_3x2_axes_abs(axes):
-    """Customizer for 3x2 figures (abs mode):
-    - Log scale on amplitude panels (col 0)
-    - Legends on each amplitude row
-    - Grids and tick sizes consistent
-    """
-    for r in range(3):
-        axes[r, 0].legend(
-            bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
-        )
-        axes[r, 0].tick_params(axis="both", which="major", labelsize=18)
-        axes[r, 0].grid()
-        axes[r, 0].set_yscale("log")
-        axes[r, 1].tick_params(axis="both", which="major", labelsize=18)
-        axes[r, 1].grid()
-    # x labels on bottom row
-    axes[2, 0].set_xlabel("f (Hz)", fontsize=24)
-    axes[2, 1].set_xlabel("f (Hz)", fontsize=24)
-
-
-def customize_3x2_axes_ratio(axes):
-    """Customizer for 3x2 figures (ratio mode):
-    - Linear y-scale on amplitude panels (col 0)
-    - Legends on each amplitude row
-    - Grids and tick sizes consistent
-    """
-    for r in range(3):
-        axes[r, 0].legend(
-            bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
-        )
-        axes[r, 0].tick_params(axis="both", which="major", labelsize=18)
-        axes[r, 0].grid()
-        axes[r, 0].set_yscale("linear")
-        axes[r, 1].tick_params(axis="both", which="major", labelsize=18)
-        axes[r, 1].grid()
-    # x labels on bottom row
-    axes[2, 0].set_xlabel("f (Hz)", fontsize=24)
-    axes[2, 1].set_xlabel("f (Hz)", fontsize=24)
 
 
 def plot_lensing_figure(
@@ -324,9 +238,13 @@ def plot_lensing_figure(
     if z is not None:
         print(f"Applied redshift z={z} (mcz treated as source-frame)")
 
-    # Optional save (format inferred from extension)
     if save_path:
-        out_path = append_z_tag_to_path(save_path, z)
+        mcz_msun = float(lens_params_base["mcz"]) / SOLMASS2SEC
+        root, ext = os.path.splitext(save_path)
+        out_path = (
+            f"{root}{_format_min_precision(z, prefix='_z')}"
+            f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}{ext}"
+        )
         fig.savefig(
             str(out_path),
             bbox_inches=bbox_inches,
@@ -401,7 +319,7 @@ def plot_precessing_figure(
                     "NP",
                 )
             if vary_key == "gamma_P":
-                gamma_tex = _format_angle_pi(val)
+                gamma_tex = angle_to_pi_string(val, denom_thres=24)
                 label_str = r"$\gamma_P$ = " + gamma_tex
             else:
                 label_str = f"{label_tex} = {val}"
@@ -477,12 +395,101 @@ def plot_precessing_figure(
     if z is not None:
         print(f"Applied redshift z={z} (mcz treated as source-frame)")
 
-    # Optional save (format inferred from extension)
     if save_path:
-        out_path = append_z_tag_to_path(save_path, z)
+        mcz_msun = float(RP_params_1["mcz"]) / SOLMASS2SEC
+        root, ext = os.path.splitext(save_path)
+        out_path = (
+            f"{root}{_format_min_precision(z, prefix='_z')}"
+            f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}{ext}"
+        )
         fig.savefig(
             str(out_path),
             bbox_inches=bbox_inches,
             pad_inches=pad_inches,
         )
     return fig, axes
+
+
+def get_best_match_template_params(contour_data: dict) -> dict:
+    """Return template params set to the global min-mismatch location.
+
+    Prefers `contour_data["stats"]` keys when present; otherwise uses argmin on
+    `epsilon_matrix` and corresponding entries in omega/theta/gamma matrices.
+    """
+    template_params = contour_data["template_params"].copy()
+    stats = contour_data.get("stats", None)
+
+    if isinstance(stats, dict) and all(
+        key in stats
+        for key in ("ep_min_omega_tilde", "ep_min_theta_tilde", "ep_min_gammaP")
+    ):
+        template_params["omega_tilde"] = float(stats["ep_min_omega_tilde"])
+        template_params["theta_tilde"] = float(stats["ep_min_theta_tilde"])
+        template_params["gamma_P"] = float(stats["ep_min_gammaP"])
+        return template_params
+
+    epsilon_matrix = np.asarray(contour_data["epsilon_matrix"], dtype=float)
+    min_index = np.nanargmin(epsilon_matrix)
+    row, col = np.unravel_index(min_index, epsilon_matrix.shape)
+
+    template_params["omega_tilde"] = float(contour_data["omega_matrix"][row, col])
+    template_params["theta_tilde"] = float(contour_data["theta_matrix"][row, col])
+    template_params["gamma_P"] = float(contour_data["gammaP_min_matrix"][row, col])
+    return template_params
+
+
+def plot_best_match_overlay_from_contour(
+    contour_data: dict,
+    axes,
+    *,
+    f_min: float = 20.0,
+    npoints: int = 10000,
+    baseline_color: str = "darkorange",
+    lensed_color: str = "magenta",
+    rp_color: str = "black",
+    rp_linestyle: str = "-",
+) -> dict:
+    """Plot lensed vs best-match RP overlay from one contour dictionary.
+
+    Left panel: fractional amplitude change relative to unlensed source waveform
+    for both lensed and RP waveforms.
+    Right panel: phase difference between lensed and RP waveforms.
+
+    Returns summary metadata dict containing best-match coordinates and epsilon.
+    """
+    source_params = contour_data["source_params"].copy()
+    template_params = get_best_match_template_params(contour_data)
+
+    lensed_inst = LensingGeo(source_params)
+    rp_inst = Precessing(template_params)
+    f_cut = min(lensed_inst.f_cut(), rp_inst.f_cut())
+    f_arr = make_frequency_array(f_min, f_cut, npoints=npoints)
+
+    unlensed_source = lensed_inst.hI(f_arr)
+    lensed_strain = np.asarray(lensed_inst.strain(f_arr, frequencySeries=False))
+    rp_strain = np.asarray(rp_inst.strain(f_arr, frequencySeries=False))
+
+    frac_lensed = _safe_relative_amplitude(lensed_strain, unlensed_source)
+    frac_rp = _safe_relative_amplitude(rp_strain, unlensed_source)
+    phase_diff = compute_phase(lensed_strain) - compute_phase(rp_strain)
+
+    axes[0].plot(
+        f_arr, np.zeros_like(f_arr), c=baseline_color, ls="-", label="unlensed"
+    )
+    axes[0].plot(f_arr, frac_lensed, c=lensed_color, ls="-", label="lensed")
+    axes[0].plot(f_arr, frac_rp, c=rp_color, ls=rp_linestyle, label="RP (best)")
+
+    axes[1].plot(f_arr, phase_diff, c=rp_color, ls=rp_linestyle)
+
+    epsilon_matrix = np.asarray(contour_data["epsilon_matrix"], dtype=float)
+    best_epsilon = float(np.nanmin(epsilon_matrix))
+
+    return {
+        "omega_tilde": float(template_params["omega_tilde"]),
+        "theta_tilde": float(template_params["theta_tilde"]),
+        "gamma_P": float(template_params["gamma_P"]),
+        "epsilon": best_epsilon,
+        "mcz_msun": float(contour_data.get("mcz_msun", np.nan)),
+        "td_ms": float(contour_data.get("td_ms", np.nan)),
+        "I": float(contour_data.get("I", np.nan)),
+    }
