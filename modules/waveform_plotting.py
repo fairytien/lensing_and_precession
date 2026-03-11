@@ -99,7 +99,8 @@ def plot_lensing_figure(
     def_td,
     *,
     amplitude_mode="abs",
-    line_styles: Optional[Sequence[str]] = None,
+    line_styles: Sequence[str] = ("-", "--", ":"),
+    line_colors: Sequence[str] = ("black",),
     baseline_color="darkorange",
     f_min=20,
     npoints=10000,
@@ -117,8 +118,6 @@ def plot_lensing_figure(
     _validate_amplitude_mode(amplitude_mode)
     if npoints < 2:
         raise ValueError("npoints must be >= 2")
-    if line_styles is None:
-        line_styles = ["-", "--", ":"]
     fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 12))
     fig.subplots_adjust(wspace=0.25)
 
@@ -151,14 +150,14 @@ def plot_lensing_figure(
             f_arr,
             yvals,
             ls=line_styles[i % len(line_styles)],
-            color="black",
+            color=line_colors[i % len(line_colors)],
             label=rf"$\Delta t_d$ = {Delta_td*1000:.2g} ms",
         )
         axes[0, 1].plot(
             f_arr,
             phase_diff,
             ls=line_styles[i % len(line_styles)],
-            color="black",
+            color=line_colors[i % len(line_colors)],
             label=rf"$\Delta t_d$ = {Delta_td*1000:.2g} ms",
         )
 
@@ -193,14 +192,14 @@ def plot_lensing_figure(
             f_arr,
             yvals,
             ls=line_styles[i % len(line_styles)],
-            color="black",
+            color=line_colors[i % len(line_colors)],
             label=rf"$I$ = {I_val:.2g}",
         )
         axes[1, 1].plot(
             f_arr,
             phase_diff,
             ls=line_styles[i % len(line_styles)],
-            color="black",
+            color=line_colors[i % len(line_colors)],
             label=rf"$I$ = {I_val:.2g}",
         )
 
@@ -263,7 +262,8 @@ def plot_precessing_figure(
     fixed_theta=4,
     fixed_omega=2,
     amplitude_mode="abs",
-    line_styles: Optional[Sequence[str]] = None,
+    line_styles: Sequence[str] = ("-", "--", ":"),
+    line_colors: Sequence[str] = ("black",),
     baseline_color="darkorange",
     f_min=20,
     delta_f=0.05,
@@ -283,8 +283,6 @@ def plot_precessing_figure(
     _validate_amplitude_mode(amplitude_mode)
     if delta_f <= 0:
         raise ValueError("delta_f must be > 0")
-    if line_styles is None:
-        line_styles = ["-", "--", ":"]
     fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18, 18))
     fig.subplots_adjust(wspace=0.25)
 
@@ -327,14 +325,14 @@ def plot_precessing_figure(
                 f_arr,
                 yvals,
                 label=label_str,
-                color="black",
+                color=line_colors[i % len(line_colors)],
                 ls=line_styles[i % len(line_styles)],
             )
             axes[row, 1].plot(
                 f_arr,
                 phase_diff,
                 label=label_str,
-                color="black",
+                color=line_colors[i % len(line_colors)],
                 ls=line_styles[i % len(line_styles)],
             )
 
