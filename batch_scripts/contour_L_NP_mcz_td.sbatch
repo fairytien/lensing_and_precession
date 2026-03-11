@@ -41,8 +41,8 @@ NWORKERS=${NWORKERS:-$DEFAULT_WORKERS}
 # Run the contour script with all available CPUs
 python scripts/super_contours/contour_L_NP_mcz_td.py \
   --I 0.5 \
-  --mcz_min 10.0 \
-  --mcz_max 90.0 \
+  --mcz_min 5.0 \
+  --mcz_max 45.0 \
   --mcz_points ${MCZ_POINTS} \
   --td_min_ms 20.0 \
   --td_max_ms 70.0 \
