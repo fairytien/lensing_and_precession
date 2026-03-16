@@ -1,15 +1,17 @@
 """Create mismatch contour plots from aggregated best-match HDF5 file.
 
-This script reads the best-match file (produced by scripts/aggregate_best_match.py)
-and generates a contour plot of the minimal mismatch across (td, mcz).
+This script reads the best-match file produced by
+scripts/mismatch_mcz_td/aggregate_best_match.py and generates a contour plot
+of the minimal mismatch across (td, mcz).
 
 Pipeline:
-1. scripts/compute_mismatch_cubes.py - compute per-mcz mismatch cubes
-2. scripts/aggregate_best_match.py - consolidate cubes into best-match file
-3. scripts/create_contour_mcz_td_from_best_match.py (this script) - plot contour
+1. scripts/template_banks/build_template_banks.py - build per-mcz template banks
+2. scripts/mismatch_mcz_td/compute_mismatch_cubes.py - compute per-mcz mismatch cubes
+3. scripts/mismatch_mcz_td/aggregate_best_match.py - consolidate cubes into best-match file
+4. scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py - plot contour
 """
 
-import os, argparse, sys, glob
+import os, argparse, sys
 
 import numpy as np
 import h5py
@@ -20,7 +22,7 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.filenames import contour_mcz_td_filename, _format_min_precision
+from modules.filenames import contour_mcz_td_filename, find_best_match_file
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 # Add scripts directory to path to allow importing from other scripts
@@ -67,27 +69,23 @@ def main(
     """
     os.makedirs(output_dir, exist_ok=True)
 
-    # Load best-match file (support optional resolution suffix in filename)
-    # Pattern now includes I: best_match_I*_mcz*_td*_*_tag.h5
-    pattern = os.path.join(
-        results_dir,
-        "best_match",
-        f"best_match_I*_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms*_{orientation_tag}.h5",
+    summary_path = find_best_match_file(
+        results_dir=results_dir,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        orientation_tag=orientation_tag,
     )
-    matches = sorted(glob.glob(pattern))
-    if not matches:
+    if summary_path is None:
         raise FileNotFoundError(
-            "No best-match file found. Expected pattern: " + pattern
+            "No best-match file found for the requested td/mcz range and orientation tag."
         )
-    if len(matches) > 1:
-        # Choose the most recent if multiple files match
-        matches.sort(key=lambda p: os.path.getmtime(p), reverse=True)
-    summary_path = matches[0]
 
     if not os.path.isfile(summary_path):
         raise FileNotFoundError(
             f"Best-match file not found: {summary_path}\n"
-            f"Please run scripts/aggregate_best_match.py first to create this file."
+            f"Please run scripts/mismatch_mcz_td/aggregate_best_match.py first to create this file."
         )
 
     logging.info(f"Loading best-match data from: {summary_path}")
@@ -224,7 +222,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description=(
             "Plot mismatch contour from aggregated best-match HDF5 file. "
-            "Run scripts/aggregate_best_match.py first to create the best-match file."
+            "Run scripts/mismatch_mcz_td/aggregate_best_match.py first to create the best-match file."
         )
     )
     p.add_argument(

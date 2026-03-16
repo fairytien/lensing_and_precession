@@ -20,37 +20,44 @@ python -m pip install lalsuite PyCBC
 This pipeline calculates **minimum mismatch contours** for lensed gravitational wave sources across a 2D parameter space of time delay (x-axis) and chirp mass (y-axis). For each (time delay, chirp mass) point, it finds the best-matching template from a 4D RP template bank and records the minimum mismatch.
 
 ### Template Bank Construction
-1. **Build template banks**: Run `scripts/build_template_banks.py` to generate 4D RP template banks for each chirp mass
-2. **For cluster/array jobs**: Use `batch_scripts/build_template_banks.sbatch` with SLURM array jobs
+1. **Build template banks**: Run `scripts/template_banks/build_template_banks.py` to generate one HDF5 RP bank per chirp mass.
+2. **For cluster/array jobs**: Use `batch_scripts/build_template_banks.sbatch`.
 
 ### Mismatch Computation
-1. **Compute mismatches**: Run `scripts/contour_td_mcz_from_banks.py` to compute mismatches between lensed sources and template banks
-2. **For cluster/array jobs**: Use `batch_scripts/contour_td_mcz_from_banks.sbatch` with SLURM array jobs
-3. **⚠️ Important**: Each chunk writes a partial `best_match` file (only its slice of mcz values). These are NOT the final results.
+1. **Compute mismatch cubes**: Run `scripts/mismatch_mcz_td/compute_mismatch_cubes.py` to compare lensed sources against the prebuilt banks.
+2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_cubes.sbatch`.
+3. **Output shape**: Each run writes one per-`mcz` mismatch cube under `data/contours_td_mcz/mismatch_cubes/`.
 
-### Aggregation (Required for Array Jobs/Multiple Chunks)
-**For single chunk runs**: The `best_match` file from `contour_td_mcz_from_banks.py` is the final result.
+### Aggregation
+After all requested `mcz` values finish, run `scripts/mismatch_mcz_td/aggregate_best_match.py` once to combine the per-`mcz` cubes into a single best-match file.
 
-**For multiple chunks/array jobs**: After all chunks complete, run `scripts/aggregate_best_match.py` once to:
-- Combine all partial mismatch cubes into a single final `best_match` file
-- Generate the final, complete contour plot across all mcz values
-
-**Example workflow for array jobs/multiple chunks:**
+**Example workflow for array jobs:**
 ```bash
-# 1. Submit array job for mismatch computation (with --no_plot)
-sbatch batch_scripts/contour_td_mcz_from_banks.sbatch
+# 1. Build template banks
+sbatch batch_scripts/build_template_banks.sbatch
 
-# 2. After all array tasks complete, aggregate results
-python scripts/aggregate_best_match.py \
-  --results_dir ./data/contours \
+# 2. Submit array job for mismatch computation
+sbatch batch_scripts/compute_mismatch_cubes.sbatch
+
+# 3. After all array tasks complete, aggregate results
+python scripts/mismatch_mcz_td/aggregate_best_match.py \
+  --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 80 \
+  --mcz_min 16 --mcz_max 25 \
+  --orientation_tag Taman_edgeon
+
+# 4. Plot the final contour
+python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
+  --results_dir ./data/contours_td_mcz \
+  --td_min_ms 20 --td_max_ms 70 \
+  --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon
 ```
 
 ### Plotting
-- **Individual plots**: Use `scripts/plot_from_hdf5.py` on any `best_match_*.h5` file
-- **Final plots**: Generated automatically by `aggregate_best_match.py` (unless `--no_plot` is used)
+- **Final contour**: Use `scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py`
+- **Per-cube inspection**: Use the helper scripts under `scripts/mismatch_mcz_td/` for slices, sweeps, and interactive cube inspection
+- **Workflow guide**: See `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` for the current stage-by-stage reference
 
 ## Authors
 * Tien Nguyen

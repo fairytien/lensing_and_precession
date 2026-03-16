@@ -5,8 +5,9 @@ can locate outputs deterministically.
 """
 
 import os
+import glob
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 import h5py
 
 
@@ -200,3 +201,83 @@ def get_mismatch_cube_resolution(h5_file) -> Tuple[int, int, int, int]:
     theta_pts = int(h5_file["theta"].shape[0])
     gamma_pts = int(h5_file["gamma"].shape[0])
     return td_pts, omega_pts, theta_pts, gamma_pts
+
+
+def parse_mcz_from_mismatch_cube_path(path: str) -> Optional[float]:
+    """Extract the mcz value from a mismatch cube filename."""
+    base = os.path.basename(path)
+    try:
+        token = base.split("_mcz", 1)[1]
+        return float(token.split("Msun", 1)[0])
+    except Exception:
+        return None
+
+
+def find_mismatch_cube_files(
+    results_dir: str,
+    td_min_ms: Optional[float],
+    td_max_ms: Optional[float],
+    orientation_tag: str,
+    mcz_min: Optional[float] = None,
+    mcz_max: Optional[float] = None,
+    mcz_msun: Optional[float] = None,
+) -> List[str]:
+    """Return mismatch cube files matching the requested contour run."""
+    if td_min_ms is None or td_max_ms is None:
+        td_token = "td*ms"
+    else:
+        td_token = (
+            f"td{_format_min_precision(td_min_ms)}-"
+            f"{_format_min_precision(td_max_ms)}ms"
+        )
+
+    if mcz_msun is None:
+        mcz_token = "mcz*Msun"
+    else:
+        mcz_token = f"mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
+
+    pattern = os.path.join(
+        results_dir,
+        "mismatch_cubes",
+        (f"mismatch_cubes_{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"),
+    )
+    matches = sorted(glob.glob(pattern))
+    if mcz_min is None and mcz_max is None:
+        return matches
+
+    selected = []
+    for path in matches:
+        mcz_val = parse_mcz_from_mismatch_cube_path(path)
+        if mcz_val is None:
+            continue
+        if mcz_min is not None and mcz_val < mcz_min:
+            continue
+        if mcz_max is not None and mcz_val > mcz_max:
+            continue
+        selected.append(path)
+    return selected
+
+
+def find_best_match_file(
+    results_dir: str,
+    mcz_min: float,
+    mcz_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    orientation_tag: str,
+) -> Optional[str]:
+    """Return the newest best-match file for the requested contour run."""
+    pattern = os.path.join(
+        results_dir,
+        "best_match",
+        (
+            f"best_match_I*_mcz{_format_min_precision(mcz_min)}-"
+            f"{_format_min_precision(mcz_max)}Msun_td{_format_min_precision(td_min_ms)}-"
+            f"{_format_min_precision(td_max_ms)}ms*_{orientation_tag}.h5"
+        ),
+    )
+    matches = sorted(glob.glob(pattern))
+    if not matches:
+        return None
+    matches.sort(key=os.path.getmtime, reverse=True)
+    return matches[0]

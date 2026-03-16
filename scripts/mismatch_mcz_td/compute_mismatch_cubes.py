@@ -9,8 +9,8 @@ Outputs per-mcz HDF5 files to results_dir/mismatch_cubes/ containing:
   - gamma_best_grid (td, theta, omega)
   - optional mismatch (td, theta, omega, gamma) if --save_full_mismatch
 
-Use scripts/aggregate_best_match.py to consolidate cubes into a single best-match file.
-Use scripts/create_contour_mcz_td_from_best_match.py to plot the contour from the best-match file.
+Use scripts/mismatch_mcz_td/aggregate_best_match.py to consolidate cubes into a single best-match file.
+Use scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py to plot the contour from the best-match file.
 """
 
 import os, argparse, sys
@@ -20,7 +20,9 @@ import numpy as np
 from multiprocessing import Pool, cpu_count
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.functions_v3 import (
     get_gw,
@@ -38,10 +40,11 @@ from modules.match_utils import (
     init_mismatch_worker,
     mismatch_gamma_job,
 )
-from modules.bank_io import open_bank_readonly, create_mismatch_cube
+from modules.bank_io import open_bank_readonly, create_mismatch_cube, write_source_attrs
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
 from modules.chunking import choose_gamma_chunk
+from modules.cli_utils import add_orientation_args, set_argument_choices
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
@@ -189,11 +192,7 @@ def main(
             )
             with mmh5:
                 # Store source parameters as HDF5 attributes for later aggregation
-                mmh5.attrs["I"] = float(I)
-                mmh5.attrs["theta_J"] = np.nan if theta_J is None else float(theta_J)
-                mmh5.attrs["phi_J"] = np.nan if phi_J is None else float(phi_J)
-                mmh5.attrs["theta_S"] = np.nan if theta_S is None else float(theta_S)
-                mmh5.attrs["phi_S"] = np.nan if phi_S is None else float(phi_S)
+                write_source_attrs(mmh5, I, theta_J, phi_J, theta_S, phi_S)
 
                 mm_dset = dsets.get("mismatch")
                 ep_min_grid_dset = dsets["epsilon_min_grid"]
@@ -261,19 +260,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--I", type=float, default=0.5, help="Flux ratio I (0<I<1). Default 0.5"
     )
-    p.add_argument("--theta_J", type=float, default=None)
-    p.add_argument("--phi_J", type=float, default=None)
-    p.add_argument("--theta_S", type=float, default=None)
-    p.add_argument("--phi_S", type=float, default=None)
-    p.add_argument(
-        "--orient_preset",
-        type=str,
-        default=None,
-        help=(
-            "Optional orientation preset to use for both params and tag."
-            "If not provided, angles (theta_J, phi_J, theta_S, phi_S) form the tag."
-        ),
-    )
+    add_orientation_args(p)
     p.add_argument("--mcz_min", type=float, default=10.0)
     p.add_argument("--mcz_max", type=float, default=80.0)
     p.add_argument("--mcz_pts", type=int, default=71)
@@ -326,11 +313,7 @@ if __name__ == "__main__":
     )
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)
-    # Repoint choices on orient_preset action
-    for action in p._actions:
-        if getattr(action, "dest", None) == "orient_preset":
-            action.choices = dynamic_choices
-            break
+    set_argument_choices(p, "orient_preset", dynamic_choices)
 
     args = p.parse_args()
 

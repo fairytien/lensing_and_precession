@@ -10,7 +10,9 @@ from typing import Optional
 import numpy as np
 
 # Ensure project root on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.template_bank import build_and_save_bank
 from modules.orientation import resolve_orientation, allowed_orient_presets
@@ -21,6 +23,7 @@ from modules.functions_v3 import timer_decorator
 from modules.default_params_v3 import orient_params
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
+from modules.cli_utils import add_orientation_args, set_argument_choices
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
@@ -117,19 +120,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description="Build RP template banks across mcz range and save as HDF5."
     )
-    p.add_argument("--theta_J", type=float, default=None)
-    p.add_argument("--phi_J", type=float, default=None)
-    p.add_argument("--theta_S", type=float, default=None)
-    p.add_argument("--phi_S", type=float, default=None)
-    p.add_argument(
-        "--orient_preset",
-        type=str,
-        default=None,
-        help=(
-            "Optional orientation preset to use for both params and tag."
-            "If not provided, angles (theta_J, phi_J, theta_S, phi_S) form the tag."
-        ),
-    )
+    add_orientation_args(p)
     p.add_argument("--mcz_min", type=float, default=10.0)
     p.add_argument("--mcz_max", type=float, default=80.0)
     p.add_argument("--mcz_pts", type=int, default=71)
@@ -175,11 +166,7 @@ if __name__ == "__main__":
 
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)
-    # Override parser's static choices with dynamic (safe; same option name)
-    for action in p._actions:
-        if getattr(action, "dest", None) == "orient_preset":
-            action.choices = dynamic_choices
-            break
+    set_argument_choices(p, "orient_preset", dynamic_choices)
 
     args = p.parse_args()
 

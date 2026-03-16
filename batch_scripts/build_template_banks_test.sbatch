@@ -12,36 +12,27 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-# Activate your conda environment for this project
-if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-  source "$HOME/miniconda3/etc/profile.d/conda.sh"
-fi
-if command -v conda >/dev/null 2>&1; then
-  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
-fi
-
-# Change to submission directory or PROJECT_ROOT if provided
-PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
-cd "$PROJECT_ROOT"
-
-# Set thread limits to prevent oversubscription
-export OMP_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
+source "$SCRIPT_DIR/_contour_td_mcz_config.sh"
 
 # Use all allocated CPUs for multiprocessing workers
-# NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 NWORKERS=${NWORKERS:-32}
 
+ORIENT_PRESET=Taman_random
+MCZ_MIN=30
+MCZ_MAX=30
+MCZ_PTS=1
+GAMMA_PTS=101
 
 python scripts/template_banks/build_template_banks.py \
-  --orient_preset Taman_random \
-  --mcz_min 30 --mcz_max 30 --mcz_pts 1 \
-  --omega_min 0 --omega_max 6 --omega_pts 61 \
-  --theta_min 0 --theta_max 15 --theta_pts 151 \
-  --gamma_pts 101 \
+  --orient_preset "${ORIENT_PRESET}" \
+  --mcz_min "${MCZ_MIN}" --mcz_max "${MCZ_MAX}" --mcz_pts "${MCZ_PTS}" \
+  --omega_min "${OMEGA_MIN}" --omega_max "${OMEGA_MAX}" --omega_pts "${OMEGA_PTS}" \
+  --theta_min "${THETA_MIN}" --theta_max "${THETA_MAX}" --theta_pts "${THETA_PTS}" \
+  --gamma_pts "${GAMMA_PTS}" \
   --n_workers ${NWORKERS} \
   --dtype complex64 \
+  --bank_dir "${BANK_DIR}" \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
   --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}

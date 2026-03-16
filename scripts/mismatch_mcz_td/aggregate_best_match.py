@@ -3,22 +3,26 @@
 Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
 (theta, omega), stacks over mcz, and writes a combined best_match_*.h5.
 
-Use scripts/create_contour_mcz_td_from_best_match.py to plot the aggregated results.
+Use scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py to plot
+the aggregated results.
 """
 
-import os, sys, argparse, glob
+import os, sys, argparse
 import h5py
 import numpy as np
 
 # Ensure project root is on path for local invocation
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.filenames import (
     best_match_mcz_td_filename,
-    _format_min_precision,
+    find_mismatch_cube_files,
     get_mismatch_cube_resolution,
 )
 from modules.functions_v3 import timer_decorator
+from modules.bank_io import read_source_attrs
 
 
 @timer_decorator
@@ -30,28 +34,14 @@ def main(
     mcz_max: float,
     orientation_tag: str,
 ):
-    cube_paths_all = sorted(
-        glob.glob(
-            os.path.join(
-                results_dir,
-                "mismatch_cubes",
-                f"mismatch_cubes_mcz*Msun_I*_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms_td*-o*-t*-g*_{orientation_tag}.h5",
-            )
-        )
+    cube_paths = find_mismatch_cube_files(
+        results_dir=results_dir,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        orientation_tag=orientation_tag,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
     )
-    # Filter by requested mcz range by parsing the filename token 'mcz<val>Msun'
-    cube_paths = []
-    for p in cube_paths_all:
-        base = os.path.basename(p)
-        try:
-            # Example: mismatch_cubes_mcz47Msun_td20-70ms_TAG.h5
-            token = base.split("_mcz", 1)[1]
-            mcz_str = token.split("Msun", 1)[0]
-            mcz_val = float(mcz_str)
-        except Exception:
-            continue
-        if mcz_min <= mcz_val <= mcz_max:
-            cube_paths.append(p)
     if not cube_paths:
         raise FileNotFoundError("No mismatch cube files found")
 
@@ -76,16 +66,7 @@ def main(
             if td_arr is None:
                 td_arr = np.array(h5["td"])  # (td,)
                 # Extract source parameters from first cube file if available
-                if "I" in h5.attrs:
-                    source_attrs["I"] = h5.attrs["I"]
-                if "theta_J" in h5.attrs:
-                    source_attrs["theta_J"] = h5.attrs["theta_J"]
-                if "phi_J" in h5.attrs:
-                    source_attrs["phi_J"] = h5.attrs["phi_J"]
-                if "theta_S" in h5.attrs:
-                    source_attrs["theta_S"] = h5.attrs["theta_S"]
-                if "phi_S" in h5.attrs:
-                    source_attrs["phi_S"] = h5.attrs["phi_S"]
+                source_attrs = read_source_attrs(h5)
             ep_min_grid = np.array(h5["epsilon_min_grid"])  # (td, theta, omega)
             g_best_grid = np.array(h5["gamma_best_grid"])  # (td, theta, omega)
             theta_arr = np.array(h5["theta"])  # (theta,)
@@ -185,7 +166,9 @@ def main(
         for key, val in source_attrs.items():
             h5.attrs[key] = val
     print(f"Saved aggregated best-match results: {summary_path}")
-    print(f"Use scripts/create_contour_mcz_td_from_best_match.py to plot the results.")
+    print(
+        "Use scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py to plot the results."
+    )
 
 
 if __name__ == "__main__":

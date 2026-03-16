@@ -12,40 +12,35 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-# Activate your conda environment for this project
-if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-  source "$HOME/miniconda3/etc/profile.d/conda.sh"
-fi
-if command -v conda >/dev/null 2>&1; then
-  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
-fi
-
-# Change to submission directory or PROJECT_ROOT if provided
-PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
-cd "$PROJECT_ROOT"
-
-# Set thread limits to prevent oversubscription
-export OMP_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
+source "$SCRIPT_DIR/_contour_td_mcz_config.sh"
 
 # Use all allocated CPUs for multiprocessing workers
 NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
+MCZ_MIN=30
+MCZ_MAX=30
+MCZ_PTS=1
+TD_PTS=101
+OMEGA_PTS=121
+THETA_PTS=301
+GAMMA_PTS=101
+
 # Test run: compute mismatch cubes for small mcz range
 # After completion, aggregate and plot:
-# python scripts/mismatch_mcz_td/aggregate_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 26 --mcz_max 29 --orientation_tag Taman_edgeon
-# python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py --results_dir ./data/contours --td_min_ms 20 --td_max_ms 70 --mcz_min 26 --mcz_max 29 --orientation_tag Taman_edgeon
+# python scripts/mismatch_mcz_td/aggregate_best_match.py --results_dir "$RESULTS_DIR" --td_min_ms "$TD_MIN_MS" --td_max_ms "$TD_MAX_MS" --mcz_min "$MCZ_MIN" --mcz_max "$MCZ_MAX" --orientation_tag "$ORIENT_PRESET"
+# python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py --results_dir "$RESULTS_DIR" --td_min_ms "$TD_MIN_MS" --td_max_ms "$TD_MAX_MS" --mcz_min "$MCZ_MIN" --mcz_max "$MCZ_MAX" --orientation_tag "$ORIENT_PRESET"
 
 python scripts/mismatch_mcz_td/compute_mismatch_cubes.py \
-  --I 0.5 \
-  --orient_preset Taman_edgeon \
-  --mcz_min 30 --mcz_max 30 --mcz_pts 1 \
-  --td_min_ms 20 --td_max_ms 70 --td_pts 101 \
-  --omega_min 0 --omega_max 6 --omega_pts 121 \
-  --theta_min 0 --theta_max 15 --theta_pts 301 \
-  --gamma_pts 101 \
-  --results_dir "$SLURM_SUBMIT_DIR/data/contours" \
+  --I "${FLUX_RATIO}" \
+  --orient_preset "${ORIENT_PRESET}" \
+  --mcz_min "${MCZ_MIN}" --mcz_max "${MCZ_MAX}" --mcz_pts "${MCZ_PTS}" \
+  --td_min_ms "${TD_MIN_MS}" --td_max_ms "${TD_MAX_MS}" --td_pts "${TD_PTS}" \
+  --omega_min "${OMEGA_MIN}" --omega_max "${OMEGA_MAX}" --omega_pts "${OMEGA_PTS}" \
+  --theta_min "${THETA_MIN}" --theta_max "${THETA_MAX}" --theta_pts "${THETA_PTS}" \
+  --gamma_pts "${GAMMA_PTS}" \
+  --bank_dir "${BANK_DIR}" \
+  --results_dir "${RESULTS_DIR}" \
   --n_workers ${NWORKERS}
 

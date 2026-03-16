@@ -17,6 +17,35 @@ import numpy as np
 import h5py
 
 
+def _float_or_nan(value):
+    return np.nan if value is None else float(value)
+
+
+def write_source_attrs(
+    h5: h5py.File,
+    I: float,
+    theta_J,
+    phi_J,
+    theta_S,
+    phi_S,
+) -> None:
+    """Write source metadata attributes to an open HDF5 file."""
+    h5.attrs["I"] = float(I)
+    h5.attrs["theta_J"] = _float_or_nan(theta_J)
+    h5.attrs["phi_J"] = _float_or_nan(phi_J)
+    h5.attrs["theta_S"] = _float_or_nan(theta_S)
+    h5.attrs["phi_S"] = _float_or_nan(phi_S)
+
+
+def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
+    """Read source metadata attributes from an open HDF5 file if present."""
+    attrs: Dict[str, Any] = {}
+    for key in ("I", "theta_J", "phi_J", "theta_S", "phi_S"):
+        if key in h5.attrs:
+            attrs[key] = h5.attrs[key]
+    return attrs
+
+
 def open_bank_readonly(
     filepath: str,
 ) -> Tuple[h5py.File, np.ndarray, np.ndarray, np.ndarray, h5py.Dataset, Dict[str, Any]]:

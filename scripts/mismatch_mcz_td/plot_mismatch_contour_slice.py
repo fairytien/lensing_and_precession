@@ -1,7 +1,8 @@
 """Plot mismatch contour over (omega_tilde, theta_tilde) for a given td and mcz.
 
-This script loads a per-mcz mismatch cube HDF5 (created by scripts/compute_mismatch_cubes.py),
-extracts the epsilon_min_grid slice at the td closest to the requested time delay, and
+This script loads a per-mcz mismatch cube HDF5 created by
+scripts/mismatch_mcz_td/compute_mismatch_cubes.py, extracts the
+epsilon_min_grid slice at the td closest to the requested time delay, and
 plots a contour over (omega_tilde, theta_tilde).
 
 Notes:
@@ -11,22 +12,27 @@ Notes:
   mismatch_cubes/mismatch_cubes_mcz{mcz}Msun_td*_{orientation}.h5.
 
 Usage example:
-  python scripts/plot_mismatch_contour_slice.py \
+    python scripts/mismatch_mcz_td/plot_mismatch_contour_slice.py \
     --mcz 50 --td_ms 35 \
-    --results_root data/contours \
+        --results_root data/contours_td_mcz \
     --orientation_tag Taman_edgeon \
     --save_path figures/mismatch_cubes/mismatch_contour_mcz50_td35ms.png
 """
 
 import os
 import sys
-import glob
 import argparse
 from typing import Optional, Tuple, List
 
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
+
+from modules.filenames import find_mismatch_cube_files
 
 
 def _find_mismatch_cube(
@@ -40,17 +46,14 @@ def _find_mismatch_cube(
       {root}/mismatch_cubes/mismatch_cubes_mcz{mcz}Msun_td*-*ms_{orientation_tag}.h5
     Returns the first matching path if found, else None.
     """
-    mcz_token = f"mcz{int(round(mcz))}Msun"
-    patterns = [
-        os.path.join(
-            root,
-            "mismatch_cubes",
-            f"mismatch_cubes_{mcz_token}_td*ms_{orientation_tag}.h5",
+    for root in results_roots:
+        matches = find_mismatch_cube_files(
+            results_dir=root,
+            td_min_ms=None,
+            td_max_ms=None,
+            orientation_tag=orientation_tag,
+            mcz_msun=int(round(mcz)),
         )
-        for root in results_roots
-    ]
-    for pat in patterns:
-        matches = sorted(glob.glob(pat))
         if matches:
             return matches[0]
     return None
@@ -135,7 +138,7 @@ def main():
         default=None,
         help=(
             "Root directory that contains mismatch_cubes/. If omitted, searches in "
-            "['data/contours', 'data/contours_td_mcz']"
+            "['data/contours_td_mcz']"
         ),
     )
     p.add_argument(
@@ -173,14 +176,13 @@ def main():
             "- The aggregated best_match_*.h5 does NOT contain full (omega, theta) grids."
         )
         print(
-            "- Please run scripts/compute_mismatch_cubes.py for the requested mcz/td range, "
+            "- Please run scripts/mismatch_mcz_td/compute_mismatch_cubes.py for the requested mcz/td range, "
             "then retry."
         )
         print("Searched roots:")
         if args.results_root:
             print(f"  - {args.results_root}")
         else:
-            print("  - data/contours")
             print("  - data/contours_td_mcz")
         sys.exit(2)
 
