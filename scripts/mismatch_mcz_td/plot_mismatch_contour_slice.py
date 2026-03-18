@@ -28,9 +28,10 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from _bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from modules.filenames import find_mismatch_cube_files
 

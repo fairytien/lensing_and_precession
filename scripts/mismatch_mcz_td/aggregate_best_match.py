@@ -12,9 +12,10 @@ import h5py
 import numpy as np
 
 # Ensure project root is on path for local invocation
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from _bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from modules.filenames import (
     best_match_mcz_td_filename,
@@ -22,7 +23,13 @@ from modules.filenames import (
     get_mismatch_cube_resolution,
 )
 from modules.functions_v3 import timer_decorator
-from modules.bank_io import read_source_attrs, read_mcz_grid_attrs
+from modules.bank_io import (
+    read_source_attrs,
+    read_mcz_grid_attrs,
+    read_mismatch_cube_shape,
+    mcz_grid_meta_consistent,
+    write_missing_mcz_metadata,
+)
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
 
 
@@ -71,46 +78,21 @@ def main(
             mcz = float(np.array(h5["mcz"]).item())
             if td_arr is None:
                 td_arr = np.array(h5["td"])  # (td,)
-                ref_shape = (
-                    int(td_arr.shape[0]),
-                    int(h5["theta"].shape[0]),
-                    int(h5["omega"].shape[0]),
-                    int(h5["gamma"].shape[0]),
-                )
+                ref_shape = read_mismatch_cube_shape(h5)
                 # Extract source parameters from first cube file if available
                 source_attrs = read_source_attrs(h5)
                 mcz_grid_meta = read_mcz_grid_attrs(h5)
             else:
                 # Light authenticity check: metadata should be consistent across cubes.
                 meta_i = read_mcz_grid_attrs(h5)
-                if mcz_grid_meta and meta_i:
-                    mismatch = (
-                        abs(
-                            float(meta_i.get("mcz_min", np.nan))
-                            - float(mcz_grid_meta.get("mcz_min", np.nan))
-                        )
-                        > tol
-                        or abs(
-                            float(meta_i.get("mcz_max", np.nan))
-                            - float(mcz_grid_meta.get("mcz_max", np.nan))
-                        )
-                        > tol
-                        or int(meta_i.get("mcz_pts", -1))
-                        != int(mcz_grid_meta.get("mcz_pts", -1))
+                if not mcz_grid_meta_consistent(mcz_grid_meta, meta_i, tol=tol):
+                    print(
+                        "Warning: Inconsistent mcz grid metadata across mismatch cubes; "
+                        "falling back to discovered mcz values where needed."
                     )
-                    if mismatch:
-                        print(
-                            "Warning: Inconsistent mcz grid metadata across mismatch cubes; "
-                            "falling back to discovered mcz values where needed."
-                        )
-                        mcz_grid_meta = {}
+                    mcz_grid_meta = {}
                 if not warned_shape_mismatch:
-                    shape_i = (
-                        int(h5["td"].shape[0]),
-                        int(h5["theta"].shape[0]),
-                        int(h5["omega"].shape[0]),
-                        int(h5["gamma"].shape[0]),
-                    )
+                    shape_i = read_mismatch_cube_shape(h5)
                     if ref_shape is not None and shape_i != ref_shape:
                         print(
                             "Warning: Inconsistent axis sizes across mismatch cubes "
@@ -263,12 +245,11 @@ def main(
         h5.create_dataset("omega_best", data=Omap.astype(np.float32))
         h5.create_dataset("theta_best", data=Tmap.astype(np.float32))
         h5.create_dataset("gamma_best", data=Gmap.astype(np.float32))
-        h5.attrs["missing_mcz_count"] = int(len(missing_mcz))
-        if missing_mcz:
-            h5.create_dataset(
-                "missing_mcz", data=np.array(missing_mcz, dtype=np.float64)
-            )
-        h5.create_dataset("expected_mcz", data=np.array(expected_mcz, dtype=np.float64))
+        write_missing_mcz_metadata(
+            h5,
+            expected_mcz=np.array(expected_mcz, dtype=np.float64),
+            missing_mcz=np.array(missing_mcz, dtype=np.float64),
+        )
         # Save source parameters as attributes if available
         for key, val in source_attrs.items():
             h5.attrs[key] = val

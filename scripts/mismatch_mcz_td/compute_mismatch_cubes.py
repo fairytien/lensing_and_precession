@@ -20,9 +20,10 @@ import numpy as np
 from multiprocessing import Pool, cpu_count
 
 # Ensure project root is on path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from _bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from modules.functions_v3 import (
     get_gw,

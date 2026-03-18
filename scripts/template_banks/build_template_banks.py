@@ -10,9 +10,10 @@ from typing import Optional
 import numpy as np
 
 # Ensure project root on path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from _bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from modules.template_bank import build_and_save_bank
 from modules.orientation import resolve_orientation, allowed_orient_presets

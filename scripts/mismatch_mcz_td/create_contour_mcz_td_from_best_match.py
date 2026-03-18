@@ -18,12 +18,14 @@ import h5py
 import matplotlib.pyplot as plt
 
 # Ensure project root is on path
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from _bootstrap import ensure_project_root_on_path
+
+ensure_project_root_on_path(__file__)
 
 from modules.filenames import contour_mcz_td_filename, find_best_match_file
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
+from modules.bank_io import read_missing_mcz_metadata
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 # Add scripts directory to path to allow importing from other scripts
@@ -124,8 +126,8 @@ def main(
         # Extract I from attributes
         if "I" in h5.attrs:
             I_value = float(h5.attrs["I"])
-        if "missing_mcz_count" in h5.attrs:
-            missing_mcz_count = int(h5.attrs["missing_mcz_count"])
+        missing_meta = read_missing_mcz_metadata(h5)
+        missing_mcz_count = int(missing_meta["missing_mcz_count"])
 
         # Validate that required datasets exist
         required_datasets = ["mcz", "td", var_info["dataset"]]

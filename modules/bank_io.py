@@ -67,6 +67,72 @@ def read_mcz_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
     return attrs
 
 
+def read_mismatch_cube_shape(h5: h5py.File) -> Tuple[int, int, int, int]:
+    """Return axis sizes for a mismatch cube as (td, theta, omega, gamma)."""
+    return (
+        int(h5["td"].shape[0]),
+        int(h5["theta"].shape[0]),
+        int(h5["omega"].shape[0]),
+        int(h5["gamma"].shape[0]),
+    )
+
+
+def mcz_grid_meta_consistent(
+    reference_meta: Dict[str, Any],
+    candidate_meta: Dict[str, Any],
+    tol: float = 1e-6,
+) -> bool:
+    """Return True when two mcz grid metadata dicts are numerically consistent."""
+    if not reference_meta or not candidate_meta:
+        return True
+    return (
+        abs(
+            float(candidate_meta.get("mcz_min", np.nan))
+            - float(reference_meta.get("mcz_min", np.nan))
+        )
+        <= tol
+        and abs(
+            float(candidate_meta.get("mcz_max", np.nan))
+            - float(reference_meta.get("mcz_max", np.nan))
+        )
+        <= tol
+        and int(candidate_meta.get("mcz_pts", -1))
+        == int(reference_meta.get("mcz_pts", -1))
+    )
+
+
+def write_missing_mcz_metadata(
+    h5: h5py.File,
+    expected_mcz: np.ndarray,
+    missing_mcz: np.ndarray,
+) -> None:
+    """Write aggregation completeness metadata to an open HDF5 file."""
+    missing = np.asarray(missing_mcz, dtype=np.float64)
+    expected = np.asarray(expected_mcz, dtype=np.float64)
+    h5.attrs["missing_mcz_count"] = int(missing.shape[0])
+    if missing.shape[0] > 0:
+        h5.create_dataset("missing_mcz", data=missing)
+    h5.create_dataset("expected_mcz", data=expected)
+
+
+def read_missing_mcz_metadata(h5: h5py.File) -> Dict[str, Any]:
+    """Read aggregation completeness metadata from an open HDF5 file."""
+    missing = (
+        np.array(h5["missing_mcz"], dtype=np.float64)
+        if "missing_mcz" in h5
+        else np.array([], dtype=np.float64)
+    )
+    count = int(h5.attrs.get("missing_mcz_count", missing.shape[0]))
+    expected = (
+        np.array(h5["expected_mcz"], dtype=np.float64) if "expected_mcz" in h5 else None
+    )
+    return {
+        "missing_mcz_count": count,
+        "missing_mcz": missing,
+        "expected_mcz": expected,
+    }
+
+
 def open_bank_readonly(
     filepath: str,
 ) -> Tuple[h5py.File, np.ndarray, np.ndarray, np.ndarray, h5py.Dataset, Dict[str, Any]]:
