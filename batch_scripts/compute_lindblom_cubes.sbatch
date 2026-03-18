@@ -64,7 +64,7 @@ echo "Cube path: $CUBE_PATH"
 echo "Using $NWORKERS workers"
 
 # Run the computation
-python scripts/lindblom/compute_lindblom_contours.py \
+python -m scripts.lindblom.compute_lindblom_contours \
   --cube_path "$CUBE_PATH" \
   --bank_dir "$BANK_DIR" \
   --bank_prefix "$BANK_PREFIX" \

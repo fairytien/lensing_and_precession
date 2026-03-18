@@ -12,4 +12,4 @@ cd $SLURM_SUBMIT_DIR
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate fairytien_gw
 
-srun python scripts/indiv_contours/v4_indiv_contour_otf.py --ivp_method DOP853 --omega_min 3 --omega_max 4 --omega_points 101 --theta_min 6 --theta_max 10 --theta_points 101 --compare_both --tag res_101x101
+srun python -m scripts.indiv_contours.v4_indiv_contour_otf --ivp_method DOP853 --omega_min 3 --omega_max 4 --omega_points 101 --theta_min 6 --theta_max 10 --theta_points 101 --compare_both --tag res_101x101

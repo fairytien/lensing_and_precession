@@ -9,7 +9,6 @@ Default input points to the mcz=50 Msun, td=20–70 ms cube if present.
 """
 
 import os
-import sys
 import argparse
 import re
 from typing import Optional, Tuple
@@ -362,16 +361,12 @@ def main():
 
 
 if __name__ == "__main__":
-    # Ensure project root is on PYTHONPATH
-    sys.path.insert(
-        0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
     main()
 
 
 """
 Example CLI Usage on TACC:
     conda activate fairytien_gw 
-    && python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/visualize_mismatch_cube.py 
+    && python -m scripts.mismatch_mcz_td.visualize_mismatch_cube 
     --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30Msun_td20-70ms_Taman_edgeon.h5 --gif
 """

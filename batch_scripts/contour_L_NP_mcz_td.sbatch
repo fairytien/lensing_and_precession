@@ -39,7 +39,7 @@ DEFAULT_WORKERS=$(( ALLOC_CPUS < MCZ_POINTS ? ALLOC_CPUS : MCZ_POINTS ))
 NWORKERS=${NWORKERS:-$DEFAULT_WORKERS}
 
 # Run the contour script with all available CPUs
-python scripts/super_contours/contour_L_NP_mcz_td.py \
+python -m scripts.super_contours.contour_L_NP_mcz_td \
   --I 0.5 \
   --mcz_min 5.0 \
   --mcz_max 45.0 \

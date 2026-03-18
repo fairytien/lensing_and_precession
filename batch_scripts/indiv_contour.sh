@@ -23,5 +23,5 @@ cd \$SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python scripts/indiv_contours/v3_indiv_contour_otf.py
+srun python -m scripts.indiv_contours.v3_indiv_contour_otf
 EOF

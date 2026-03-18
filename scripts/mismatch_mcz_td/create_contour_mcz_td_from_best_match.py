@@ -1,34 +1,27 @@
 """Create mismatch contour plots from aggregated best-match HDF5 file.
 
 This script reads the best-match file produced by
-scripts/mismatch_mcz_td/aggregate_best_match.py and generates a contour plot
+python -m scripts.mismatch_mcz_td.aggregate_best_match and generates a contour plot
 of the minimal mismatch across (td, mcz).
 
 Pipeline:
-1. scripts/template_banks/build_template_banks.py - build per-mcz template banks
-2. scripts/mismatch_mcz_td/compute_mismatch_cubes.py - compute per-mcz mismatch cubes
-3. scripts/mismatch_mcz_td/aggregate_best_match.py - consolidate cubes into best-match file
-4. scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py - plot contour
+1. python -m scripts.template_banks.build_template_banks - build per-mcz template banks
+2. python -m scripts.mismatch_mcz_td.compute_mismatch_cubes - compute per-mcz mismatch cubes
+3. python -m scripts.mismatch_mcz_td.aggregate_best_match - consolidate cubes into best-match file
+4. python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match - plot contour
 """
 
-import os, argparse, sys
+import os, argparse
 
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-
-# Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from _bootstrap import ensure_project_root_on_path
-
-ensure_project_root_on_path(__file__)
 
 from modules.filenames import contour_mcz_td_filename, find_best_match_file
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
 from modules.bank_io import read_missing_mcz_metadata
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
-# Add scripts directory to path to allow importing from other scripts
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
 
 import logging
@@ -88,7 +81,7 @@ def main(
     if not os.path.isfile(summary_path):
         raise FileNotFoundError(
             f"Best-match file not found: {summary_path}\n"
-            f"Please run scripts/mismatch_mcz_td/aggregate_best_match.py first to create this file."
+            f"Please run python -m scripts.mismatch_mcz_td.aggregate_best_match first to create this file."
         )
 
     logging.info(f"Loading best-match data from: {summary_path}")
@@ -234,7 +227,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description=(
             "Plot mismatch contour from aggregated best-match HDF5 file. "
-            "Run scripts/mismatch_mcz_td/aggregate_best_match.py first to create the best-match file."
+            "Run python -m scripts.mismatch_mcz_td.aggregate_best_match first to create the best-match file."
         )
     )
     p.add_argument(

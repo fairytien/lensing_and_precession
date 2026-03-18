@@ -1,18 +1,12 @@
 """Plot epsilon contours over (theta, omega) at a specific td from a per-mcz cube."""
 
 import os
-import sys
 import argparse
 from typing import Optional
 
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-
-# Ensure project root is on PYTHONPATH
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
 
 
 def _find_td_index(td_seconds: np.ndarray, target_td_ms: float) -> int:

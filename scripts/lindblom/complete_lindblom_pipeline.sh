@@ -22,7 +22,7 @@ echo ""
 
 # Step 1: Aggregate Lindblom cubes
 echo "Step 1: Aggregating Lindblom cubes..."
-python scripts/lindblom/aggregate_lindblom_best_match.py \
+python -m scripts.lindblom.aggregate_lindblom_best_match \
     --results_dir "$RESULTS_DIR" \
     --td_min_ms "$TD_MIN_MS" \
     --td_max_ms "$TD_MAX_MS" \
@@ -34,7 +34,7 @@ echo ""
 
 # Step 2: Create Lindblom contour plots
 echo "Step 2: Creating Lindblom contour plots..."
-python scripts/lindblom/create_contour_mcz_td_from_lindblom.py \
+python -m scripts.lindblom.create_contour_mcz_td_from_lindblom \
     --results_dir "$RESULTS_DIR" \
     --td_min_ms "$TD_MIN_MS" \
     --td_max_ms "$TD_MAX_MS" \
@@ -48,7 +48,7 @@ python scripts/lindblom/create_contour_mcz_td_from_lindblom.py \
     --cmap jet \
     --no-zero-contour
 
-python scripts/lindblom/create_contour_mcz_td_from_lindblom.py \
+python -m scripts.lindblom.create_contour_mcz_td_from_lindblom \
     --results_dir "$RESULTS_DIR" \
     --td_min_ms "$TD_MIN_MS" \
     --td_max_ms "$TD_MAX_MS" \
@@ -63,7 +63,7 @@ echo ""
 
 # Step 3: Create SNR contour plots
 echo "Step 3: Creating SNR contour plots..."
-python scripts/lindblom/create_contour_mcz_td_from_snr.py \
+python -m scripts.lindblom.create_contour_mcz_td_from_snr \
     --results_dir "$RESULTS_DIR" \
     --td_min_ms "$TD_MIN_MS" \
     --td_max_ms "$TD_MAX_MS" \
@@ -76,7 +76,7 @@ python scripts/lindblom/create_contour_mcz_td_from_snr.py \
     --overlay-troughs \
     --cmap jet
 
-python scripts/lindblom/create_contour_mcz_td_from_snr.py \
+python -m scripts.lindblom.create_contour_mcz_td_from_snr \
     --results_dir "$RESULTS_DIR" \
     --td_min_ms "$TD_MIN_MS" \
     --td_max_ms "$TD_MAX_MS" \

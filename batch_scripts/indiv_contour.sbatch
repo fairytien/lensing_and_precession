@@ -25,7 +25,7 @@ conda activate fairytien_gw
 read theta_S phi_S theta_J phi_J <<< $(python -c "import numpy as np; print(np.pi / 4, 0, np.pi / 2, np.pi / 2)")
 
 # Run the contour computation
-srun python scripts/indiv_contours/v3_indiv_contour_otf.py \
+srun python -m scripts.indiv_contours.v3_indiv_contour_otf \
     --mcz_msun 20 \
     --td_ms 30.0 \
     --I 0.5 \

@@ -13,4 +13,4 @@ cd $SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python scripts/template_banks/template_bank_npz.py --output_dir $WORK/data
+srun python -m scripts.template_banks.template_bank_npz --output_dir $WORK/data

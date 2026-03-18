@@ -10,6 +10,7 @@ import math
 from datetime import datetime
 from typing import List, Optional, Tuple
 import h5py
+import numpy as np
 
 
 def _format_min_precision(

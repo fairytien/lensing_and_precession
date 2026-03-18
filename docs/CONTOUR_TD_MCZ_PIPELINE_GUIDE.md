@@ -6,10 +6,10 @@ This document describes the three-stage modular pipeline for computing mismatch 
 
 **Three stages with single responsibilities:**
 
-1. **Build per-mcz template banks** (`scripts/template_banks/build_template_banks.py`)
-2. **Compute per-mcz mismatch cubes** (`scripts/mismatch_mcz_td/compute_mismatch_cubes.py`)
-3. **Aggregate cubes into best-match file** (`scripts/mismatch_mcz_td/aggregate_best_match.py`)
-4. **Plot mismatch contour** (`scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py`)
+1. **Build per-mcz template banks** (`python -m scripts.template_banks.build_template_banks`)
+2. **Compute per-mcz mismatch cubes** (`python -m scripts.mismatch_mcz_td.compute_mismatch_cubes`)
+3. **Aggregate cubes into best-match file** (`python -m scripts.mismatch_mcz_td.aggregate_best_match`)
+4. **Plot mismatch contour** (`python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match`)
 
 ## Quick Start
 
@@ -21,14 +21,14 @@ sbatch batch_scripts/build_template_banks.sbatch
 sbatch batch_scripts/compute_mismatch_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
-python scripts/mismatch_mcz_td/aggregate_best_match.py \
+python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon
 
 # Stage 3: Plot (can be run multiple times with different settings)
-python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
+python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
@@ -69,13 +69,13 @@ python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
 
 ## Stage 0: Build Template Banks
 
-**Script:** `scripts/template_banks/build_template_banks.py`
+**Script:** `python -m scripts.template_banks.build_template_banks`
 
 Builds one HDF5 template bank per `mcz` value. The mismatch stage streams from these banks and expects the same orientation tag and grid definition.
 
 **Example:**
 ```bash
-python scripts/template_banks/build_template_banks.py \
+python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
   --mcz_min 16 --mcz_max 25 --mcz_pts 10 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
@@ -86,13 +86,13 @@ python scripts/template_banks/build_template_banks.py \
 
 ## Stage 1: Compute Mismatch Cubes
 
-**Script:** `scripts/mismatch_mcz_td/compute_mismatch_cubes.py`
+**Script:** `python -m scripts.mismatch_mcz_td.compute_mismatch_cubes`
 
 Streams templates from prebuilt banks and evaluates mismatches across (td, theta, omega, gamma) parameter space. Supports SLURM array job chunking for parallelization.
 
 **Example:**
 ```bash
-python scripts/mismatch_mcz_td/compute_mismatch_cubes.py \
+python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --I 0.5 \
   --orient_preset Taman_edgeon \
   --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
@@ -116,14 +116,14 @@ python scripts/mismatch_mcz_td/compute_mismatch_cubes.py \
 
 ## Stage 2: Aggregate Best-Match Data
 
-**Script:** `scripts/mismatch_mcz_td/aggregate_best_match.py`
+**Script:** `python -m scripts.mismatch_mcz_td.aggregate_best_match`
 
 Finds global minimum across (theta, omega) for each (mcz, td) and consolidates into a single best-match HDF5 file.
 If internal mcz rows are missing, Stage 2 keeps those rows as NaNs so the contour plot shows explicit gaps.
 
 **Example:**
 ```bash
-python scripts/mismatch_mcz_td/aggregate_best_match.py \
+python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 80 \
@@ -132,13 +132,13 @@ python scripts/mismatch_mcz_td/aggregate_best_match.py \
 
 ## Stage 3: Plot Contour
 
-**Script:** `scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py`
+**Script:** `python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match`
 
 Generates publication-quality contour plot of mismatch vs (td, mcz) from the best-match file.
 
 **Example:**
 ```bash
-python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
+python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 80 \
@@ -177,7 +177,7 @@ Verify the pipeline works correctly:
 Build template banks before running this pipeline:
 
 ```bash
-python scripts/template_banks/build_template_banks.py \
+python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
   --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \

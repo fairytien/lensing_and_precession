@@ -17,4 +17,4 @@ cd $SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python scripts/super_contours/super_contour_cli.py --system sys2 --mcz 30 --lores --no-split
+srun python -m scripts.super_contours.super_contour_cli --system sys2 --mcz 30 --lores --no-split

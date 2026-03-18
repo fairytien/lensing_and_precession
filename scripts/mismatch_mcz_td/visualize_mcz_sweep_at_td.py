@@ -10,18 +10,12 @@ Default input directory points to the same location used by visualize_mismatch_c
 """
 
 import os
-import sys
 import argparse
 import re
 from typing import List, Optional, Tuple
 
 import numpy as np
 import h5py
-
-# Ensure project root is on PYTHONPATH before local imports
-sys.path.insert(
-    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-)
 from modules.filenames import get_mismatch_cube_resolution
 import matplotlib.pyplot as plt
 from matplotlib import animation
@@ -507,8 +501,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # Ensure project root is on PYTHONPATH
-    sys.path.insert(
-        0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    )
     main()

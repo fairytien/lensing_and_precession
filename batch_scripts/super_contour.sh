@@ -24,5 +24,5 @@ cd \$SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python scripts/super_contours/v3_super_contour_from_bank.py
+srun python -m scripts.super_contours.v3_super_contour_from_bank
 EOF

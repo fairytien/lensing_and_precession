@@ -3,19 +3,13 @@
 Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
 (theta, omega), stacks over mcz, and writes a combined best_match_*.h5.
 
-Use scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py to plot
+Use python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match to plot
 the aggregated results.
 """
 
-import os, sys, argparse
+import os, argparse
 import h5py
 import numpy as np
-
-# Ensure project root is on path for local invocation
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from _bootstrap import ensure_project_root_on_path
-
-ensure_project_root_on_path(__file__)
 
 from modules.filenames import (
     best_match_mcz_td_filename,
@@ -255,7 +249,7 @@ def main(
             h5.attrs[key] = val
     print(f"Saved aggregated best-match results: {summary_path}")
     print(
-        "Use scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py to plot the results."
+        "Use python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match to plot the results."
     )
 
 

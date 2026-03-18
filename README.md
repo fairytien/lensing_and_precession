@@ -20,16 +20,16 @@ python -m pip install lalsuite PyCBC
 This pipeline calculates **minimum mismatch contours** for lensed gravitational wave sources across a 2D parameter space of time delay (x-axis) and chirp mass (y-axis). For each (time delay, chirp mass) point, it finds the best-matching template from a 4D RP template bank and records the minimum mismatch.
 
 ### Template Bank Construction
-1. **Build template banks**: Run `scripts/template_banks/build_template_banks.py` to generate one HDF5 RP bank per chirp mass.
+1. **Build template banks**: Run `python -m scripts.template_banks.build_template_banks` to generate one HDF5 RP bank per chirp mass.
 2. **For cluster/array jobs**: Use `batch_scripts/build_template_banks.sbatch`.
 
 ### Mismatch Computation
-1. **Compute mismatch cubes**: Run `scripts/mismatch_mcz_td/compute_mismatch_cubes.py` to compare lensed sources against the prebuilt banks.
+1. **Compute mismatch cubes**: Run `python -m scripts.mismatch_mcz_td.compute_mismatch_cubes` to compare lensed sources against the prebuilt banks.
 2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_cubes.sbatch`.
 3. **Output shape**: Each run writes one per-`mcz` mismatch cube under `data/contours_td_mcz/mismatch_cubes/`.
 
 ### Aggregation
-After all requested `mcz` values finish, run `scripts/mismatch_mcz_td/aggregate_best_match.py` once to combine the per-`mcz` cubes into a single best-match file.
+After all requested `mcz` values finish, run `python -m scripts.mismatch_mcz_td.aggregate_best_match` once to combine the per-`mcz` cubes into a single best-match file.
 
 **Example workflow for array jobs:**
 ```bash
@@ -40,14 +40,14 @@ sbatch batch_scripts/build_template_banks.sbatch
 sbatch batch_scripts/compute_mismatch_cubes.sbatch
 
 # 3. After all array tasks complete, aggregate results
-python scripts/mismatch_mcz_td/aggregate_best_match.py \
+python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon
 
 # 4. Plot the final contour
-python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
+python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
@@ -55,7 +55,7 @@ python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
 ```
 
 ### Plotting
-- **Final contour**: Use `scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py`
+- **Final contour**: Use `python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match`
 - **Per-cube inspection**: Use the helper scripts under `scripts/mismatch_mcz_td/` for slices, sweeps, and interactive cube inspection
 - **Workflow guide**: See `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` for the current stage-by-stage reference
 

@@ -1,7 +1,7 @@
 """Plot mismatch contour over (omega_tilde, theta_tilde) for a given td and mcz.
 
 This script loads a per-mcz mismatch cube HDF5 created by
-scripts/mismatch_mcz_td/compute_mismatch_cubes.py, extracts the
+python -m scripts.mismatch_mcz_td.compute_mismatch_cubes, extracts the
 epsilon_min_grid slice at the td closest to the requested time delay, and
 plots a contour over (omega_tilde, theta_tilde).
 
@@ -12,7 +12,7 @@ Notes:
   mismatch_cubes/mismatch_cubes_mcz{mcz}Msun_td*_{orientation}.h5.
 
 Usage example:
-    python scripts/mismatch_mcz_td/plot_mismatch_contour_slice.py \
+    python -m scripts.mismatch_mcz_td.plot_mismatch_contour_slice \
     --mcz 50 --td_ms 35 \
         --results_root data/contours_td_mcz \
     --orientation_tag Taman_edgeon \
@@ -27,11 +27,6 @@ from typing import Optional, Tuple, List
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
-
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from _bootstrap import ensure_project_root_on_path
-
-ensure_project_root_on_path(__file__)
 
 from modules.filenames import find_mismatch_cube_files
 
@@ -176,7 +171,7 @@ def main():
             "- The aggregated best_match_*.h5 does NOT contain full (omega, theta) grids."
         )
         print(
-            "- Please run scripts/mismatch_mcz_td/compute_mismatch_cubes.py for the requested mcz/td range, "
+            "- Please run python -m scripts.mismatch_mcz_td.compute_mismatch_cubes for the requested mcz/td range, "
             "then retry."
         )
         print("Searched roots:")

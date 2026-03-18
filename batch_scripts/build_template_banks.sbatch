@@ -19,7 +19,7 @@ source "$SCRIPT_DIR/_contour_td_mcz_config.sh"
 # Use all allocated CPUs for multiprocessing workers
 NWORKERS=${NWORKERS:-32}
 
-python scripts/template_banks/build_template_banks.py \
+python -m scripts.template_banks.build_template_banks \
   --orient_preset "${ORIENT_PRESET}" \
   --mcz_min "${MCZ_MIN}" --mcz_max "${MCZ_MAX}" --mcz_pts "${MCZ_PTS}" \
   --omega_min "${OMEGA_MIN}" --omega_max "${OMEGA_MAX}" --omega_pts "${OMEGA_PTS}" \

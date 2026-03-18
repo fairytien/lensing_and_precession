@@ -9,21 +9,15 @@ Outputs per-mcz HDF5 files to results_dir/mismatch_cubes/ containing:
   - gamma_best_grid (td, theta, omega)
   - optional mismatch (td, theta, omega, gamma) if --save_full_mismatch
 
-Use scripts/mismatch_mcz_td/aggregate_best_match.py to consolidate cubes into a single best-match file.
-Use scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py to plot the contour from the best-match file.
+Use python -m scripts.mismatch_mcz_td.aggregate_best_match to consolidate cubes into a single best-match file.
+Use python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match to plot the contour from the best-match file.
 """
 
-import os, argparse, sys
+import os, argparse
 from typing import Optional
 
 import numpy as np
 from multiprocessing import Pool, cpu_count
-
-# Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from _bootstrap import ensure_project_root_on_path
-
-ensure_project_root_on_path(__file__)
 
 from modules.functions_v3 import (
     get_gw,

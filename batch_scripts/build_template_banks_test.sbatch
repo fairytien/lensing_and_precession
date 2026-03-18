@@ -25,7 +25,7 @@ MCZ_MAX=30
 MCZ_PTS=1
 GAMMA_PTS=101
 
-python scripts/template_banks/build_template_banks.py \
+python -m scripts.template_banks.build_template_banks \
   --orient_preset "${ORIENT_PRESET}" \
   --mcz_min "${MCZ_MIN}" --mcz_max "${MCZ_MAX}" --mcz_pts "${MCZ_PTS}" \
   --omega_min "${OMEGA_MIN}" --omega_max "${OMEGA_MAX}" --omega_pts "${OMEGA_PTS}" \
