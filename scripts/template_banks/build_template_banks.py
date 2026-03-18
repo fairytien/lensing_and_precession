@@ -23,7 +23,14 @@ from modules.functions_v3 import timer_decorator
 from modules.default_params_v3 import orient_params
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
-from modules.cli_utils import add_orientation_args, set_argument_choices
+from modules.cli_utils import (
+    add_orientation_args,
+    add_mcz_grid_args,
+    add_template_grid_args,
+    add_frequency_args,
+    add_chunking_args,
+    set_argument_choices,
+)
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
@@ -121,18 +128,18 @@ if __name__ == "__main__":
         description="Build RP template banks across mcz range and save as HDF5."
     )
     add_orientation_args(p)
-    p.add_argument("--mcz_min", type=float, default=10.0)
-    p.add_argument("--mcz_max", type=float, default=80.0)
-    p.add_argument("--mcz_pts", type=int, default=71)
-    p.add_argument("--omega_min", type=float, default=0.0)
-    p.add_argument("--omega_max", type=float, default=6.0)
-    p.add_argument("--omega_pts", type=int, default=61)
-    p.add_argument("--theta_min", type=float, default=0.0)
-    p.add_argument("--theta_max", type=float, default=15.0)
-    p.add_argument("--theta_pts", type=int, default=151)
-    p.add_argument("--gamma_pts", type=int, default=101)
-    p.add_argument("--f_min", type=float, default=20.0)
-    p.add_argument("--delta_f", type=float, default=0.25)
+    add_mcz_grid_args(p, default_min=10.0, default_max=80.0, default_pts=71)
+    add_template_grid_args(
+        p,
+        omega_min=0.0,
+        omega_max=6.0,
+        omega_pts=61,
+        theta_min=0.0,
+        theta_max=15.0,
+        theta_pts=151,
+        gamma_pts=101,
+    )
+    add_frequency_args(p, f_min=20.0, delta_f=0.25)
     p.add_argument(
         "--bank_dir",
         type=str,
@@ -151,18 +158,7 @@ if __name__ == "__main__":
         default="complex128",
         help="Data type for stored complex strain arrays.",
     )
-    p.add_argument(
-        "--mcz_chunk_index",
-        type=int,
-        default=None,
-        help="Chunk index for mcz splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
-    )
-    p.add_argument(
-        "--mcz_chunk_count",
-        type=int,
-        default=None,
-        help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
-    )
+    add_chunking_args(p)
 
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)

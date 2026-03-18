@@ -46,6 +46,27 @@ def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
     return attrs
 
 
+def write_mcz_grid_attrs(
+    h5: h5py.File,
+    mcz_min: float,
+    mcz_max: float,
+    mcz_pts: int,
+) -> None:
+    """Write intended Stage 1 mcz grid metadata to an open HDF5 file."""
+    h5.attrs["mcz_min"] = float(mcz_min)
+    h5.attrs["mcz_max"] = float(mcz_max)
+    h5.attrs["mcz_pts"] = int(mcz_pts)
+
+
+def read_mcz_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
+    """Read mcz grid metadata from an open HDF5 file if present."""
+    attrs: Dict[str, Any] = {}
+    for key in ("mcz_min", "mcz_max", "mcz_pts"):
+        if key in h5.attrs:
+            attrs[key] = h5.attrs[key]
+    return attrs
+
+
 def open_bank_readonly(
     filepath: str,
 ) -> Tuple[h5py.File, np.ndarray, np.ndarray, np.ndarray, h5py.Dataset, Dict[str, Any]]:

@@ -52,7 +52,7 @@ def _find_mismatch_cube(
             td_min_ms=None,
             td_max_ms=None,
             orientation_tag=orientation_tag,
-            mcz_msun=int(round(mcz)),
+            mcz_msun=float(mcz),
         )
         if matches:
             return matches[0]
@@ -164,7 +164,6 @@ def main():
             [args.results_root]
             if args.results_root
             else [
-                os.path.join("data", "contours"),
                 os.path.join("data", "contours_td_mcz"),
             ]
         )

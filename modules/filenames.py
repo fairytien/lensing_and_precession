@@ -6,6 +6,7 @@ can locate outputs deterministically.
 
 import os
 import glob
+import math
 from datetime import datetime
 from typing import List, Optional, Tuple
 import h5py
@@ -213,6 +214,10 @@ def parse_mcz_from_mismatch_cube_path(path: str) -> Optional[float]:
         return None
 
 
+def _is_close(a: float, b: float, tol: float) -> bool:
+    return math.isclose(float(a), float(b), rel_tol=0.0, abs_tol=float(tol))
+
+
 def find_mismatch_cube_files(
     results_dir: str,
     td_min_ms: Optional[float],
@@ -221,6 +226,7 @@ def find_mismatch_cube_files(
     mcz_min: Optional[float] = None,
     mcz_max: Optional[float] = None,
     mcz_msun: Optional[float] = None,
+    mcz_tolerance: float = 1e-6,
 ) -> List[str]:
     """Return mismatch cube files matching the requested contour run."""
     if td_min_ms is None or td_max_ms is None:
@@ -231,10 +237,7 @@ def find_mismatch_cube_files(
             f"{_format_min_precision(td_max_ms)}ms"
         )
 
-    if mcz_msun is None:
-        mcz_token = "mcz*Msun"
-    else:
-        mcz_token = f"mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
+    mcz_token = "mcz*Msun"
 
     pattern = os.path.join(
         results_dir,
@@ -242,13 +245,12 @@ def find_mismatch_cube_files(
         (f"mismatch_cubes_{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"),
     )
     matches = sorted(glob.glob(pattern))
-    if mcz_min is None and mcz_max is None:
-        return matches
-
     selected = []
     for path in matches:
         mcz_val = parse_mcz_from_mismatch_cube_path(path)
         if mcz_val is None:
+            continue
+        if mcz_msun is not None and not _is_close(mcz_val, mcz_msun, mcz_tolerance):
             continue
         if mcz_min is not None and mcz_val < mcz_min:
             continue
@@ -258,6 +260,18 @@ def find_mismatch_cube_files(
     return selected
 
 
+def parse_mcz_range_from_best_match_path(path: str) -> Optional[Tuple[float, float]]:
+    """Extract (mcz_min, mcz_max) from a best-match filename."""
+    base = os.path.basename(path)
+    try:
+        token = base.split("_mcz", 1)[1]
+        bounds = token.split("Msun", 1)[0]
+        lo, hi = bounds.split("-", 1)
+        return float(lo), float(hi)
+    except Exception:
+        return None
+
+
 def find_best_match_file(
     results_dir: str,
     mcz_min: float,
@@ -265,6 +279,7 @@ def find_best_match_file(
     td_min_ms: float,
     td_max_ms: float,
     orientation_tag: str,
+    mcz_tolerance: float = 1e-6,
 ) -> Optional[str]:
     """Return the newest best-match file for the requested contour run."""
     pattern = os.path.join(
@@ -279,5 +294,48 @@ def find_best_match_file(
     matches = sorted(glob.glob(pattern))
     if not matches:
         return None
-    matches.sort(key=os.path.getmtime, reverse=True)
-    return matches[0]
+
+    selected = []
+    for path in matches:
+        parsed = parse_mcz_range_from_best_match_path(path)
+        if parsed is None:
+            continue
+        lo, hi = parsed
+        if not _is_close(lo, mcz_min, mcz_tolerance):
+            continue
+        if not _is_close(hi, mcz_max, mcz_tolerance):
+            continue
+
+        # Final authenticity check from file contents (lean and robust).
+        try:
+            with h5py.File(path, "r") as h5:
+                if "mcz" not in h5 or "td" not in h5:
+                    continue
+                mcz_arr = h5["mcz"][:]
+                td_arr = h5["td"][:]
+                if mcz_arr.size == 0 or td_arr.size == 0:
+                    continue
+                if not _is_close(float(np.nanmin(mcz_arr)), mcz_min, mcz_tolerance):
+                    continue
+                if not _is_close(float(np.nanmax(mcz_arr)), mcz_max, mcz_tolerance):
+                    continue
+
+                td_min_s = float(td_min_ms) / 1e3
+                td_max_s = float(td_max_ms) / 1e3
+                if not _is_close(float(np.nanmin(td_arr)), td_min_s, mcz_tolerance):
+                    continue
+                if not _is_close(float(np.nanmax(td_arr)), td_max_s, mcz_tolerance):
+                    continue
+                if "orientation_tag" in h5.attrs:
+                    if str(h5.attrs["orientation_tag"]) != str(orientation_tag):
+                        continue
+        except Exception:
+            continue
+
+        selected.append(path)
+
+    if not selected:
+        return None
+
+    selected.sort(key=os.path.getmtime, reverse=True)
+    return selected[0]

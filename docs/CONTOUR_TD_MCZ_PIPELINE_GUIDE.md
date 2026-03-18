@@ -51,17 +51,21 @@ python scripts/mismatch_mcz_td/create_contour_mcz_td_from_best_match.py \
 - `I`: Flux ratio
 - `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
 - `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
+- `mcz_min`, `mcz_max`, `mcz_pts`: Intended mcz grid from Stage 1 compute settings
 
 ### Best-Match File (`results_dir/best_match/*.h5`)
 
 **Datasets:**
-- `mcz`: Full chirp mass array for the requested range
+- `mcz`: Expected chirp mass grid for plotting (missing internal rows are kept)
 - `td`: Time delay array (seconds)
 - `epsilon_min`: (mcz, td) - global minimum mismatch
 - `omega_best`, `theta_best`, `gamma_best`: (mcz, td) - best-fit template parameters
+- `expected_mcz`: Expected mcz grid used by Stage 2
+- `missing_mcz` (optional): Missing internal mcz values detected during aggregation
 
 **File Attributes:**
 - `I`, `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
+- `missing_mcz_count`: Number of missing internal mcz rows detected by Stage 2
 
 ## Stage 0: Build Template Banks
 
@@ -115,6 +119,7 @@ python scripts/mismatch_mcz_td/compute_mismatch_cubes.py \
 **Script:** `scripts/mismatch_mcz_td/aggregate_best_match.py`
 
 Finds global minimum across (theta, omega) for each (mcz, td) and consolidates into a single best-match HDF5 file.
+If internal mcz rows are missing, Stage 2 keeps those rows as NaNs so the contour plot shows explicit gaps.
 
 **Example:**
 ```bash

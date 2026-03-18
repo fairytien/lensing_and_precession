@@ -23,6 +23,7 @@ sys.path.insert(
 )
 
 from modules.filenames import contour_mcz_td_filename, find_best_match_file
+from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 # Add scripts directory to path to allow importing from other scripts
@@ -118,10 +119,13 @@ def main(
 
     # Read all data and extract I from a single file open
     I_value = None
+    missing_mcz_count = 0
     with h5py.File(summary_path, "r") as h5:
         # Extract I from attributes
         if "I" in h5.attrs:
             I_value = float(h5.attrs["I"])
+        if "missing_mcz_count" in h5.attrs:
+            missing_mcz_count = int(h5.attrs["missing_mcz_count"])
 
         # Validate that required datasets exist
         required_datasets = ["mcz", "td", var_info["dataset"]]
@@ -138,6 +142,12 @@ def main(
 
     if I_value is None:
         raise ValueError("Could not infer I value from best-match file")
+
+    if missing_mcz_count > 0:
+        logging.warning(
+            "Best-match file reports %d missing mcz rows; contour will include NaN gaps.",
+            missing_mcz_count,
+        )
 
     # Convert td from seconds to ms for plotting
     td_arr_ms = td_arr * 1e3
@@ -182,8 +192,8 @@ def main(
     base_path = contour_mcz_td_filename(
         output_dir,
         I=I_value,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
+        mcz_min=float(np.nanmin(mcz_arr)),
+        mcz_max=float(np.nanmax(mcz_arr)),
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
@@ -231,29 +241,19 @@ if __name__ == "__main__":
         default=os.path.join(project_root, "data", "contours_td_mcz"),
         help="Directory containing the best-match HDF5 file.",
     )
-    p.add_argument(
-        "--td_min_ms",
-        type=float,
+    add_td_grid_args(
+        p,
+        default_min_ms=None,
+        default_max_ms=None,
+        default_pts=None,
         required=True,
-        help="Minimum time delay in ms (for filename matching).",
     )
-    p.add_argument(
-        "--td_max_ms",
-        type=float,
+    add_mcz_grid_args(
+        p,
+        default_min=None,
+        default_max=None,
+        default_pts=None,
         required=True,
-        help="Maximum time delay in ms (for filename matching).",
-    )
-    p.add_argument(
-        "--mcz_min",
-        type=float,
-        required=True,
-        help="Minimum chirp mass in Msun (for filename matching).",
-    )
-    p.add_argument(
-        "--mcz_max",
-        type=float,
-        required=True,
-        help="Maximum chirp mass in Msun (for filename matching).",
     )
     p.add_argument(
         "--orientation_tag",

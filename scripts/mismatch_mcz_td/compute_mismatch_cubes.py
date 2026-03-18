@@ -40,11 +40,24 @@ from modules.match_utils import (
     init_mismatch_worker,
     mismatch_gamma_job,
 )
-from modules.bank_io import open_bank_readonly, create_mismatch_cube, write_source_attrs
+from modules.bank_io import (
+    open_bank_readonly,
+    create_mismatch_cube,
+    write_source_attrs,
+    write_mcz_grid_attrs,
+)
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
 from modules.chunking import choose_gamma_chunk
-from modules.cli_utils import add_orientation_args, set_argument_choices
+from modules.cli_utils import (
+    add_orientation_args,
+    add_mcz_grid_args,
+    add_td_grid_args,
+    add_template_grid_args,
+    add_frequency_args,
+    add_chunking_args,
+    set_argument_choices,
+)
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
@@ -193,6 +206,9 @@ def main(
             with mmh5:
                 # Store source parameters as HDF5 attributes for later aggregation
                 write_source_attrs(mmh5, I, theta_J, phi_J, theta_S, phi_S)
+                # Store the intended mcz grid so aggregation can detect missing rows
+                # from the actual compute configuration (not inferred from filenames).
+                write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts)
 
                 mm_dset = dsets.get("mismatch")
                 ep_min_grid_dset = dsets["epsilon_min_grid"]
@@ -261,21 +277,19 @@ if __name__ == "__main__":
         "--I", type=float, default=0.5, help="Flux ratio I (0<I<1). Default 0.5"
     )
     add_orientation_args(p)
-    p.add_argument("--mcz_min", type=float, default=10.0)
-    p.add_argument("--mcz_max", type=float, default=80.0)
-    p.add_argument("--mcz_pts", type=int, default=71)
-    p.add_argument("--td_min_ms", type=float, default=20.0)
-    p.add_argument("--td_max_ms", type=float, default=70.0)
-    p.add_argument("--td_pts", type=int, default=51)
-    p.add_argument("--omega_min", type=float, default=0.0)
-    p.add_argument("--omega_max", type=float, default=6.0)
-    p.add_argument("--omega_pts", type=int, default=61)
-    p.add_argument("--theta_min", type=float, default=0.0)
-    p.add_argument("--theta_max", type=float, default=15.0)
-    p.add_argument("--theta_pts", type=int, default=151)
-    p.add_argument("--gamma_pts", type=int, default=51)
-    p.add_argument("--f_min", type=float, default=20.0)
-    p.add_argument("--delta_f", type=float, default=0.25)
+    add_mcz_grid_args(p, default_min=10.0, default_max=80.0, default_pts=71)
+    add_td_grid_args(p, default_min_ms=20.0, default_max_ms=70.0, default_pts=51)
+    add_template_grid_args(
+        p,
+        omega_min=0.0,
+        omega_max=6.0,
+        omega_pts=61,
+        theta_min=0.0,
+        theta_max=15.0,
+        theta_pts=151,
+        gamma_pts=51,
+    )
+    add_frequency_args(p, f_min=20.0, delta_f=0.25)
     p.add_argument(
         "--bank_dir",
         type=str,
@@ -299,18 +313,7 @@ if __name__ == "__main__":
             "contours_td_mcz",
         ),
     )
-    p.add_argument(
-        "--mcz_chunk_index",
-        type=int,
-        default=None,
-        help="Chunk index for mcz splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
-    )
-    p.add_argument(
-        "--mcz_chunk_count",
-        type=int,
-        default=None,
-        help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
-    )
+    add_chunking_args(p)
     # Build dynamic choices list from orient_params to avoid drift
     dynamic_choices = allowed_orient_presets(orient_params)
     set_argument_choices(p, "orient_preset", dynamic_choices)

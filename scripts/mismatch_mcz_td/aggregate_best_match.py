@@ -22,7 +22,8 @@ from modules.filenames import (
     get_mismatch_cube_resolution,
 )
 from modules.functions_v3 import timer_decorator
-from modules.bank_io import read_source_attrs
+from modules.bank_io import read_source_attrs, read_mcz_grid_attrs
+from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
 
 
 @timer_decorator
@@ -34,6 +35,8 @@ def main(
     mcz_max: float,
     orientation_tag: str,
 ):
+    tol = 1e-6
+
     cube_paths = find_mismatch_cube_files(
         results_dir=results_dir,
         td_min_ms=td_min_ms,
@@ -51,8 +54,11 @@ def main(
     T_rows = []
     G_rows = []
     td_arr = None
+    ref_shape = None
+    warned_shape_mismatch = False
     # Store source parameters from first cube (should be same across all)
     source_attrs = {}
+    mcz_grid_meta = None
 
     for p in cube_paths:
         # Skip unreadable/corrupted files gracefully
@@ -65,8 +71,52 @@ def main(
             mcz = float(np.array(h5["mcz"]).item())
             if td_arr is None:
                 td_arr = np.array(h5["td"])  # (td,)
+                ref_shape = (
+                    int(td_arr.shape[0]),
+                    int(h5["theta"].shape[0]),
+                    int(h5["omega"].shape[0]),
+                    int(h5["gamma"].shape[0]),
+                )
                 # Extract source parameters from first cube file if available
                 source_attrs = read_source_attrs(h5)
+                mcz_grid_meta = read_mcz_grid_attrs(h5)
+            else:
+                # Light authenticity check: metadata should be consistent across cubes.
+                meta_i = read_mcz_grid_attrs(h5)
+                if mcz_grid_meta and meta_i:
+                    mismatch = (
+                        abs(
+                            float(meta_i.get("mcz_min", np.nan))
+                            - float(mcz_grid_meta.get("mcz_min", np.nan))
+                        )
+                        > tol
+                        or abs(
+                            float(meta_i.get("mcz_max", np.nan))
+                            - float(mcz_grid_meta.get("mcz_max", np.nan))
+                        )
+                        > tol
+                        or int(meta_i.get("mcz_pts", -1))
+                        != int(mcz_grid_meta.get("mcz_pts", -1))
+                    )
+                    if mismatch:
+                        print(
+                            "Warning: Inconsistent mcz grid metadata across mismatch cubes; "
+                            "falling back to discovered mcz values where needed."
+                        )
+                        mcz_grid_meta = {}
+                if not warned_shape_mismatch:
+                    shape_i = (
+                        int(h5["td"].shape[0]),
+                        int(h5["theta"].shape[0]),
+                        int(h5["omega"].shape[0]),
+                        int(h5["gamma"].shape[0]),
+                    )
+                    if ref_shape is not None and shape_i != ref_shape:
+                        print(
+                            "Warning: Inconsistent axis sizes across mismatch cubes "
+                            "(td/theta/omega/gamma). Results may be partial for mismatched files."
+                        )
+                        warned_shape_mismatch = True
             ep_min_grid = np.array(h5["epsilon_min_grid"])  # (td, theta, omega)
             g_best_grid = np.array(h5["gamma_best_grid"])  # (td, theta, omega)
             theta_arr = np.array(h5["theta"])  # (theta,)
@@ -91,35 +141,84 @@ def main(
             T_rows.append(T)
             G_rows.append(G)
 
-    # Build full mcz grid [mcz_min, ..., mcz_max] with blanks (NaNs) for missing entries
-    desired_mcz = np.arange(float(mcz_min), float(mcz_max) + 1.0, 1.0, dtype=np.float64)
+    if td_arr is None or not mcz_vals:
+        raise ValueError("No readable mismatch cubes found for aggregation")
+
+    # Use the mcz values discovered from mismatch cubes directly.
+    # Canonicalize tiny floating noise to keep logically identical points together.
+    mcz_vals_arr = np.round(np.array(mcz_vals, dtype=np.float64), decimals=10)
+    desired_mcz = np.sort(np.unique(mcz_vals_arr))
+
+    # Warning-only completeness check for internal missing mcz rows.
+    # Prefer the exact compute grid saved by Stage 1; fallback to discovered rows.
+    expected_mcz = desired_mcz.copy()
+    if mcz_grid_meta:
+        try:
+            mcz_min_attr = float(mcz_grid_meta["mcz_min"])
+            mcz_max_attr = float(mcz_grid_meta["mcz_max"])
+            mcz_pts_attr = int(mcz_grid_meta["mcz_pts"])
+            if mcz_pts_attr > 0:
+                expected_mcz = np.linspace(
+                    mcz_min_attr,
+                    mcz_max_attr,
+                    mcz_pts_attr,
+                    dtype=np.float64,
+                )
+        except Exception:
+            expected_mcz = desired_mcz.copy()
+
+    expected_mcz = np.round(expected_mcz, decimals=10)
+
+    missing_mcz = []
+    for x in expected_mcz:
+        if np.min(np.abs(desired_mcz - x)) > max(tol, 1e-3 * (abs(x) + 1.0)):
+            missing_mcz.append(float(x))
+
+    if missing_mcz:
+        preview = ", ".join(f"{v:g}" for v in missing_mcz[:10])
+        suffix = "..." if len(missing_mcz) > 10 else ""
+        print(
+            f"Warning: Detected {len(missing_mcz)} missing mcz rows within requested range: {preview}{suffix}"
+        )
+
+    # Use expected mcz grid as output axis so missing rows remain explicit NaNs for plotting.
+    desired_mcz = expected_mcz
+
     td_len = td_arr.shape[0]
     Zmap = np.full((desired_mcz.shape[0], td_len), np.nan, dtype=np.float32)
     Omap = np.full_like(Zmap, np.nan)
     Tmap = np.full_like(Zmap, np.nan)
     Gmap = np.full_like(Zmap, np.nan)
 
-    # Place available rows at the correct indices
-    present_mcz = np.array(mcz_vals, dtype=np.float64)
+    # Place available rows by nearest expected mcz index (with small tolerance).
+    present_mcz = np.round(np.array(mcz_vals, dtype=np.float64), decimals=10)
     order = np.argsort(present_mcz)
     present_mcz_sorted = present_mcz[order]
     Z_rows_sorted = [Z_rows[i] for i in order]
     O_rows_sorted = [O_rows[i] for i in order]
     T_rows_sorted = [T_rows[i] for i in order]
     G_rows_sorted = [G_rows[i] for i in order]
-    index_map = {val: idx for idx, val in enumerate(desired_mcz)}
+    if desired_mcz.shape[0] > 1:
+        pos_diffs = np.diff(desired_mcz)
+        pos_diffs = pos_diffs[pos_diffs > tol]
+        row_tol = (
+            max(tol, 0.25 * float(np.min(pos_diffs))) if pos_diffs.size > 0 else tol
+        )
+    else:
+        row_tol = tol
+
     for val, Zr, Or, Tr, Gr in zip(
         present_mcz_sorted, Z_rows_sorted, O_rows_sorted, T_rows_sorted, G_rows_sorted
     ):
-        if val in index_map:
-            j = index_map[val]
+        j = int(np.argmin(np.abs(desired_mcz - val)))
+        if abs(float(desired_mcz[j]) - float(val)) <= row_tol:
             Zmap[j, :] = Zr
             Omap[j, :] = Or
             Tmap[j, :] = Tr
             Gmap[j, :] = Gr
 
-    # Determine mcz resolution from number of cubes within range
-    mcz_pts = len(cube_paths)
+    # Determine mcz resolution from discovered unique mcz values
+    mcz_pts = int(desired_mcz.shape[0])
     # Infer td/o/t/g resolution directly from HDF5 contents of the first cube
     # Also extract I from attributes for filename
     td_pts = omega_pts = theta_pts = gamma_pts = None
@@ -141,11 +240,13 @@ def main(
     # Save combined best-match file with resolution encoded
     if I_value is None:
         raise ValueError("Could not infer I value from mismatch cube files")
+    mcz_min_out = float(np.min(desired_mcz))
+    mcz_max_out = float(np.max(desired_mcz))
     summary_path = best_match_mcz_td_filename(
         results_dir,
         I=I_value,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
+        mcz_min=mcz_min_out,
+        mcz_max=mcz_max_out,
         mcz_pts=mcz_pts,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
@@ -162,6 +263,12 @@ def main(
         h5.create_dataset("omega_best", data=Omap.astype(np.float32))
         h5.create_dataset("theta_best", data=Tmap.astype(np.float32))
         h5.create_dataset("gamma_best", data=Gmap.astype(np.float32))
+        h5.attrs["missing_mcz_count"] = int(len(missing_mcz))
+        if missing_mcz:
+            h5.create_dataset(
+                "missing_mcz", data=np.array(missing_mcz, dtype=np.float64)
+            )
+        h5.create_dataset("expected_mcz", data=np.array(expected_mcz, dtype=np.float64))
         # Save source parameters as attributes if available
         for key, val in source_attrs.items():
             h5.attrs[key] = val
@@ -176,10 +283,20 @@ if __name__ == "__main__":
         description="Aggregate per-mcz mismatch cubes into a combined best-match file."
     )
     p.add_argument("--results_dir", type=str, required=True)
-    p.add_argument("--td_min_ms", type=float, required=True)
-    p.add_argument("--td_max_ms", type=float, required=True)
-    p.add_argument("--mcz_min", type=float, required=True)
-    p.add_argument("--mcz_max", type=float, required=True)
+    add_td_grid_args(
+        p,
+        default_min_ms=None,
+        default_max_ms=None,
+        default_pts=None,
+        required=True,
+    )
+    add_mcz_grid_args(
+        p,
+        default_min=None,
+        default_max=None,
+        default_pts=None,
+        required=True,
+    )
     p.add_argument("--orientation_tag", type=str, required=True)
     args = p.parse_args()
 
