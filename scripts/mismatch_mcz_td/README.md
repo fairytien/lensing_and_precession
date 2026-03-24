@@ -18,4 +18,4 @@ This pipeline computes generic mismatch cubes (and derived contours) between len
 -   `create_contour_mcz_td_from_best_match.py`: Plots the resulting mismatch landscape.
 -   `visualize_mismatch_cube.py`: Helper to visualize specific parts of a mismatch cube.
 -   `visualize_mcz_sweep_at_td.py`: Generates movies/sliders sweeping $m_{cz}$ at constant $t_d$.
--   `plot_omega_theta_from_cube.py`: Plots slices of the cube in the $\Omega-\theta$ plane.
+-   `plot_omega_theta_from_cube.py`: Plots the $\Omega-\theta$ mismatch slice at a requested $t_d$ from a per-mcz cube.
