@@ -14,18 +14,23 @@ import numpy as np
 
 
 def _format_min_precision(
-    value: Optional[float] = None, prefix: str = "", suffix: str = ""
+    value: Optional[float] = None,
+    prefix: str = "",
+    suffix: str = "",
+    decimal_style: str = "p",
 ) -> str:
     """Format a number with minimal precision needed to represent it accurately.
 
     Examples:
-        46.0 → "46"
-        46.5 → "46.5"
-        46.25 → "46.25"
-        46.123 → "46.123"
+        46.0 -> "46"
+        46.5 -> "46p5" (default)
+        46.5 with decimal_style="dot" -> "46.5"
     """
     if value is None:
         return ""
+
+    if decimal_style not in {"p", "dot"}:
+        raise ValueError("decimal_style must be 'p' or 'dot'")
 
     # Convert to string to preserve input precision
     s = str(value)
@@ -41,7 +46,33 @@ def _format_min_precision(
     if s.endswith("."):
         s = s[:-1]
 
+    if decimal_style == "p":
+        s = s.replace(".", "p")
+
     return f"{prefix}{s}{suffix}"
+
+
+def _parse_decimal_token(token: str) -> float:
+    """Parse numeric tokens that may use either dot or p as decimal separator."""
+    return float(str(token).replace("p", "."))
+
+
+def _decimal_variants(value: float) -> List[str]:
+    """Return both supported decimal styles for glob matching."""
+    return sorted(
+        {
+            _format_min_precision(value, decimal_style="p"),
+            _format_min_precision(value, decimal_style="dot"),
+        }
+    )
+
+
+def _glob_union(patterns: List[str]) -> List[str]:
+    """Return sorted unique matches across multiple glob patterns."""
+    matches_set = set()
+    for pattern in patterns:
+        matches_set.update(glob.glob(pattern))
+    return sorted(matches_set)
 
 
 def timestamp_path(
@@ -210,7 +241,7 @@ def parse_mcz_from_mismatch_cube_path(path: str) -> Optional[float]:
     base = os.path.basename(path)
     try:
         token = base.split("_mcz", 1)[1]
-        return float(token.split("Msun", 1)[0])
+        return _parse_decimal_token(token.split("Msun", 1)[0])
     except Exception:
         return None
 
@@ -231,21 +262,27 @@ def find_mismatch_cube_files(
 ) -> List[str]:
     """Return mismatch cube files matching the requested contour run."""
     if td_min_ms is None or td_max_ms is None:
-        td_token = "td*ms"
+        td_tokens = ["td*ms"]
     else:
-        td_token = (
-            f"td{_format_min_precision(td_min_ms)}-"
-            f"{_format_min_precision(td_max_ms)}ms"
-        )
+        td_min_tokens = _decimal_variants(td_min_ms)
+        td_max_tokens = _decimal_variants(td_max_ms)
+        td_tokens = [
+            f"td{td_lo}-{td_hi}ms" for td_lo in td_min_tokens for td_hi in td_max_tokens
+        ]
 
     mcz_token = "mcz*Msun"
 
-    pattern = os.path.join(
-        results_dir,
-        "mismatch_cubes",
-        (f"mismatch_cubes_{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"),
-    )
-    matches = sorted(glob.glob(pattern))
+    patterns = [
+        os.path.join(
+            results_dir,
+            "mismatch_cubes",
+            (
+                f"mismatch_cubes_{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"
+            ),
+        )
+        for td_token in td_tokens
+    ]
+    matches = _glob_union(patterns)
     selected = []
     for path in matches:
         mcz_val = parse_mcz_from_mismatch_cube_path(path)
@@ -268,7 +305,7 @@ def parse_mcz_range_from_best_match_path(path: str) -> Optional[Tuple[float, flo
         token = base.split("_mcz", 1)[1]
         bounds = token.split("Msun", 1)[0]
         lo, hi = bounds.split("-", 1)
-        return float(lo), float(hi)
+        return _parse_decimal_token(lo), _parse_decimal_token(hi)
     except Exception:
         return None
 
@@ -283,16 +320,26 @@ def find_best_match_file(
     mcz_tolerance: float = 1e-6,
 ) -> Optional[str]:
     """Return the newest best-match file for the requested contour run."""
-    pattern = os.path.join(
-        results_dir,
-        "best_match",
-        (
-            f"best_match_I*_mcz{_format_min_precision(mcz_min)}-"
-            f"{_format_min_precision(mcz_max)}Msun_td{_format_min_precision(td_min_ms)}-"
-            f"{_format_min_precision(td_max_ms)}ms*_{orientation_tag}.h5"
-        ),
-    )
-    matches = sorted(glob.glob(pattern))
+    mcz_min_tokens = _decimal_variants(mcz_min)
+    mcz_max_tokens = _decimal_variants(mcz_max)
+    td_min_tokens = _decimal_variants(td_min_ms)
+    td_max_tokens = _decimal_variants(td_max_ms)
+
+    patterns = [
+        os.path.join(
+            results_dir,
+            "best_match",
+            (
+                f"best_match_I*_mcz{mcz_lo}-{mcz_hi}Msun_td{td_lo}-"
+                f"{td_hi}ms*_{orientation_tag}.h5"
+            ),
+        )
+        for mcz_lo in mcz_min_tokens
+        for mcz_hi in mcz_max_tokens
+        for td_lo in td_min_tokens
+        for td_hi in td_max_tokens
+    ]
+    matches = _glob_union(patterns)
     if not matches:
         return None
 
