@@ -10,7 +10,7 @@ Outputs per-mcz HDF5 files to results_dir/mismatch_cubes/ containing:
   - optional mismatch (td, theta, omega, gamma) if --save_full_mismatch
 
 Use python -m scripts.mismatch_mcz_td.aggregate_best_match to consolidate cubes into a single best-match file.
-Use python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match to plot the contour from the best-match file.
+Use python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match to plot the contour from the best-match file.
 """
 
 import os, argparse

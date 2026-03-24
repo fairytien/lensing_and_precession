@@ -8,7 +8,7 @@ Pipeline:
 1. python -m scripts.template_banks.build_template_banks - build per-mcz template banks
 2. python -m scripts.mismatch_mcz_td.compute_mismatch_cubes - compute per-mcz mismatch cubes
 3. python -m scripts.mismatch_mcz_td.aggregate_best_match - consolidate cubes into best-match file
-4. python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match - plot contour
+4. python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match - plot contour
 """
 
 import os, argparse

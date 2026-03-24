@@ -47,7 +47,7 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --orientation_tag Taman_edgeon
 
 # 4. Plot the final contour
-python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match \
+python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --results_dir ./data/contours_td_mcz \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
@@ -55,7 +55,7 @@ python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match \
 ```
 
 ### Plotting
-- **Final contour**: Use `python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match`
+- **Final contour**: Use `python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match`
 - **Per-cube inspection**: Use the helper scripts under `scripts/mismatch_mcz_td/` for slices, sweeps, and interactive cube inspection
 - **Workflow guide**: See `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` for the current stage-by-stage reference
 

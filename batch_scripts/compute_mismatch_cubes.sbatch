@@ -22,7 +22,7 @@ NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 # NOTE: This array job computes per-mcz mismatch cubes in chunks.
 # After ALL array tasks complete, run:
 # 1. python -m scripts.mismatch_mcz_td.aggregate_best_match --results_dir "$RESULTS_DIR" --td_min_ms "$TD_MIN_MS" --td_max_ms "$TD_MAX_MS" --mcz_min "$MCZ_MIN" --mcz_max "$MCZ_MAX" --orientation_tag "$ORIENT_PRESET"
-# 2. python -m scripts.mismatch_mcz_td.create_contour_mcz_td_from_best_match --results_dir "$RESULTS_DIR" --td_min_ms "$TD_MIN_MS" --td_max_ms "$TD_MAX_MS" --mcz_min "$MCZ_MIN" --mcz_max "$MCZ_MAX" --orientation_tag "$ORIENT_PRESET"
+# 2. python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match --results_dir "$RESULTS_DIR" --td_min_ms "$TD_MIN_MS" --td_max_ms "$TD_MAX_MS" --mcz_min "$MCZ_MIN" --mcz_max "$MCZ_MAX" --orientation_tag "$ORIENT_PRESET"
 
 python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --I "${FLUX_RATIO}" \
