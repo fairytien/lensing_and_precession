@@ -10,7 +10,9 @@ from scipy.integrate import simpson
 import h5py
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.functions_v3 import (
     get_gw,
@@ -59,7 +61,7 @@ def compute_source_snr(args):
         h_squared = np.abs(h_s) ** 2
         integrand = h_squared / psd
         snr_squared = 4 * simpson(integrand, x=f_array)
-        
+
         if snr_squared > 0:
             snr_value = np.sqrt(snr_squared)
         else:
@@ -115,6 +117,7 @@ def main(
     # Find best-match file to get mcz and td arrays
     # Try to find any best-match file with matching parameters
     from glob import glob
+
     pattern = os.path.join(
         results_dir,
         "best_match",
@@ -129,13 +132,13 @@ def main(
             f"*I{_format_min_precision(I)}*mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}Msun*td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}ms*{orientation_tag}.h5",
         )
         matches = glob(pattern2)
-    
+
     if not matches:
         raise FileNotFoundError(
             f"Could not find best-match file matching pattern: {pattern}\n"
             f"Please ensure a best-match file exists with matching parameters."
         )
-    
+
     best_match_path = matches[0]  # Use first match
 
     if not os.path.isfile(best_match_path):
@@ -156,9 +159,11 @@ def main(
     logging.info(f"Loaded data: mcz={len(mcz_arr)} points, td={len(td_arr)} points")
     logging.info(f"I={I_value}")
 
-    # Parse orientation tag
-    if "_" in orientation_tag:
-        location_parts = orientation_tag.split("_", 1)
+    # Parse orientation tag.
+    # Canonical format is underscore-separated; legacy dot separators are normalized.
+    orientation_tag_norm = str(orientation_tag).replace(".", "_")
+    if "_" in orientation_tag_norm:
+        location_parts = orientation_tag_norm.split("_", 1)
         location_name = location_parts[0]
         orientation_name = location_parts[1] if len(location_parts) > 1 else "edgeon"
     else:
@@ -166,10 +171,15 @@ def main(
         orientation_name = "edgeon"
 
     # Get orientation parameters
-    if location_name in orient_params and orientation_name in orient_params[location_name]:
+    if (
+        location_name in orient_params
+        and orientation_name in orient_params[location_name]
+    ):
         orient_dict = orient_params[location_name][orientation_name]
     else:
-        logging.warning(f"Unknown location/orientation: {orientation_tag}, using Taman.edgeon")
+        logging.warning(
+            f"Unknown location/orientation: {orientation_tag}, using Taman_edgeon"
+        )
         orient_dict = orient_params["Taman"]["edgeon"]
 
     # Set up source (lensed) parameters
@@ -234,7 +244,9 @@ def main(
     # Print statistics
     valid_snr = snr_matrix[~np.isnan(snr_matrix)]
     if len(valid_snr) > 0:
-        logging.info(f"Source SNR range: {valid_snr.min():.6f} to {valid_snr.max():.6f}")
+        logging.info(
+            f"Source SNR range: {valid_snr.min():.6f} to {valid_snr.max():.6f}"
+        )
 
     return output_path
 
@@ -319,4 +331,3 @@ if __name__ == "__main__":
         delta_f=args.delta_f,
         n_workers=args.n_workers,
     )
-

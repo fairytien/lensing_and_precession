@@ -33,7 +33,7 @@ from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
 
 
-ORIENTATION_TAG = "Taman.edgeon"
+ORIENTATION_TAG = "Taman_edgeon"
 
 
 def _source_mcz_threshold_for_band(

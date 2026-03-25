@@ -775,7 +775,7 @@ def main(
         "mcz_arr": mcz_arr,
         "td_arr": td_arr,
         "I": I,
-        "location": "custom" if custom_orient else "Taman.edgeon",
+        "location": "custom" if custom_orient else "Taman_edgeon",
         "template": "RP",
         "omega_range": (omega_min, omega_max, omega_points),
         "theta_range": (theta_min, theta_max, theta_points),

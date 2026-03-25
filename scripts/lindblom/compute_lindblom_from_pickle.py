@@ -182,19 +182,16 @@ def main(
     td_arr = np.array(data["td_arr"])  # in seconds
     epsilon_matrix = np.array(data["epsilon_matrix"])  # (mcz, td)
     I = float(data["I"])
-    location = data.get("location", "Taman.edgeon")
+    location = data.get("location", "Taman_edgeon")
 
     logging.info(f"Data shape: mcz={len(mcz_arr)}, td={len(td_arr)}")
     logging.info(f"I={I}, location={location}")
 
-    # Parse location to get orientation
-    # Location format is "Taman.edgeon" or "Taman_edgeon"
-    if "." in location:
-        location_parts = location.split(".")
-        location_name = location_parts[0]
-        orientation_name = location_parts[1] if len(location_parts) > 1 else "edgeon"
-    elif "_" in location:
-        location_parts = location.split("_", 1)
+    # Parse location to get orientation.
+    # Canonical format is "Taman_edgeon"; legacy dot separators are normalized.
+    location_norm = str(location).replace(".", "_")
+    if "_" in location_norm:
+        location_parts = location_norm.split("_", 1)
         location_name = location_parts[0]
         orientation_name = location_parts[1] if len(location_parts) > 1 else "edgeon"
     else:
@@ -208,7 +205,7 @@ def main(
     ):
         orient_dict = orient_params[location_name][orientation_name]
     else:
-        logging.warning(f"Unknown location/orientation: {location}, using Taman.edgeon")
+        logging.warning(f"Unknown location/orientation: {location}, using Taman_edgeon")
         orient_dict = orient_params["Taman"]["edgeon"]
 
     # Set up source (lensed) parameters

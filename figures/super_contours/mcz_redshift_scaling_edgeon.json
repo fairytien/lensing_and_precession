@@ -40,6 +40,6 @@
     }
   },
   "z0": 1e-06,
-  "z0_path": "data/super_contours/contour_L_NP_I0.5_z1e-06_mcz10-90Msun_td20-70ms_min_mismatch_Taman.edgeon.h5",
-  "z1_path": "data/super_contours/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman.edgeon.h5"
+  "z0_path": "data/super_contours/contour_L_NP_I0.5_z1e-06_mcz10-90Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
+  "z1_path": "data/super_contours/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5"
 }
