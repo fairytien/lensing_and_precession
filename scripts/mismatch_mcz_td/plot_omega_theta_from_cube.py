@@ -9,7 +9,7 @@ Notes:
 - The aggregated best-match file best_match_*.h5 does NOT contain full (omega, theta)
   mismatch contours; it only stores the global minima and best-fit parameters per (mcz, td).
   Therefore, this script requires the matching per-mcz mismatch cube file
-  mismatch_cubes/mismatch_cubes_mcz{mcz}Msun_td*_{orientation}.h5.
+    discovered via modules.filenames.find_mismatch_cube_files.
 
 Usage example:
     python -m scripts.mismatch_mcz_td.plot_omega_theta_from_cube \
@@ -38,8 +38,9 @@ def _find_mismatch_cube(
 ) -> Optional[str]:
     """Search common results roots for the per-mcz mismatch cube file.
 
-    Looks for files like:
-      {root}/mismatch_cubes/mismatch_cubes_mcz{mcz}Msun_td*-*ms_{orientation_tag}.h5
+        Looks under:
+            {root}/mismatch_cubes/*.h5
+        and filters through canonical parsing rules.
     Returns the first matching path if found, else None.
     """
     for root in results_roots:

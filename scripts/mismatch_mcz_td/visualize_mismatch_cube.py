@@ -15,7 +15,10 @@ from typing import Optional, Tuple
 
 import numpy as np
 import h5py
-from modules.filenames import get_mismatch_cube_resolution
+from modules.filenames import (
+    get_mismatch_cube_resolution,
+    parse_mcz_from_mismatch_cube_path,
+)
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
@@ -33,15 +36,47 @@ def _infer_orientation_tag_from_filename(path: str) -> str:
 
 
 def _infer_mcz_from_filename(path: str) -> str:
-    """Extract mcz value from a cube filename, e.g., *mcz70Msun* -> 70Msun.
+    """Extract mcz value token from a cube filename.
 
+    Returns values like "70Msun" or "70p5Msun".
     Returns "unknown" if the mcz cannot be inferred.
     """
-    base = os.path.basename(path)
-    m = re.match(r".*mcz(\d+Msun).*", base)
-    if m:
-        return m.group(1)
+    val = parse_mcz_from_mismatch_cube_path(path)
+    if val is not None:
+        token = f"{float(val):g}".replace(".", "p")
+        return f"{token}Msun"
     return "unknown"
+
+
+def _format_td_range_tag(td_s: np.ndarray) -> str:
+    """Build td range token from td dataset values in seconds."""
+    td_ms = np.asarray(td_s, dtype=float) * 1e3
+    if td_ms.size == 0:
+        return "td-unknown"
+    td_min = f"{float(np.nanmin(td_ms)):g}".replace(".", "p")
+    td_max = f"{float(np.nanmax(td_ms)):g}".replace(".", "p")
+    return f"td{td_min}-{td_max}ms"
+
+
+def _discover_default_input(repo_root: str) -> Optional[str]:
+    """Pick the newest valid mismatch cube under the default mismatch cube directory."""
+    default_dir = os.path.join(repo_root, "data", "contours_td_mcz", "mismatch_cubes")
+    if not os.path.isdir(default_dir):
+        return None
+
+    candidates = []
+    for name in os.listdir(default_dir):
+        if not name.endswith(".h5"):
+            continue
+        path = os.path.join(default_dir, name)
+        if parse_mcz_from_mismatch_cube_path(path) is None:
+            continue
+        candidates.append(path)
+
+    if not candidates:
+        return None
+    candidates.sort(key=os.path.getmtime, reverse=True)
+    return candidates[0]
 
 
 def _format_resolution_suffix(h5_file) -> str:
@@ -280,11 +315,11 @@ def main():
     )
     p.add_argument(
         "--input",
-        default=os.path.join(
-            repo_root,
-            "data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz50Msun_td20-70ms_Taman_edgeon.h5",
+        default=None,
+        help=(
+            "Path to mismatch cube HDF5. If omitted, auto-select the newest cube "
+            "under data/contours_td_mcz/mismatch_cubes/."
         ),
-        help="Path to mismatch cube HDF5",
     )
     p.add_argument(
         "--outdir",
@@ -302,6 +337,14 @@ def main():
     p.add_argument("--gif", action="store_true", help="Force GIF output")
     p.add_argument("--html", action="store_true", help="Generate HTML slider output")
     args = p.parse_args()
+
+    if args.input is None:
+        args.input = _discover_default_input(repo_root)
+        if args.input is None:
+            raise FileNotFoundError(
+                "No mismatch cube found in default directory: "
+                f"{os.path.join(repo_root, 'data', 'contours_td_mcz', 'mismatch_cubes')}"
+            )
 
     if not os.path.isfile(args.input):
         raise FileNotFoundError(f"Input cube not found: {args.input}")
@@ -329,8 +372,9 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
     tag = _infer_orientation_tag_from_filename(args.input)
     mcz_tag = _infer_mcz_from_filename(args.input)
+    td_range_tag = _format_td_range_tag(td)
 
-    base = f"epsilon_contours_mcz{mcz_tag}_td20-70ms_{res_suffix}_{tag}"
+    base = f"epsilon_cube_td_sweep_mcz{mcz_tag}_{td_range_tag}_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 
@@ -368,5 +412,5 @@ if __name__ == "__main__":
 Example CLI Usage on TACC:
     conda activate fairytien_gw 
     && python -m scripts.mismatch_mcz_td.visualize_mismatch_cube 
-    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30Msun_td20-70ms_Taman_edgeon.h5 --gif
+    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30Msun_I0p5_td20-70ms_td51-o61-t151-g51_Taman_edgeon.h5 --gif
 """

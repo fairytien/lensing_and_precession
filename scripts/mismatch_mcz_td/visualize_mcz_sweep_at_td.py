@@ -16,7 +16,10 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 import h5py
-from modules.filenames import get_mismatch_cube_resolution
+from modules.filenames import (
+    get_mismatch_cube_resolution,
+    parse_mcz_from_mismatch_cube_path,
+)
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
@@ -272,7 +275,7 @@ def save_html_slider_over_mcz(
 
 
 def _discover_cube_files(inputs_dir: str, orientation_tag: Optional[str]) -> List[str]:
-    """Find all mismatch cube files under inputs_dir, optionally filtering by orientation tag."""
+    """Find valid mismatch cube files under inputs_dir, optionally filtering by orientation tag."""
     if not os.path.isdir(inputs_dir):
         return []
     files = []
@@ -281,9 +284,10 @@ def _discover_cube_files(inputs_dir: str, orientation_tag: Optional[str]) -> Lis
             continue
         if orientation_tag and not name.endswith(f"_{orientation_tag}.h5"):
             continue
-        if not name.startswith("mismatch_cubes_mcz"):
+        path = os.path.join(inputs_dir, name)
+        if parse_mcz_from_mismatch_cube_path(path) is None:
             continue
-        files.append(os.path.join(inputs_dir, name))
+        files.append(path)
     return sorted(files)
 
 
@@ -455,7 +459,11 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
     tag = orient_tag or "unknown"
     td_tag = f"td{args.td_ms:.1f}ms".replace(".", "p")
-    base = f"epsilon_contours_{td_tag}_{res_suffix}_{tag}"
+    mcz_min = f"{float(np.nanmin(mcz_arr)):g}".replace(".", "p")
+    mcz_max = f"{float(np.nanmax(mcz_arr)):g}".replace(".", "p")
+    base = (
+        f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_min}-{mcz_max}Msun_{res_suffix}_{tag}"
+    )
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 

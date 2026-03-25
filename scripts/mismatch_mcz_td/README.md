@@ -19,3 +19,9 @@ This pipeline computes generic mismatch cubes (and derived contours) between len
 -   `visualize_mismatch_cube.py`: Helper to visualize specific parts of a mismatch cube.
 -   `visualize_mcz_sweep_at_td.py`: Generates movies/sliders sweeping $m_{cz}$ at constant $t_d$.
 -   `plot_omega_theta_from_cube.py`: Plots the $\Omega-\theta$ mismatch slice at a requested $t_d$ from a per-mcz cube.
+
+## Naming And Discovery
+
+-   Canonical file naming is centralized in `modules/filenames.py`.
+-   This folder's core scripts write and find files through those helpers rather than hardcoded filename strings.
+-   Helper visualizers now discover cubes by parsing valid mismatch-cube filenames in `results_dir/mismatch_cubes/`, so they remain stable if filename details evolve.
