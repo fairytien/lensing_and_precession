@@ -267,7 +267,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--results_dir",
-        default="data/contours_td_mcz",
+        default="data/contours_mcz_td",
         help="Root results directory containing mismatch_cubes/ and best_match/.",
     )
     parser.add_argument(

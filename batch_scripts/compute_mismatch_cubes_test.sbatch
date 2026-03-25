@@ -14,7 +14,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
-source "$SCRIPT_DIR/_contour_td_mcz_config.sh"
+source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 # Use all allocated CPUs for multiprocessing workers
 NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
@@ -35,6 +35,7 @@ GAMMA_PTS=101
 python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --I "${FLUX_RATIO}" \
   --orient_preset "${ORIENT_PRESET}" \
+  --z "${Z}" \
   --mcz_min "${MCZ_MIN}" --mcz_max "${MCZ_MAX}" --mcz_pts "${MCZ_PTS}" \
   --td_min_ms "${TD_MIN_MS}" --td_max_ms "${TD_MAX_MS}" --td_pts "${TD_PTS}" \
   --omega_min "${OMEGA_MIN}" --omega_max "${OMEGA_MAX}" --omega_pts "${OMEGA_PTS}" \

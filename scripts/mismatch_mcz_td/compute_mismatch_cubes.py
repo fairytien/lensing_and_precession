@@ -368,7 +368,7 @@ if __name__ == "__main__":
         default=os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "data",
-            "contours_td_mcz",
+            "contours_mcz_td",
         ),
     )
     add_chunking_args(p)

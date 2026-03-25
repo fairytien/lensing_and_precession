@@ -12,35 +12,100 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-# Activate your conda environment for this project
-if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-  source "$HOME/miniconda3/etc/profile.d/conda.sh"
-fi
-if command -v conda >/dev/null 2>&1; then
-  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
-fi
-
-# Change to submission directory or PROJECT_ROOT if provided
-PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
-cd "$PROJECT_ROOT"
-
-# Set thread limits to prevent oversubscription
-export OMP_NUM_THREADS=1
-export MKL_NUM_THREADS=1
-export OPENBLAS_NUM_THREADS=1
-export NUMEXPR_NUM_THREADS=1
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
+source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 # Use all allocated CPUs for multiprocessing workers
 NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
-# Map array index to mcz value (10-90)
-MCZ_VAL=$((10 + SLURM_ARRAY_TASK_ID))
+# Map array index to mcz value from configured grid
+MCZ_VAL=$(python - <<'PY'
+import os
+import sys
+import numpy as np
+
+idx = int(os.environ.get("SLURM_ARRAY_TASK_ID", "0"))
+mcz_min = float(os.environ["MCZ_MIN"])
+mcz_max = float(os.environ["MCZ_MAX"])
+mcz_pts = int(os.environ["MCZ_PTS"])
+
+if idx < 0 or idx >= mcz_pts:
+    print(
+        f"Error: SLURM_ARRAY_TASK_ID={idx} is outside configured mcz grid size {mcz_pts}",
+        file=sys.stderr,
+    )
+    raise SystemExit(2)
+
+mcz_grid = np.linspace(mcz_min, mcz_max, mcz_pts, dtype=float)
+print(f"{mcz_grid[idx]:g}")
+PY
+)
+
+if [ $? -ne 0 ]; then
+  exit 2
+fi
+export MCZ_VAL
 
 # Paths
-CUBE_PATH="data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz${MCZ_VAL}Msun_td20-70ms_Taman_edgeon.h5"
-BANK_DIR="data/template_banks"
-BANK_PREFIX="rp_bank"
-OUTPUT_DIR="data/contours_td_mcz/mismatch_cubes"
+BANK_PREFIX="${BANK_PREFIX:-rp_bank}"
+
+BANK_DIR_RESOLVED=$(python - <<'PY'
+import os
+
+from modules.filenames import template_bank_run_dir
+
+z = float(os.environ.get("Z", "0"))
+print(template_bank_run_dir(os.environ["BANK_DIR"], z))
+PY
+)
+
+if [ $? -ne 0 ]; then
+  echo "Error: failed to resolve template bank directory"
+  exit 2
+fi
+
+CUBE_PATH=$(python - <<'PY'
+import os
+
+from modules.filenames import contour_run_dir, mismatch_cube_filename
+
+z = float(os.environ.get("Z", "0"))
+results_root = os.environ["RESULTS_DIR"]
+run_dir = contour_run_dir(
+    results_root,
+    mcz_min=float(os.environ["MCZ_MIN"]),
+    mcz_max=float(os.environ["MCZ_MAX"]),
+    td_min_ms=float(os.environ["TD_MIN_MS"]),
+    td_max_ms=float(os.environ["TD_MAX_MS"]),
+    z=z,
+)
+
+path = mismatch_cube_filename(
+    results_dir=run_dir,
+    mcz_msun=float(os.environ["MCZ_VAL"]),
+    I=float(os.environ["FLUX_RATIO"]),
+    td_min_ms=float(os.environ["TD_MIN_MS"]),
+    td_max_ms=float(os.environ["TD_MAX_MS"]),
+    td_pts=int(os.environ["TD_PTS"]),
+    omega_min=float(os.environ["OMEGA_MIN"]),
+    omega_max=float(os.environ["OMEGA_MAX"]),
+    omega_pts=int(os.environ["OMEGA_PTS"]),
+    theta_min=float(os.environ["THETA_MIN"]),
+    theta_max=float(os.environ["THETA_MAX"]),
+    theta_pts=int(os.environ["THETA_PTS"]),
+    gamma_pts=int(os.environ["GAMMA_PTS"]),
+    orientation_tag=os.environ["ORIENT_PRESET"],
+    z=z,
+)
+print(path)
+PY
+)
+
+if [ $? -ne 0 ]; then
+  echo "Error: failed to resolve canonical mismatch cube path"
+  exit 2
+fi
 
 # Check if cube exists
 if [ ! -f "$CUBE_PATH" ]; then
@@ -66,7 +131,7 @@ echo "Using $NWORKERS workers"
 # Run the computation
 python -m scripts.lindblom.compute_lindblom_contours \
   --cube_path "$CUBE_PATH" \
-  --bank_dir "$BANK_DIR" \
+  --bank_dir "$BANK_DIR_RESOLVED" \
   --bank_prefix "$BANK_PREFIX" \
   --f_min 20.0 \
   --delta_f 0.25 \

@@ -261,7 +261,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--results_dir",
         type=str,
-        default=os.path.join(project_root, "data", "contours_td_mcz"),
+        default=os.path.join(project_root, "data", "contours_mcz_td"),
         help="Directory containing the best-match HDF5 file.",
     )
     add_td_grid_args(

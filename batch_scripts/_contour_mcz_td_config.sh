@@ -2,6 +2,7 @@
 
 export FLUX_RATIO="${FLUX_RATIO:-0.5}"
 export ORIENT_PRESET="${ORIENT_PRESET:-Taman_edgeon}"
+export Z="${Z:-0}"
 
 export MCZ_MIN="${MCZ_MIN:-10}"
 export MCZ_MAX="${MCZ_MAX:-90}"
@@ -22,4 +23,4 @@ export THETA_PTS="${THETA_PTS:-151}"
 export GAMMA_PTS="${GAMMA_PTS:-51}"
 
 export BANK_DIR="${BANK_DIR:-./data/template_banks}"
-export RESULTS_DIR="${RESULTS_DIR:-./data/contours_td_mcz}"
+export RESULTS_DIR="${RESULTS_DIR:-./data/contours_mcz_td}"
