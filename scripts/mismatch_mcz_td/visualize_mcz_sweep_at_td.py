@@ -351,7 +351,7 @@ def main():
     )
     p.add_argument(
         "--inputs_dir",
-        default=os.path.join(repo_root, "data/contours_mcz_td/mismatch_cubes"),
+        default=os.path.join(repo_root, "data/mismatch/mismatch_cubes"),
         help="Directory containing per-mcz mismatch cube HDF5 files",
     )
     p.add_argument(

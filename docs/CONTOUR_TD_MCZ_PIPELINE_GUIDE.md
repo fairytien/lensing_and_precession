@@ -22,14 +22,16 @@ sbatch batch_scripts/compute_mismatch_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --results_dir ./data/contours_mcz_td \
+  --results_dir ./data/mismatch \
+  --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --results_dir ./data/contours_mcz_td \
+  --results_dir ./data/mismatch \
+  --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon
@@ -103,7 +105,7 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --n_workers 8 \
   --use_opt_match \
   --bank_dir ./data/template_banks \
-  --results_dir ./data/contours_mcz_td
+  --results_dir ./data/mismatch
 ```
 
 **Key arguments:**
@@ -113,6 +115,7 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
 - `--td_min_ms/max_ms/pts`: Time delay grid (milliseconds)
 - `--omega/theta/gamma`: Template parameter grids
 - `--mcz_chunk_index/count`: For SLURM array job chunking
+- `--results_dir` is a base root; final run directory is auto-derived.
 
 ## Stage 2: Aggregate Best-Match Data
 
@@ -124,7 +127,8 @@ If internal mcz rows are missing, Stage 2 keeps those rows as NaNs so the contou
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --results_dir ./data/contours_mcz_td \
+  --results_dir ./data/mismatch \
+  --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 80 \
   --orientation_tag Taman_edgeon
@@ -139,11 +143,12 @@ Generates publication-quality contour plot of mismatch vs (td, mcz) from the bes
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --results_dir ./data/contours_mcz_td \
+  --results_dir ./data/mismatch \
+  --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 80 \
   --orientation_tag Taman_edgeon \
-  --output_dir ./figures/mismatch_mcz_td
+  --output_dir ./figures/mismatch
 
 ## Batch Script Configuration
 
@@ -154,7 +159,7 @@ The batch pipeline shares defaults via:
 Important exported variables used by Stage 0/1/2 batch jobs:
 
 - `BANK_DIR` (default `./data/template_banks`)
-- `RESULTS_DIR` (default `./data/contours_mcz_td`)
+- `RESULTS_DIR` (default `./data/mismatch`)
 - `Z` (default `0`, propagated to Python scripts as `--z`)
 
 Lindblom batch jobs also resolve canonical cube/bank paths from these settings,
@@ -167,10 +172,10 @@ so avoid hardcoding file names in local wrappers.
 
 - **Template banks:** `{bank_dir_base}_z{z}`
   - Example: `./data/template_banks_z0p2`
-- **Contour results (cubes + best_match):** `{results_dir_base}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}_z{z}`
-  - Example: `./data/contours_mcz_td_mcz16-25_td20-70_z0p2`
-- **Contour figures:** `{fig_dir_base}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}_z{z}`
-  - Example: `./figures/mismatch_mcz_td_mcz16-25_td20-70_z0p2`
+- **Contour results (cubes + best_match):** `{results_dir_base}_I{I}_z{z}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}`
+  - Example: `./data/mismatch_I0p5_z0p2_mcz16-25_td20-70`
+- **Contour figures:** `{fig_dir_base}_I{I}_z{z}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}`
+  - Example: `./figures/mismatch_I0p5_z0p2_mcz16-25_td20-70`
 
 ### Canonical file names
 

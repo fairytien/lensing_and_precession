@@ -26,7 +26,7 @@ This pipeline calculates **minimum mismatch contours** for lensed gravitational 
 ### Mismatch Computation
 1. **Compute mismatch cubes**: Run `python -m scripts.mismatch_mcz_td.compute_mismatch_cubes` to compare lensed sources against the prebuilt banks.
 2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_cubes.sbatch`.
-3. **Output shape**: Each run writes one per-`mcz` mismatch cube under `data/contours_td_mcz/mismatch_cubes/`.
+3. **Output shape**: Each run writes one per-`mcz` mismatch cube under `data/mismatch/mismatch_cubes/`.
 
 ### Aggregation
 After all requested `mcz` values finish, run `python -m scripts.mismatch_mcz_td.aggregate_best_match` once to combine the per-`mcz` cubes into a single best-match file.
@@ -41,14 +41,16 @@ sbatch batch_scripts/compute_mismatch_cubes.sbatch
 
 # 3. After all array tasks complete, aggregate results
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --results_dir ./data/contours_td_mcz \
+  --results_dir ./data/mismatch \
+  --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon
 
 # 4. Plot the final contour
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --results_dir ./data/contours_td_mcz \
+  --results_dir ./data/mismatch \
+  --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 16 --mcz_max 25 \
   --orientation_tag Taman_edgeon

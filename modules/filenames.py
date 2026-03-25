@@ -112,26 +112,34 @@ def template_bank_run_dir(base_dir: str, z: Optional[float]) -> str:
 
 def contour_run_dir(
     base_dir: str,
+    I: Optional[float],
     mcz_min: float,
     mcz_max: float,
     td_min_ms: float,
     td_max_ms: float,
     z: Optional[float],
 ) -> str:
-    """Return run directory tagged by mcz/td ranges and redshift.
+    """Return run directory tagged by I, z, mcz/td ranges.
 
-    If base_dir already appears to include mcz/td/z tokens, it is returned unchanged.
+    If base_dir already appears to include I/z/mcz/td tokens, it is returned unchanged.
     """
     base_name = os.path.basename(base_dir)
-    if "_mcz" in base_name and "_td" in base_name and "_z" in base_name:
+    if all(token in base_name for token in ("_I", "_z", "_mcz", "_td")):
         return base_dir
+
+    i_part = f"I{_canonical_token(float(I))}" if I is not None else None
     mcz_part = (
         f"mcz{_canonical_token(float(mcz_min))}-{_canonical_token(float(mcz_max))}"
     )
     td_part = (
         f"td{_canonical_token(float(td_min_ms))}-{_canonical_token(float(td_max_ms))}"
     )
-    return f"{base_dir}_{mcz_part}_{td_part}_{_z_dir_token(z)}"
+    z_part = _z_dir_token(z)
+    parts = [base_dir]
+    if i_part is not None:
+        parts.append(i_part)
+    parts.extend([z_part, mcz_part, td_part])
+    return "_".join(parts)
 
 
 def bank_filename(

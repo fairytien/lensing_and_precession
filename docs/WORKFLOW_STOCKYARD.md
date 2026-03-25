@@ -25,9 +25,9 @@
   - Template banks:
     - `rsync -a data/template_banks/ "$STOCKYARD/gw_shared_data/template_banks/"`
   - Mismatch cubes:
-    - `rsync -a data/contours_td_mcz/mismatch_cubes/ "$STOCKYARD/gw_shared_data/mismatch_cubes/"`
+    - `rsync -a data/mismatch/mismatch_cubes/ "$STOCKYARD/gw_shared_data/mismatch_cubes/"`
   - Best match:
-    - `rsync -a data/contours_td_mcz/best_match/ "$STOCKYARD/gw_shared_data/best_match/"`
+    - `rsync -a data/mismatch/best_match/ "$STOCKYARD/gw_shared_data/best_match/"`
   - After syncing, ensure group is correct:
     - `chgrp -R G-827397 "$STOCKYARD/gw_shared_data"`
 
@@ -41,8 +41,8 @@
 - Option: link project-local paths to shared
   - If code expects `data/template_banks`, replace directories with symlinks:
     - `ln -sfn "$STOCKYARD/gw_shared_data/template_banks" data/template_banks`
-    - `ln -sfn "$STOCKYARD/gw_shared_data/mismatch_cubes" data/contours_td_mcz/mismatch_cubes`
-    - `ln -sfn "$STOCKYARD/gw_shared_data/best_match" data/contours_td_mcz/best_match`
+    - `ln -sfn "$STOCKYARD/gw_shared_data/mismatch_cubes" data/mismatch/mismatch_cubes`
+    - `ln -sfn "$STOCKYARD/gw_shared_data/best_match" data/mismatch/best_match`
 
 - Verification checklist
   - Group/permissions:

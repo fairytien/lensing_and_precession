@@ -23,4 +23,4 @@ export THETA_PTS="${THETA_PTS:-151}"
 export GAMMA_PTS="${GAMMA_PTS:-51}"
 
 export BANK_DIR="${BANK_DIR:-./data/template_banks}"
-export RESULTS_DIR="${RESULTS_DIR:-./data/contours_mcz_td}"
+export RESULTS_DIR="${RESULTS_DIR:-./data/mismatch}"

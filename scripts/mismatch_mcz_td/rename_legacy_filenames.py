@@ -267,12 +267,12 @@ def main() -> None:
     )
     parser.add_argument(
         "--results_dir",
-        default="data/contours_mcz_td",
+        default="data/mismatch",
         help="Root results directory containing mismatch_cubes/ and best_match/.",
     )
     parser.add_argument(
         "--figure_dir",
-        default="figures/mismatch_mcz_td",
+        default="figures/mismatch",
         help="Directory containing contour figure outputs.",
     )
     parser.add_argument(

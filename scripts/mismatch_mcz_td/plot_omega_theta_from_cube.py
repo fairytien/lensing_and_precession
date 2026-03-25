@@ -14,7 +14,7 @@ Notes:
 Usage example:
     python -m scripts.mismatch_mcz_td.plot_omega_theta_from_cube \
     --mcz 50 --td_ms 35 \
-        --results_root data/contours_mcz_td \
+        --results_root data/mismatch \
     --orientation_tag Taman_edgeon \
     --save_path figures/mismatch_cubes/mismatch_contour_mcz50_td35ms.png
 """
@@ -136,7 +136,7 @@ def main():
         default=None,
         help=(
             "Root directory that contains mismatch_cubes/. If omitted, searches in "
-            "['data/contours_mcz_td']"
+            "['data/mismatch']"
         ),
     )
     p.add_argument(
@@ -163,7 +163,7 @@ def main():
             [args.results_root]
             if args.results_root
             else [
-                os.path.join("data", "contours_mcz_td"),
+                os.path.join("data", "mismatch"),
             ]
         )
         cube_path = _find_mismatch_cube(args.mcz, args.orientation_tag, roots)
@@ -181,7 +181,7 @@ def main():
         if args.results_root:
             print(f"  - {args.results_root}")
         else:
-            print("  - data/contours_mcz_td")
+            print("  - data/mismatch")
         sys.exit(2)
 
     print(f"Loading mismatch cube: {cube_path}")

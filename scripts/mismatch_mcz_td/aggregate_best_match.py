@@ -37,6 +37,7 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 @timer_decorator
 def main(
     results_dir: str,
+    I: float,
     td_min_ms: float,
     td_max_ms: float,
     mcz_min: float,
@@ -48,6 +49,7 @@ def main(
     z = float(z)
     results_dir = contour_run_dir(
         results_dir,
+        I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
@@ -322,6 +324,12 @@ if __name__ == "__main__":
         description="Aggregate per-mcz mismatch cubes into a combined best-match file."
     )
     p.add_argument("--results_dir", type=str, required=True)
+    p.add_argument(
+        "--I",
+        type=float,
+        required=True,
+        help="Flux ratio used to resolve the run directory (I token in path).",
+    )
     add_td_grid_args(
         p,
         default_min_ms=None,
@@ -342,6 +350,7 @@ if __name__ == "__main__":
 
     main(
         results_dir=args.results_dir,
+        I=args.I,
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
         mcz_min=args.mcz_min,

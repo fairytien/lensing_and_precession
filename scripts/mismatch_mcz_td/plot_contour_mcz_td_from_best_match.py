@@ -35,6 +35,7 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 def main(
     results_dir: str,
+    I: float,
     td_min_ms: float,
     td_max_ms: float,
     mcz_min: float,
@@ -54,6 +55,7 @@ def main(
 
     Args:
         results_dir: Directory containing the best-match HDF5 file.
+        I: Flux ratio used to resolve the canonical run directory.
         td_min_ms: Minimum time delay in ms (for filename matching).
         td_max_ms: Maximum time delay in ms (for filename matching).
         mcz_min: Minimum chirp mass in Msun (for filename matching).
@@ -71,6 +73,7 @@ def main(
     z = float(z)
     results_dir = contour_run_dir(
         results_dir,
+        I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
@@ -79,6 +82,7 @@ def main(
     )
     output_dir = contour_run_dir(
         output_dir,
+        I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
@@ -261,7 +265,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--results_dir",
         type=str,
-        default=os.path.join(project_root, "data", "contours_mcz_td"),
+        default=os.path.join(project_root, "data", "mismatch"),
         help="Directory containing the best-match HDF5 file.",
     )
     add_td_grid_args(
@@ -288,7 +292,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--output_dir",
         type=str,
-        default=os.path.join(project_root, "figures", "mismatch_mcz_td"),
+        default=os.path.join(project_root, "figures", "mismatch"),
         help="Directory where the figure will be saved.",
     )
     p.add_argument(
@@ -330,6 +334,12 @@ if __name__ == "__main__":
         default=20.0,
         help="Minimum frequency in Hz for cycle calculations (default: 20.0).",
     )
+    p.add_argument(
+        "--I",
+        type=float,
+        required=True,
+        help="Flux ratio used to resolve run directories (I token in paths).",
+    )
 
     args = p.parse_args()
 
@@ -349,4 +359,5 @@ if __name__ == "__main__":
         show_legend=args.show_legend,
         eta=args.eta,
         f_min=args.f_min,
+        I=args.I,
     )

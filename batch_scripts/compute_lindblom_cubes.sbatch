@@ -74,6 +74,7 @@ z = float(os.environ.get("Z", "0"))
 results_root = os.environ["RESULTS_DIR"]
 run_dir = contour_run_dir(
     results_root,
+  I=float(os.environ["FLUX_RATIO"]),
     mcz_min=float(os.environ["MCZ_MIN"]),
     mcz_max=float(os.environ["MCZ_MAX"]),
     td_min_ms=float(os.environ["TD_MIN_MS"]),

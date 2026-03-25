@@ -5,7 +5,7 @@ then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
 
-If --input is omitted, the newest cube in data/contours_mcz_td/mismatch_cubes is used.
+If --input is omitted, the newest cube in data/mismatch/mismatch_cubes is used.
 """
 
 import os
@@ -59,7 +59,7 @@ def _format_td_range_tag(td_s: np.ndarray) -> str:
 
 def _discover_default_input(repo_root: str) -> Optional[str]:
     """Pick the newest valid mismatch cube under the default mismatch cube directory."""
-    default_dir = os.path.join(repo_root, "data", "contours_mcz_td", "mismatch_cubes")
+    default_dir = os.path.join(repo_root, "data", "mismatch", "mismatch_cubes")
     if not os.path.isdir(default_dir):
         return None
 
@@ -317,7 +317,7 @@ def main():
         default=None,
         help=(
             "Path to mismatch cube HDF5. If omitted, auto-select the newest cube "
-            "under data/contours_mcz_td/mismatch_cubes/."
+            "under data/mismatch/mismatch_cubes/."
         ),
     )
     p.add_argument(
@@ -342,7 +342,7 @@ def main():
         if args.input is None:
             raise FileNotFoundError(
                 "No mismatch cube found in default directory: "
-                f"{os.path.join(repo_root, 'data', 'contours_mcz_td', 'mismatch_cubes')}"
+                f"{os.path.join(repo_root, 'data', 'mismatch', 'mismatch_cubes')}"
             )
 
     if not os.path.isfile(args.input):
@@ -411,5 +411,5 @@ if __name__ == "__main__":
 Example CLI Usage on TACC:
     conda activate fairytien_gw 
     && python -m scripts.mismatch_mcz_td.visualize_mismatch_cube 
-    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_mcz_td/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5 --gif
+    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/mismatch/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5 --gif
 """

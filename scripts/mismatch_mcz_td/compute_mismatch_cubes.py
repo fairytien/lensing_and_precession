@@ -106,6 +106,7 @@ def main(
     bank_dir = template_bank_run_dir(bank_dir, z)
     results_dir = contour_run_dir(
         results_dir,
+        I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
@@ -368,7 +369,7 @@ if __name__ == "__main__":
         default=os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "data",
-            "contours_mcz_td",
+            "mismatch",
         ),
     )
     add_chunking_args(p)
