@@ -36,6 +36,10 @@ PARAM_UNITS: Dict[str, str] = {
     "f_min": "Hz",
     "delta_f": "Hz",
     "mcz_msun": "Msun",
+    "mcz_det_msun": "Msun",
+    "mcz_source_msun": "Msun",
+    "mcz_detector_msun": "Msun",
+    "z": "dimensionless",
 }
 
 
@@ -63,6 +67,21 @@ def _write_attrs(
 def write_orientation_attr(h5: h5py.File, orientation_tag: str) -> None:
     """Write orientation tag as file metadata."""
     _write_attrs(h5, {"orientation_tag": str(orientation_tag)})
+
+
+def write_scalar_attr_with_unit(
+    h5: h5py.File,
+    key: str,
+    value: Any,
+    *,
+    unit: str = None,
+    none_as_nan: bool = False,
+) -> None:
+    """Write one scalar file attr and optional `unit_<key>` companion attr."""
+    _write_attrs(h5, {key: value}, none_as_nan=none_as_nan)
+    unit_val = PARAM_UNITS.get(key) if unit is None else unit
+    if unit_val is not None:
+        _write_attrs(h5, {f"unit_{key}": unit_val})
 
 
 def write_parameter_attrs(

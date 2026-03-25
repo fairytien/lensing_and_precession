@@ -41,6 +41,7 @@ from modules.bank_io import (
     write_source_attrs,
     write_mcz_grid_attrs,
     write_orientation_attr,
+    write_scalar_attr_with_unit,
     write_parameter_attrs,
     write_dataset_units,
     extract_prefixed_params,
@@ -242,6 +243,7 @@ def main(
                 # Store the intended mcz grid so aggregation can detect missing rows
                 # from the actual compute configuration (not inferred from filenames).
                 write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts)
+                write_scalar_attr_with_unit(mmh5, "z", float(z))
                 mmh5.create_dataset("MLz", data=mlz_arr)
                 write_dataset_units(mmh5, {"MLz": "s"})
 

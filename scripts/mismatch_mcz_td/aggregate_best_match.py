@@ -24,6 +24,7 @@ from modules.bank_io import (
     mcz_grid_meta_consistent,
     write_missing_mcz_metadata,
     write_orientation_attr,
+    write_scalar_attr_with_unit,
     write_dataset_units,
 )
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args, add_redshift_arg
@@ -274,6 +275,7 @@ def main(
         # Save source parameters as attributes if available
         for key, val in source_attrs.items():
             h5.attrs[key] = val
+        write_scalar_attr_with_unit(h5, "z", float(z))
         write_orientation_attr(h5, orientation_tag)
     print(f"Saved aggregated best-match results: {summary_path}")
     print(

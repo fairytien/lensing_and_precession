@@ -29,6 +29,7 @@ from modules.chunking import choose_bank_chunks
 from modules.bank_io import (
     create_bank_writer,
     write_orientation_attr,
+    write_scalar_attr_with_unit,
     write_parameter_attrs,
     write_dataset_units,
     PARAM_UNITS,
@@ -334,7 +335,7 @@ def build_and_save_bank(
             },
         )
         dset.attrs["axis_order"] = "theta,omega,gamma,freq"
-        for k in ("f_min", "delta_f", "mcz_msun"):
+        for k in ("f_min", "delta_f", "mcz_msun", "mcz_det_msun", "z"):
             if k in PARAM_UNITS:
                 dset.attrs[f"unit_{k}"] = PARAM_UNITS[k]
 
@@ -345,6 +346,7 @@ def build_and_save_bank(
             prefix="template_param_",
             include_units=True,
         )
+        write_scalar_attr_with_unit(h5, "z", z_val)
         h5.attrs["omega_pts"] = int(omega_arr.shape[0])
         h5.attrs["theta_pts"] = int(theta_arr.shape[0])
         h5.attrs["gamma_pts"] = int(gamma_arr.shape[0])
