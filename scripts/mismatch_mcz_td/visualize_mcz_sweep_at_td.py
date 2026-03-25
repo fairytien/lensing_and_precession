@@ -42,11 +42,10 @@ def _infer_mcz_numeric(h5_file) -> float:
         val = np.array(h5_file["mcz"]).astype(float).ravel()
         if val.size >= 1:
             return float(val[0])
-    # Fallback to filename pattern mczXXMsun
-    base = os.path.basename(h5_file.filename)
-    m = re.match(r".*mcz(\d+(?:\.\d+)?)Msun.*", base)
-    if m:
-        return float(m.group(1))
+    # Fallback to filename parser for canonical naming.
+    parsed = parse_mcz_from_mismatch_cube_path(h5_file.filename)
+    if parsed is not None:
+        return float(parsed)
     return float("nan")
 
 
@@ -458,12 +457,10 @@ def main():
 
     os.makedirs(args.outdir, exist_ok=True)
     tag = orient_tag or "unknown"
-    td_tag = f"td{args.td_ms:.1f}ms".replace(".", "p")
+    td_tag = f"td{args.td_ms:.1f}".replace(".", "p")
     mcz_min = f"{float(np.nanmin(mcz_arr)):g}".replace(".", "p")
     mcz_max = f"{float(np.nanmax(mcz_arr)):g}".replace(".", "p")
-    base = (
-        f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_min}-{mcz_max}Msun_{res_suffix}_{tag}"
-    )
+    base = f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_min}-{mcz_max}_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 

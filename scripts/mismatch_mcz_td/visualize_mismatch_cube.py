@@ -2,10 +2,10 @@
 
 Loads a per-mcz mismatch cube HDF5 (with datasets created by create_mismatch_cube),
 then:
-- Builds a movie (MP4 if ffmpeg available, else GIF) sweeping td=20–70 ms
+- Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
 
-Default input points to the mcz=50 Msun, td=20–70 ms cube if present.
+If --input is omitted, the newest cube in data/contours_td_mcz/mismatch_cubes is used.
 """
 
 import os
@@ -38,13 +38,12 @@ def _infer_orientation_tag_from_filename(path: str) -> str:
 def _infer_mcz_from_filename(path: str) -> str:
     """Extract mcz value token from a cube filename.
 
-    Returns values like "70Msun" or "70p5Msun".
+    Returns values like "70" or "70p5".
     Returns "unknown" if the mcz cannot be inferred.
     """
     val = parse_mcz_from_mismatch_cube_path(path)
     if val is not None:
-        token = f"{float(val):g}".replace(".", "p")
-        return f"{token}Msun"
+        return f"{float(val):g}".replace(".", "p")
     return "unknown"
 
 
@@ -55,7 +54,7 @@ def _format_td_range_tag(td_s: np.ndarray) -> str:
         return "td-unknown"
     td_min = f"{float(np.nanmin(td_ms)):g}".replace(".", "p")
     td_max = f"{float(np.nanmax(td_ms)):g}".replace(".", "p")
-    return f"td{td_min}-{td_max}ms"
+    return f"td{td_min}-{td_max}"
 
 
 def _discover_default_input(repo_root: str) -> Optional[str]:
@@ -412,5 +411,5 @@ if __name__ == "__main__":
 Example CLI Usage on TACC:
     conda activate fairytien_gw 
     && python -m scripts.mismatch_mcz_td.visualize_mismatch_cube 
-    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30Msun_I0p5_td20-70ms_td51-o61-t151-g51_Taman_edgeon.h5 --gif
+    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_o61-t151-g51_Taman_edgeon.h5 --gif
 """

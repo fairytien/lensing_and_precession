@@ -57,14 +57,9 @@ def _parse_decimal_token(token: str) -> float:
     return float(str(token).replace("p", "."))
 
 
-def _decimal_variants(value: float) -> List[str]:
-    """Return both supported decimal styles for glob matching."""
-    return sorted(
-        {
-            _format_min_precision(value, decimal_style="p"),
-            _format_min_precision(value, decimal_style="dot"),
-        }
-    )
+def _canonical_token(value: float) -> str:
+    """Return canonical numeric token used in filenames."""
+    return _format_min_precision(value, decimal_style="p")
 
 
 def _glob_union(patterns: List[str]) -> List[str]:
@@ -117,10 +112,10 @@ def bank_filename(
     z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
     name = (
         f"{prefix}{_format_min_precision(z_name, prefix='_z')}"
-        f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
-        f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}"
-        f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}"
-        f"_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+        f"_mcz{_format_min_precision(mcz_msun)}"
+        f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
+        f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
+        f"_g{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
     return os.path.join(bank_dir, name)
@@ -149,10 +144,10 @@ def mismatch_cube_filename(
     z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
     name = (
         f"mismatch_cubes{_format_min_precision(z_name, prefix='_z')}"
-        f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
+        f"_mcz{_format_min_precision(mcz_msun)}"
         f"_I{_format_min_precision(I)}"
-        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
-        f"_td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}x{td_pts}"
+        f"_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
     return os.path.join(mismatch_dir, name)
@@ -181,13 +176,23 @@ def best_match_mcz_td_filename(
     best_match_dir = os.path.join(results_dir, "best_match")
     os.makedirs(best_match_dir, exist_ok=True)
     z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
+    mcz_token = (
+        f"{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}"
+        if mcz_pts is None
+        else f"{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}x{mcz_pts}"
+    )
+    td_token = (
+        f"{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}"
+        if td_pts is None
+        else f"{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}x{td_pts}"
+    )
     name = (
         f"best_match_I{_format_min_precision(I)}"
         f"{_format_min_precision(z_name, prefix='_z')}"
-        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max, suffix='Msun')}"
-        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
+        f"_mcz{mcz_token}"
+        f"_td{td_token}"
     )
-    # Append resolution suffix in m-td-o-t-g order if all are present
+    # Keep remaining grid cardinalities compact.
     if (
         td_pts is not None
         and mcz_pts is not None
@@ -195,7 +200,7 @@ def best_match_mcz_td_filename(
         and theta_pts is not None
         and gamma_pts is not None
     ):
-        name += f"_m{mcz_pts}-td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+        name += f"_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
 
     name += f"_{orientation_tag}.h5"
     return os.path.join(best_match_dir, name)
@@ -222,8 +227,8 @@ def contour_mcz_td_filename(
     name = (
         f"contour_I{_format_min_precision(I)}"
         f"{_format_min_precision(z_name, prefix='_z')}"
-        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max, suffix='Msun')}"
-        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
+        f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}"
         f"_min_mismatch_{orientation_tag}.{ext}"
     )
     return os.path.join(fig_dir, name)
@@ -241,11 +246,14 @@ def get_mismatch_cube_resolution(h5_file) -> Tuple[int, int, int, int]:
 
 
 def parse_mcz_from_mismatch_cube_path(path: str) -> Optional[float]:
-    """Extract the mcz value from a mismatch cube filename."""
+    """Extract the mcz value from canonical mismatch cube filenames."""
     base = os.path.basename(path)
     try:
         token = base.split("_mcz", 1)[1]
-        return _parse_decimal_token(token.split("Msun", 1)[0])
+        token = token.split("_", 1)[0]
+        if not token:
+            return None
+        return _parse_decimal_token(token)
     except Exception:
         return None
 
@@ -267,21 +275,19 @@ def find_mismatch_cube_files(
 ) -> List[str]:
     """Return mismatch cube files matching the requested contour run."""
     if td_min_ms is None or td_max_ms is None:
-        td_tokens = ["td*ms"]
+        td_tokens = ["td*x*"]
     else:
-        td_min_tokens = _decimal_variants(td_min_ms)
-        td_max_tokens = _decimal_variants(td_max_ms)
-        td_tokens = [
-            f"td{td_lo}-{td_hi}ms" for td_lo in td_min_tokens for td_hi in td_max_tokens
-        ]
+        td_lo = _canonical_token(td_min_ms)
+        td_hi = _canonical_token(td_max_ms)
+        td_tokens = [f"td{td_lo}-{td_hi}x*"]
 
-    mcz_token = "mcz*Msun"
+    mcz_token = "mcz*"
     if z is None:
         z_prefixes = ["mismatch_cubes_"]
     elif _is_close(float(z), 0.0, 1e-12):
-        z_prefixes = ["mismatch_cubes_", "mismatch_cubes_z0_"]
+        z_prefixes = ["mismatch_cubes_"]
     else:
-        z_prefixes = [f"mismatch_cubes_z{z_tok}_" for z_tok in _decimal_variants(z)]
+        z_prefixes = [f"mismatch_cubes_z{_canonical_token(float(z))}_"]
 
     patterns = []
     for z_prefix in z_prefixes:
@@ -291,7 +297,7 @@ def find_mismatch_cube_files(
                     results_dir,
                     "mismatch_cubes",
                     (
-                        f"{z_prefix}{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"
+                        f"{z_prefix}{mcz_token}_I*_{td_token}_o*-t*-g*_{orientation_tag}.h5"
                     ),
                 )
             )
@@ -312,11 +318,12 @@ def find_mismatch_cube_files(
 
 
 def parse_mcz_range_from_best_match_path(path: str) -> Optional[Tuple[float, float]]:
-    """Extract (mcz_min, mcz_max) from a best-match filename."""
+    """Extract (mcz_min, mcz_max) from canonical best-match filenames."""
     base = os.path.basename(path)
     try:
         token = base.split("_mcz", 1)[1]
-        bounds = token.split("Msun", 1)[0]
+        token = token.split("_", 1)[0]
+        bounds = token.split("x", 1)[0]
         lo, hi = bounds.split("-", 1)
         return _parse_decimal_token(lo), _parse_decimal_token(hi)
     except Exception:
@@ -334,35 +341,31 @@ def find_best_match_file(
     mcz_tolerance: float = 1e-6,
 ) -> Optional[str]:
     """Return the newest best-match file for the requested contour run."""
-    mcz_min_tokens = _decimal_variants(mcz_min)
-    mcz_max_tokens = _decimal_variants(mcz_max)
-    td_min_tokens = _decimal_variants(td_min_ms)
-    td_max_tokens = _decimal_variants(td_max_ms)
+    mcz_lo = _canonical_token(mcz_min)
+    mcz_hi = _canonical_token(mcz_max)
+    td_lo = _canonical_token(td_min_ms)
+    td_hi = _canonical_token(td_max_ms)
 
     if z is None:
         z_tokens = [None]
     elif _is_close(float(z), 0.0, 1e-12):
-        z_tokens = [None, "0"]
+        z_tokens = [None]
     else:
-        z_tokens = _decimal_variants(z)
+        z_tokens = [_canonical_token(float(z))]
 
     patterns = []
-    for mcz_lo in mcz_min_tokens:
-        for mcz_hi in mcz_max_tokens:
-            for td_lo in td_min_tokens:
-                for td_hi in td_max_tokens:
-                    for z_tok in z_tokens:
-                        z_part = "" if z_tok is None else f"_z{z_tok}"
-                        patterns.append(
-                            os.path.join(
-                                results_dir,
-                                "best_match",
-                                (
-                                    f"best_match_I*{z_part}_mcz{mcz_lo}-{mcz_hi}Msun_td{td_lo}-"
-                                    f"{td_hi}ms*_{orientation_tag}.h5"
-                                ),
-                            )
-                        )
+    for z_tok in z_tokens:
+        z_part = "" if z_tok is None else f"_z{z_tok}"
+        patterns.append(
+            os.path.join(
+                results_dir,
+                "best_match",
+                (
+                    f"best_match_I*{z_part}_mcz{mcz_lo}-{mcz_hi}x*_td{td_lo}-{td_hi}x*"
+                    f"_o*-t*-g*_{orientation_tag}.h5"
+                ),
+            )
+        )
     matches = _glob_union(patterns)
     if not matches:
         return None

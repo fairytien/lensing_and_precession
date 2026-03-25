@@ -33,4 +33,16 @@ Redshift support:
 
 -   Canonical file naming is centralized in `modules/filenames.py`.
 -   This folder's core scripts write and find files through those helpers rather than hardcoded filename strings.
--   Helper visualizers now discover cubes by parsing valid mismatch-cube filenames in `results_dir/mismatch_cubes/`, so they remain stable if filename details evolve.
+-   The active pipeline now uses only the canonical naming convention (no legacy-name fallback in runtime discovery).
+
+## Legacy Rename Utility
+
+If you have historical files using old naming, migrate them once with:
+
+```bash
+# Dry run (default)
+python -m scripts.mismatch_mcz_td.rename_legacy_filenames
+
+# Apply renames
+python -m scripts.mismatch_mcz_td.rename_legacy_filenames --apply
+```

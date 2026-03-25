@@ -148,10 +148,10 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
 
 ## File Naming Conventions
 
-- **Template banks:** `rp_bank_mcz{mcz}Msun_omega{min}-{max}_theta{min}-{max}_o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
-- **Mismatch cubes:** `mismatch_cubes/mismatch_cubes_mcz{mcz}Msun_I{I}_td{min}-{max}ms_td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
-- **Best-match:** `best_match/best_match_I{I}_mcz{min}-{max}Msun_td{min}-{max}ms_m{mcz_pts}-td{td_pts}-o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
-- **Figure:** `contour_I{I}_mcz{min}-{max}Msun_td{min}-{max}ms_min_mismatch_{tag}.pdf`
+- **Template banks:** `rp_bank_mcz{mcz}_omega{min}-{max}x{omega_pts}_theta{min}-{max}x{theta_pts}_g{gamma_pts}_{tag}.h5`
+- **Mismatch cubes:** `mismatch_cubes/mismatch_cubes_mcz{mcz}_I{I}_td{min}-{max}x{td_pts}_o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
+- **Best-match:** `best_match/best_match_I{I}_mcz{min}-{max}x{mcz_pts}_td{min}-{max}x{td_pts}_o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
+- **Figure:** `contour_I{I}_mcz{min}-{max}_td{min}-{max}_min_mismatch_{tag}.pdf`
 
 ## Key Benefits
 
