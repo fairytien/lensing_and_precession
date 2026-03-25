@@ -90,6 +90,50 @@ def timestamp_path(
     return f"{root}{prefix}{timestamp}{ext}"
 
 
+def _z_dir_token(z: Optional[float]) -> str:
+    """Return a stable z token for directory names."""
+    z_val = 0.0 if z is None else float(z)
+    if _is_close(z_val, 0.0, 1e-12):
+        z_val = 0.0
+    return f"z{_canonical_token(z_val)}"
+
+
+def template_bank_run_dir(base_dir: str, z: Optional[float]) -> str:
+    """Return bank output directory with explicit redshift token.
+
+    If base_dir already ends with a z token (e.g., _z0p2), it is returned unchanged.
+    """
+    if os.path.basename(base_dir).startswith(
+        "template_banks_"
+    ) and "_z" in os.path.basename(base_dir):
+        return base_dir
+    return f"{base_dir}_{_z_dir_token(z)}"
+
+
+def contour_run_dir(
+    base_dir: str,
+    mcz_min: float,
+    mcz_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    z: Optional[float],
+) -> str:
+    """Return run directory tagged by mcz/td ranges and redshift.
+
+    If base_dir already appears to include mcz/td/z tokens, it is returned unchanged.
+    """
+    base_name = os.path.basename(base_dir)
+    if "_mcz" in base_name and "_td" in base_name and "_z" in base_name:
+        return base_dir
+    mcz_part = (
+        f"mcz{_canonical_token(float(mcz_min))}-{_canonical_token(float(mcz_max))}"
+    )
+    td_part = (
+        f"td{_canonical_token(float(td_min_ms))}-{_canonical_token(float(td_max_ms))}"
+    )
+    return f"{base_dir}_{mcz_part}_{td_part}_{_z_dir_token(z)}"
+
+
 def bank_filename(
     bank_dir: str,
     mcz_msun: float,

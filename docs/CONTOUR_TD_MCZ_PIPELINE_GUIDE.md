@@ -146,12 +146,31 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --output_dir ./figures/mismatch_mcz_td
 ```
 
-## File Naming Conventions
+## Directory and File Naming Conventions
 
-- **Template banks:** `rp_bank_mcz{mcz}_omega{min}-{max}x{omega_pts}_theta{min}-{max}x{theta_pts}_g{gamma_pts}_{tag}.h5`
-- **Mismatch cubes:** `mismatch_cubes/mismatch_cubes_mcz{mcz}_I{I}_td{min}-{max}x{td_pts}_o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
-- **Best-match:** `best_match/best_match_I{I}_mcz{min}-{max}x{mcz_pts}_td{min}-{max}x{td_pts}_o{omega_pts}-t{theta_pts}-g{gamma_pts}_{tag}.h5`
-- **Figure:** `contour_I{I}_mcz{min}-{max}_td{min}-{max}_min_mismatch_{tag}.pdf`
+### Run directories (resolved from base dirs)
+
+- **Template banks:** `{bank_dir_base}_z{z}`
+  - Example: `./data/template_banks_z0p2`
+- **Contour results (cubes + best_match):** `{results_dir_base}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}_z{z}`
+  - Example: `./data/contours_td_mcz_mcz16-25_td20-70_z0p2`
+- **Contour figures:** `{fig_dir_base}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}_z{z}`
+  - Example: `./figures/mismatch_mcz_td_mcz16-25_td20-70_z0p2`
+
+### Canonical file names
+
+- **Template banks:**
+  - `rp_bank_z{z}_mcz{mcz}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
+- **Mismatch cubes (under `mismatch_cubes/`):**
+  - `mismatch_cubes_z{z}_mcz{mcz}_I{I}_td{tdmin}-{tdmax}x{td_pts}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
+- **Best-match (under `best_match/`):**
+  - `best_match_I{I}_z{z}_mcz{mczmin}-{mczmax}x{mcz_pts}_td{tdmin}-{tdmax}x{td_pts}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
+- **Contour figure:**
+  - `contour_I{I}_z{z}_mcz{mczmin}-{mczmax}x{mcz_pts}_td{tdmin}-{tdmax}x{td_pts}_min_mismatch_{tag}.pdf`
+
+Notes:
+- Numeric tokens use minimal precision with `p` as decimal separator (e.g., `0p2`).
+- Gamma naming is fixed to radians over `[0, 2pi]` and encoded as `gamma0-2pi`.
 
 ## Key Benefits
 

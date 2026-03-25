@@ -17,7 +17,11 @@ import numpy as np
 import h5py
 import matplotlib.pyplot as plt
 
-from modules.filenames import contour_mcz_td_filename, find_best_match_file
+from modules.filenames import (
+    contour_mcz_td_filename,
+    contour_run_dir,
+    find_best_match_file,
+)
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args, add_redshift_arg
 from modules.bank_io import read_missing_mcz_metadata
 
@@ -64,8 +68,26 @@ def main(
         eta: Symmetric mass ratio (default 0.25).
         f_min: Minimum frequency in Hz (default 20.0).
     """
-    os.makedirs(output_dir, exist_ok=True)
     z = float(z)
+    results_dir = contour_run_dir(
+        results_dir,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        z=z,
+    )
+    output_dir = contour_run_dir(
+        output_dir,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        z=z,
+    )
+    os.makedirs(output_dir, exist_ok=True)
+    logging.info(f"Resolved best-match input directory: {results_dir}")
+    logging.info(f"Resolved figure output directory: {output_dir}")
 
     summary_path = find_best_match_file(
         results_dir=results_dir,

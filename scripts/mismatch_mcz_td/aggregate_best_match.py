@@ -10,9 +10,11 @@ the aggregated results.
 import os, argparse
 import h5py
 import numpy as np
+import logging
 
 from modules.filenames import (
     best_match_mcz_td_filename,
+    contour_run_dir,
     find_mismatch_cube_files,
     get_mismatch_cube_resolution,
 )
@@ -29,6 +31,8 @@ from modules.bank_io import (
 )
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args, add_redshift_arg
 
+logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
 
 @timer_decorator
 def main(
@@ -42,6 +46,18 @@ def main(
 ):
     tol = 1e-6
     z = float(z)
+    results_dir = contour_run_dir(
+        results_dir,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        z=z,
+    )
+    logging.info(f"Resolved aggregation input directory: {results_dir}")
+    logging.info(
+        f"Resolved best-match output directory: {os.path.join(results_dir, 'best_match')}"
+    )
 
     cube_paths = find_mismatch_cube_files(
         results_dir=results_dir,

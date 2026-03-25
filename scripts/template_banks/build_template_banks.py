@@ -10,6 +10,7 @@ from typing import Optional
 import numpy as np
 
 from modules.template_bank import build_and_save_bank
+from modules.filenames import template_bank_run_dir
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.default_params_v3 import RP_params_1
 from modules.functions_v3 import timer_decorator
@@ -59,6 +60,9 @@ def main(
     mcz_chunk_count: Optional[int],
 ):
     z = float(z)
+    bank_dir = template_bank_run_dir(bank_dir, z)
+    os.makedirs(bank_dir, exist_ok=True)
+    logging.info(f"Resolved bank output directory: {bank_dir}")
 
     # Base RP params and orientation/tag handling via shared helper
     base_params, tag = resolve_orientation(
