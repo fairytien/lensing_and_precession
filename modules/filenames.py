@@ -229,11 +229,11 @@ def contour_mcz_td_filename(
     I: float,
     mcz_min: float,
     mcz_max: float,
+    mcz_pts: Optional[int],
     td_min_ms: float,
     td_max_ms: float,
+    td_pts: Optional[int],
     orientation_tag: str,
-    mcz_pts: Optional[int] = None,
-    td_pts: Optional[int] = None,
     z: Optional[float] = None,
     ext: str = "pdf",
 ) -> str:

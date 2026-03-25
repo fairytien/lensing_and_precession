@@ -99,13 +99,10 @@ def _plan_mismatch_cube_renames(results_dir: str) -> List[RenamePlan]:
             with h5py.File(path, "r") as h5:
                 omega = h5["omega"][:]
                 theta = h5["theta"][:]
-                gamma = h5["gamma"][:]
             omega_min = float(min(omega))
             omega_max = float(max(omega))
             theta_min = float(min(theta))
             theta_max = float(max(theta))
-            gamma_min = float(min(gamma))
-            gamma_max = float(max(gamma))
         except Exception:
             continue
         target = mismatch_cube_filename(
@@ -210,8 +207,10 @@ def _plan_contour_renames(fig_dir: str) -> List[RenamePlan]:
             I=_to_float(g["I"]),
             mcz_min=_to_float(g["mmin"]),
             mcz_max=_to_float(g["mmax"]),
+            mcz_pts=None,
             td_min_ms=_to_float(g["tdmin"]),
             td_max_ms=_to_float(g["tdmax"]),
+            td_pts=None,
             orientation_tag=g["tag"],
             z=z,
             ext=g["ext"],
