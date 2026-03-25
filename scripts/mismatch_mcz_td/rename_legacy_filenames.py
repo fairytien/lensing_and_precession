@@ -15,6 +15,7 @@ import os
 import re
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Tuple
+import h5py
 
 from modules.filenames import (
     bank_filename,
@@ -94,6 +95,19 @@ def _plan_mismatch_cube_renames(results_dir: str) -> List[RenamePlan]:
             continue
         g = m.groupdict()
         z = _to_float(g["z"]) if g["z"] is not None else None
+        try:
+            with h5py.File(path, "r") as h5:
+                omega = h5["omega"][:]
+                theta = h5["theta"][:]
+                gamma = h5["gamma"][:]
+            omega_min = float(min(omega))
+            omega_max = float(max(omega))
+            theta_min = float(min(theta))
+            theta_max = float(max(theta))
+            gamma_min = float(min(gamma))
+            gamma_max = float(max(gamma))
+        except Exception:
+            continue
         target = mismatch_cube_filename(
             results_dir=results_dir,
             mcz_msun=_to_float(g["mcz"]),
@@ -101,7 +115,11 @@ def _plan_mismatch_cube_renames(results_dir: str) -> List[RenamePlan]:
             td_min_ms=_to_float(g["tdmin"]),
             td_max_ms=_to_float(g["tdmax"]),
             td_pts=int(g["tdp"]),
+            omega_min=omega_min,
+            omega_max=omega_max,
             omega_pts=int(g["op"]),
+            theta_min=theta_min,
+            theta_max=theta_max,
             theta_pts=int(g["tp"]),
             gamma_pts=int(g["gp"]),
             orientation_tag=g["tag"],
@@ -129,6 +147,25 @@ def _plan_best_match_renames(results_dir: str) -> List[RenamePlan]:
             continue
         g = m.groupdict()
         z = _to_float(g["z"]) if g["z"] is not None else None
+        omega_min = omega_max = None
+        theta_min = theta_max = None
+        try:
+            with h5py.File(path, "r") as h5:
+                attrs = h5.attrs
+                if (
+                    "template_param_omega_min" in attrs
+                    and "template_param_omega_max" in attrs
+                ):
+                    omega_min = float(attrs["template_param_omega_min"])
+                    omega_max = float(attrs["template_param_omega_max"])
+                if (
+                    "template_param_theta_min" in attrs
+                    and "template_param_theta_max" in attrs
+                ):
+                    theta_min = float(attrs["template_param_theta_min"])
+                    theta_max = float(attrs["template_param_theta_max"])
+        except Exception:
+            pass
         target = best_match_mcz_td_filename(
             results_dir=results_dir,
             I=_to_float(g["I"]),
@@ -138,7 +175,11 @@ def _plan_best_match_renames(results_dir: str) -> List[RenamePlan]:
             td_min_ms=_to_float(g["tdmin"]),
             td_max_ms=_to_float(g["tdmax"]),
             td_pts=int(g["tdp"]),
+            omega_min=omega_min,
+            omega_max=omega_max,
             omega_pts=int(g["op"]),
+            theta_min=theta_min,
+            theta_max=theta_max,
             theta_pts=int(g["tp"]),
             gamma_pts=int(g["gp"]),
             orientation_tag=g["tag"],

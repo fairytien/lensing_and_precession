@@ -32,7 +32,7 @@ PARAM_UNITS: Dict[str, str] = {
     "MLz": "s",
     "theta_tilde": "dimensionless",
     "omega_tilde": "dimensionless",
-    "gamma_P": "dimensionless",
+    "gamma_P": "rad",
     "f_min": "Hz",
     "delta_f": "Hz",
     "mcz_msun": "Msun",
@@ -336,7 +336,7 @@ def create_mismatch_cube(
             "td": "s",
             "omega": "dimensionless",
             "theta": "dimensionless",
-            "gamma": "dimensionless",
+            "gamma": "rad",
         },
     )
 

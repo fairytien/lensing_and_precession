@@ -115,7 +115,7 @@ def bank_filename(
         f"_mcz{_format_min_precision(mcz_msun)}"
         f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
         f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
-        f"_g{gamma_pts}"
+        f"_gamma0-2pix{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
     return os.path.join(bank_dir, name)
@@ -128,7 +128,11 @@ def mismatch_cube_filename(
     td_min_ms: float,
     td_max_ms: float,
     td_pts: int,
+    omega_min: float,
+    omega_max: float,
     omega_pts: int,
+    theta_min: float,
+    theta_max: float,
     theta_pts: int,
     gamma_pts: int,
     orientation_tag: str,
@@ -147,7 +151,9 @@ def mismatch_cube_filename(
         f"_mcz{_format_min_precision(mcz_msun)}"
         f"_I{_format_min_precision(I)}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}x{td_pts}"
-        f"_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+        f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
+        f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
+        f"_gamma0-2pix{gamma_pts}"
         f"_{orientation_tag}.h5"
     )
     return os.path.join(mismatch_dir, name)
@@ -162,7 +168,11 @@ def best_match_mcz_td_filename(
     td_min_ms: float,
     td_max_ms: float,
     td_pts: Optional[int],
+    omega_min: Optional[float],
+    omega_max: Optional[float],
     omega_pts: Optional[int],
+    theta_min: Optional[float],
+    theta_max: Optional[float],
     theta_pts: Optional[int],
     gamma_pts: Optional[int],
     orientation_tag: str,
@@ -192,15 +202,23 @@ def best_match_mcz_td_filename(
         f"_mcz{mcz_token}"
         f"_td{td_token}"
     )
-    # Keep remaining grid cardinalities compact.
+    # Append full template-grid tokens when available.
     if (
         td_pts is not None
         and mcz_pts is not None
+        and omega_min is not None
+        and omega_max is not None
         and omega_pts is not None
+        and theta_min is not None
+        and theta_max is not None
         and theta_pts is not None
         and gamma_pts is not None
     ):
-        name += f"_o{omega_pts}-t{theta_pts}-g{gamma_pts}"
+        name += (
+            f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
+            f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
+            f"_gamma0-2pix{gamma_pts}"
+        )
 
     name += f"_{orientation_tag}.h5"
     return os.path.join(best_match_dir, name)
@@ -214,6 +232,8 @@ def contour_mcz_td_filename(
     td_min_ms: float,
     td_max_ms: float,
     orientation_tag: str,
+    mcz_pts: Optional[int] = None,
+    td_pts: Optional[int] = None,
     z: Optional[float] = None,
     ext: str = "pdf",
 ) -> str:
@@ -228,7 +248,9 @@ def contour_mcz_td_filename(
         f"contour_I{_format_min_precision(I)}"
         f"{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}"
+        f"{'' if mcz_pts is None else f'x{int(mcz_pts)}'}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}"
+        f"{'' if td_pts is None else f'x{int(td_pts)}'}"
         f"_min_mismatch_{orientation_tag}.{ext}"
     )
     return os.path.join(fig_dir, name)
@@ -297,7 +319,8 @@ def find_mismatch_cube_files(
                     results_dir,
                     "mismatch_cubes",
                     (
-                        f"{z_prefix}{mcz_token}_I*_{td_token}_o*-t*-g*_{orientation_tag}.h5"
+                        f"{z_prefix}{mcz_token}_I*_{td_token}"
+                        f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
                     ),
                 )
             )
@@ -362,7 +385,7 @@ def find_best_match_file(
                 "best_match",
                 (
                     f"best_match_I*{z_part}_mcz{mcz_lo}-{mcz_hi}x*_td{td_lo}-{td_hi}x*"
-                    f"_o*-t*-g*_{orientation_tag}.h5"
+                    f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
                 ),
             )
         )

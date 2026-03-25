@@ -110,8 +110,10 @@ def main(
             I=I_value,
             mcz_min=mcz_min,
             mcz_max=mcz_max,
+            mcz_pts=int(len(mcz)),
             td_min_ms=td_min_ms,
             td_max_ms=td_max_ms,
+            td_pts=int(len(td_ms)),
             orientation_tag=orientation_tag,
             ext="pdf",
         )

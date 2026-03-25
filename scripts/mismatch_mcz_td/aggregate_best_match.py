@@ -204,6 +204,8 @@ def main(
     # Infer td/o/t/g resolution directly from HDF5 contents of the first cube
     # Also extract I from attributes for filename
     td_pts = omega_pts = theta_pts = gamma_pts = None
+    omega_min = omega_max = None
+    theta_min = theta_max = None
     I_value = None
     mlz_arr = None
     if cube_paths:
@@ -214,12 +216,24 @@ def main(
                 omega_pts = int(omega_i) if omega_i > 0 else None
                 theta_pts = int(theta_i) if theta_i > 0 else None
                 gamma_pts = int(gamma_i) if gamma_i > 0 else None
+                if "omega" in h5:
+                    omega_arr_i = np.array(h5["omega"], dtype=np.float64)
+                    if omega_arr_i.size > 0:
+                        omega_min = float(np.nanmin(omega_arr_i))
+                        omega_max = float(np.nanmax(omega_arr_i))
+                if "theta" in h5:
+                    theta_arr_i = np.array(h5["theta"], dtype=np.float64)
+                    if theta_arr_i.size > 0:
+                        theta_min = float(np.nanmin(theta_arr_i))
+                        theta_max = float(np.nanmax(theta_arr_i))
                 if "I" in h5.attrs:
                     I_value = float(h5.attrs["I"])
                 if "MLz" in h5:
                     mlz_arr = np.array(h5["MLz"], dtype=np.float64)
         except Exception:
             td_pts = omega_pts = theta_pts = gamma_pts = None
+            omega_min = omega_max = None
+            theta_min = theta_max = None
             I_value = None
             mlz_arr = None
 
@@ -237,7 +251,11 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         td_pts=td_pts,
+        omega_min=omega_min,
+        omega_max=omega_max,
         omega_pts=omega_pts,
+        theta_min=theta_min,
+        theta_max=theta_max,
         theta_pts=theta_pts,
         gamma_pts=gamma_pts,
         orientation_tag=orientation_tag,
@@ -260,7 +278,7 @@ def main(
                 "MLz": "s",
                 "omega_best": "dimensionless",
                 "theta_best": "dimensionless",
-                "gamma_best": "dimensionless",
+                "gamma_best": "rad",
             },
         )
         h5["epsilon_min"].attrs["axis_order"] = "mcz,td"

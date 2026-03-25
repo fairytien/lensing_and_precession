@@ -69,7 +69,7 @@ RP_params_0 = {
     "phi_c": 0.0,
     "theta_tilde": 4.0,  # precession amplitude [dimensionless]
     "omega_tilde": 2.0,  # precession frequency [dimensionless]
-    "gamma_P": 0.0,  # initial precessing phase [dimensionless]
+    "gamma_P": 0.0,  # initial precessing phase [rad]
 }
 
 

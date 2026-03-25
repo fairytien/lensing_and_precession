@@ -411,5 +411,5 @@ if __name__ == "__main__":
 Example CLI Usage on TACC:
     conda activate fairytien_gw 
     && python -m scripts.mismatch_mcz_td.visualize_mismatch_cube 
-    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_o61-t151-g51_Taman_edgeon.h5 --gif
+    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5 --gif
 """
