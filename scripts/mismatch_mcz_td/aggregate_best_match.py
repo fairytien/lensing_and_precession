@@ -26,7 +26,7 @@ from modules.bank_io import (
     write_orientation_attr,
     write_dataset_units,
 )
-from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
+from modules.cli_utils import add_mcz_grid_args, add_td_grid_args, add_redshift_arg
 
 
 @timer_decorator
@@ -37,14 +37,17 @@ def main(
     mcz_min: float,
     mcz_max: float,
     orientation_tag: str,
+    z: float,
 ):
     tol = 1e-6
+    z = float(z)
 
     cube_paths = find_mismatch_cube_files(
         results_dir=results_dir,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
+        z=z,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
     )
@@ -237,6 +240,7 @@ def main(
         theta_pts=theta_pts,
         gamma_pts=gamma_pts,
         orientation_tag=orientation_tag,
+        z=z,
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("mcz", data=desired_mcz)
@@ -296,6 +300,7 @@ if __name__ == "__main__":
         default_pts=None,
         required=True,
     )
+    add_redshift_arg(p, default_z=0.0)
     p.add_argument("--orientation_tag", type=str, required=True)
     args = p.parse_args()
 
@@ -306,4 +311,5 @@ if __name__ == "__main__":
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         orientation_tag=args.orientation_tag,
+        z=args.z,
     )

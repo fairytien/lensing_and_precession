@@ -18,7 +18,7 @@ import h5py
 import matplotlib.pyplot as plt
 
 from modules.filenames import contour_mcz_td_filename, find_best_match_file
-from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
+from modules.cli_utils import add_mcz_grid_args, add_td_grid_args, add_redshift_arg
 from modules.bank_io import read_missing_mcz_metadata
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
@@ -36,6 +36,7 @@ def main(
     mcz_min: float,
     mcz_max: float,
     orientation_tag: str,
+    z: float,
     output_dir: str,
     variable: str = "epsilon",
     overlay_cycles: bool = False,
@@ -64,6 +65,7 @@ def main(
         f_min: Minimum frequency in Hz (default 20.0).
     """
     os.makedirs(output_dir, exist_ok=True)
+    z = float(z)
 
     summary_path = find_best_match_file(
         results_dir=results_dir,
@@ -72,6 +74,7 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
+        z=z,
     )
     if summary_path is None:
         raise FileNotFoundError(
@@ -192,6 +195,7 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
+        z=z,
         ext="pdf",
     )
 
@@ -250,6 +254,7 @@ if __name__ == "__main__":
         default_pts=None,
         required=True,
     )
+    add_redshift_arg(p, default_z=0.0)
     p.add_argument(
         "--orientation_tag",
         type=str,
@@ -311,6 +316,7 @@ if __name__ == "__main__":
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         orientation_tag=args.orientation_tag,
+        z=args.z,
         output_dir=args.output_dir,
         variable=args.variable,
         overlay_cycles=args.overlay_cycles,

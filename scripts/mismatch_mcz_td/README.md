@@ -2,6 +2,15 @@
 
 This pipeline computes generic mismatch cubes (and derived contours) between lensed sources and templates, varying `mcz` and `td`.
 
+Redshift support:
+- All three core stages support `--z`:
+    - `compute_mismatch_cubes.py`
+    - `aggregate_best_match.py`
+    - `plot_contour_mcz_td_from_best_match.py`
+- Source and template waveforms use detector-frame chirp mass
+    `mcz_det = mcz * (1 + z)`.
+- Output filenames include `_z...` when `z != 0`.
+
 ## Workflow
 
 1.  **Compute Mismatch Cubes**: Run `compute_mismatch_cubes.py`. This is typically parallelized over `mcz` chunks.

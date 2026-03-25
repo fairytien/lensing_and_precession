@@ -23,6 +23,7 @@ from modules.cli_utils import (
     add_mcz_grid_args,
     add_template_grid_args,
     add_frequency_args,
+    add_redshift_arg,
     add_chunking_args,
     set_argument_choices,
 )
@@ -49,6 +50,7 @@ def main(
     gamma_pts: int,
     f_min: float,
     delta_f: float,
+    z: float,
     bank_dir: str,
     bank_prefix: str,
     n_workers: Optional[int],
@@ -56,6 +58,8 @@ def main(
     mcz_chunk_index: Optional[int],
     mcz_chunk_count: Optional[int],
 ):
+    z = float(z)
+
     # Base RP params and orientation/tag handling via shared helper
     base_params, tag = resolve_orientation(
         orient_preset,
@@ -111,6 +115,7 @@ def main(
             delta_f,
             bank_dir,
             tag,
+            z,
             bank_prefix,
             n_workers,
             dtype,
@@ -135,6 +140,7 @@ if __name__ == "__main__":
         gamma_pts=101,
     )
     add_frequency_args(p, f_min=20.0, delta_f=0.25)
+    add_redshift_arg(p, default_z=0.0)
     p.add_argument(
         "--bank_dir",
         type=str,
@@ -179,6 +185,7 @@ if __name__ == "__main__":
         gamma_pts=args.gamma_pts,
         f_min=args.f_min,
         delta_f=args.delta_f,
+        z=args.z,
         bank_dir=args.bank_dir,
         bank_prefix=args.bank_prefix,
         n_workers=args.n_workers,

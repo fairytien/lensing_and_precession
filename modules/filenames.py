@@ -114,8 +114,9 @@ def bank_filename(
     Returns a path under bank_dir; the directory is created if missing.
     """
     os.makedirs(bank_dir, exist_ok=True)
+    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
     name = (
-        f"{prefix}{_format_min_precision(z, prefix='_z')}"
+        f"{prefix}{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
         f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}"
         f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}"
@@ -145,8 +146,9 @@ def mismatch_cube_filename(
     """
     mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
     os.makedirs(mismatch_dir, exist_ok=True)
+    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
     name = (
-        f"mismatch_cubes{_format_min_precision(z, prefix='_z')}"
+        f"mismatch_cubes{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}"
         f"_I{_format_min_precision(I)}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
@@ -178,9 +180,10 @@ def best_match_mcz_td_filename(
     """
     best_match_dir = os.path.join(results_dir, "best_match")
     os.makedirs(best_match_dir, exist_ok=True)
+    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
     name = (
         f"best_match_I{_format_min_precision(I)}"
-        f"{_format_min_precision(z, prefix='_z')}"
+        f"{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max, suffix='Msun')}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
     )
@@ -215,9 +218,10 @@ def contour_mcz_td_filename(
     Order: I, mcz ranges, td ranges, suffix, orientation_tag.
     """
     os.makedirs(fig_dir, exist_ok=True)
+    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
     name = (
         f"contour_I{_format_min_precision(I)}"
-        f"{_format_min_precision(z, prefix='_z')}"
+        f"{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max, suffix='Msun')}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms, suffix='ms')}"
         f"_min_mismatch_{orientation_tag}.{ext}"
@@ -255,6 +259,7 @@ def find_mismatch_cube_files(
     td_min_ms: Optional[float],
     td_max_ms: Optional[float],
     orientation_tag: str,
+    z: Optional[float] = None,
     mcz_min: Optional[float] = None,
     mcz_max: Optional[float] = None,
     mcz_msun: Optional[float] = None,
@@ -271,17 +276,25 @@ def find_mismatch_cube_files(
         ]
 
     mcz_token = "mcz*Msun"
+    if z is None:
+        z_prefixes = ["mismatch_cubes_"]
+    elif _is_close(float(z), 0.0, 1e-12):
+        z_prefixes = ["mismatch_cubes_", "mismatch_cubes_z0_"]
+    else:
+        z_prefixes = [f"mismatch_cubes_z{z_tok}_" for z_tok in _decimal_variants(z)]
 
-    patterns = [
-        os.path.join(
-            results_dir,
-            "mismatch_cubes",
-            (
-                f"mismatch_cubes_{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"
-            ),
-        )
-        for td_token in td_tokens
-    ]
+    patterns = []
+    for z_prefix in z_prefixes:
+        for td_token in td_tokens:
+            patterns.append(
+                os.path.join(
+                    results_dir,
+                    "mismatch_cubes",
+                    (
+                        f"{z_prefix}{mcz_token}_I*_{td_token}_td*-o*-t*-g*_{orientation_tag}.h5"
+                    ),
+                )
+            )
     matches = _glob_union(patterns)
     selected = []
     for path in matches:
@@ -317,6 +330,7 @@ def find_best_match_file(
     td_min_ms: float,
     td_max_ms: float,
     orientation_tag: str,
+    z: Optional[float] = None,
     mcz_tolerance: float = 1e-6,
 ) -> Optional[str]:
     """Return the newest best-match file for the requested contour run."""
@@ -325,20 +339,30 @@ def find_best_match_file(
     td_min_tokens = _decimal_variants(td_min_ms)
     td_max_tokens = _decimal_variants(td_max_ms)
 
-    patterns = [
-        os.path.join(
-            results_dir,
-            "best_match",
-            (
-                f"best_match_I*_mcz{mcz_lo}-{mcz_hi}Msun_td{td_lo}-"
-                f"{td_hi}ms*_{orientation_tag}.h5"
-            ),
-        )
-        for mcz_lo in mcz_min_tokens
-        for mcz_hi in mcz_max_tokens
-        for td_lo in td_min_tokens
-        for td_hi in td_max_tokens
-    ]
+    if z is None:
+        z_tokens = [None]
+    elif _is_close(float(z), 0.0, 1e-12):
+        z_tokens = [None, "0"]
+    else:
+        z_tokens = _decimal_variants(z)
+
+    patterns = []
+    for mcz_lo in mcz_min_tokens:
+        for mcz_hi in mcz_max_tokens:
+            for td_lo in td_min_tokens:
+                for td_hi in td_max_tokens:
+                    for z_tok in z_tokens:
+                        z_part = "" if z_tok is None else f"_z{z_tok}"
+                        patterns.append(
+                            os.path.join(
+                                results_dir,
+                                "best_match",
+                                (
+                                    f"best_match_I*{z_part}_mcz{mcz_lo}-{mcz_hi}Msun_td{td_lo}-"
+                                    f"{td_hi}ms*_{orientation_tag}.h5"
+                                ),
+                            )
+                        )
     matches = _glob_union(patterns)
     if not matches:
         return None

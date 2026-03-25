@@ -54,6 +54,7 @@ from modules.cli_utils import (
     add_td_grid_args,
     add_template_grid_args,
     add_frequency_args,
+    add_redshift_arg,
     add_chunking_args,
     set_argument_choices,
 )
@@ -84,6 +85,7 @@ def main(
     gamma_pts: int,
     f_min: float,
     delta_f: float,
+    z: float,
     bank_dir: str,
     bank_prefix: str,
     n_workers: Optional[int],
@@ -95,6 +97,7 @@ def main(
     mcz_chunk_count: Optional[int] = None,
 ):
     os.makedirs(results_dir, exist_ok=True)
+    z = float(z)
 
     # Axes arrays
     mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
@@ -137,8 +140,9 @@ def main(
     # Loop over mcz values
     for i in sel:
         mcz = float(mcz_arr[i])
+        mcz_det = mcz * (1.0 + z)
         logging.info(
-            f"[{i+1}/{len(mcz_arr)}] Processing mcz={mcz} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
+            f"[{i+1}/{len(mcz_arr)}] Processing mcz_src={mcz} Msun, z={z:g}, mcz_det={mcz_det} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
         )
 
         # Bank path (must have been created already)
@@ -153,6 +157,7 @@ def main(
             theta_pts,
             gamma_pts,
             tag,
+            z=z,
             prefix=bank_prefix,
         )
         if not os.path.isfile(bank_path):
@@ -170,8 +175,11 @@ def main(
             # Set source mcz
             y = get_y_from_I(I)
             lens_params = dict(lens_base)
-            lens_params["mcz"] = float(mcz) * SOLMASS2SEC
+            lens_params["mcz"] = float(mcz_det) * SOLMASS2SEC
             lens_params["y"] = float(y)
+            lens_params["z"] = z
+            lens_params["mcz_source_msun"] = float(mcz)
+            lens_params["mcz_detector_msun"] = float(mcz_det)
             mlz_arr = np.array(
                 [float(get_MLz_from_td(td, y) * SOLMASS2SEC) for td in td_arr],
                 dtype=np.float64,
@@ -179,7 +187,7 @@ def main(
 
             # Precompute PSD once for this mcz (independent of td)
             # Define f-array using mcz -> f_cut
-            f_cut = float(get_fcut_from_mcz(mcz, eta=lens_params["eta"]))
+            f_cut = float(get_fcut_from_mcz(mcz_det, eta=lens_params["eta"]))
             s_f = np.arange(f_min, f_cut, delta_f)
             psd = Sn(s_f, f_min=f_min, delta_f=delta_f)
 
@@ -195,6 +203,7 @@ def main(
                 theta_pts=theta_pts,
                 gamma_pts=gamma_pts,
                 orientation_tag=tag,
+                z=z,
             )
             mmh5, dsets = create_mismatch_cube(
                 filepath=mm_out_path,
@@ -316,6 +325,7 @@ if __name__ == "__main__":
         gamma_pts=51,
     )
     add_frequency_args(p, f_min=20.0, delta_f=0.25)
+    add_redshift_arg(p, default_z=0.0)
     p.add_argument(
         "--bank_dir",
         type=str,
@@ -368,6 +378,7 @@ if __name__ == "__main__":
         gamma_pts=args.gamma_pts,
         f_min=args.f_min,
         delta_f=args.delta_f,
+        z=args.z,
         bank_dir=args.bank_dir,
         bank_prefix=args.bank_prefix,
         n_workers=args.n_workers,

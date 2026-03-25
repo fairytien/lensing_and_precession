@@ -247,6 +247,7 @@ def build_and_save_bank(
     delta_f: float,
     bank_dir: str,
     orientation_tag: str,
+    z: float = 0.0,
     bank_prefix: str = "rp_bank",
     n_workers: Optional[int] = None,
     dtype: str = "complex128",
@@ -258,7 +259,10 @@ def build_and_save_bank(
     """
     # Prepare parameters
     params = copy.deepcopy(base_rp_params)
-    params["mcz"] = float(mcz_msun) * SOLMASS2SEC
+    mcz_src_msun = float(mcz_msun)
+    z_val = float(z)
+    mcz_det_msun = mcz_src_msun * (1.0 + z_val)
+    params["mcz"] = mcz_det_msun * SOLMASS2SEC
 
     # Build grid arrays
     omega_arr, theta_arr, gamma_arr = _grid_arrays(
@@ -295,6 +299,7 @@ def build_and_save_bank(
         theta_pts,
         gamma_pts,
         orientation_tag,
+        z=z_val,
         prefix=bank_prefix,
     )
 
@@ -305,7 +310,9 @@ def build_and_save_bank(
     dset_attrs = {
         "f_min": float(f_min),
         "delta_f": float(df_actual),
-        "mcz_msun": float(mcz_msun),
+        "mcz_msun": mcz_src_msun,
+        "mcz_det_msun": mcz_det_msun,
+        "z": z_val,
     }
     with create_bank_writer(
         path,

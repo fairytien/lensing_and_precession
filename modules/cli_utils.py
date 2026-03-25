@@ -100,6 +100,23 @@ def add_frequency_args(
     return parser
 
 
+def add_redshift_arg(
+    parser: ArgumentParser,
+    default_z: float = 0.0,
+) -> ArgumentParser:
+    """Attach redshift argument used by template and mismatch pipelines."""
+    parser.add_argument(
+        "--z",
+        type=float,
+        default=default_z,
+        help=(
+            "Source redshift. Effective detector-frame chirp mass is "
+            "mcz_det = mcz * (1 + z)."
+        ),
+    )
+    return parser
+
+
 def add_chunking_args(parser: ArgumentParser) -> ArgumentParser:
     """Attach common mcz chunking arguments used by array jobs."""
     parser.add_argument(
