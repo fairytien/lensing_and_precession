@@ -23,6 +23,8 @@ from modules.bank_io import (
     read_mismatch_cube_shape,
     mcz_grid_meta_consistent,
     write_missing_mcz_metadata,
+    write_orientation_attr,
+    write_dataset_units,
 )
 from modules.cli_utils import add_mcz_grid_args, add_td_grid_args
 
@@ -199,6 +201,7 @@ def main(
     # Also extract I from attributes for filename
     td_pts = omega_pts = theta_pts = gamma_pts = None
     I_value = None
+    mlz_arr = None
     if cube_paths:
         try:
             with h5py.File(cube_paths[0], "r") as h5:
@@ -209,9 +212,12 @@ def main(
                 gamma_pts = int(gamma_i) if gamma_i > 0 else None
                 if "I" in h5.attrs:
                     I_value = float(h5.attrs["I"])
+                if "MLz" in h5:
+                    mlz_arr = np.array(h5["MLz"], dtype=np.float64)
         except Exception:
             td_pts = omega_pts = theta_pts = gamma_pts = None
             I_value = None
+            mlz_arr = None
 
     # Save combined best-match file with resolution encoded
     if I_value is None:
@@ -235,10 +241,27 @@ def main(
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("mcz", data=desired_mcz)
         h5.create_dataset("td", data=td_arr.astype(np.float64))
+        if mlz_arr is not None:
+            h5.create_dataset("MLz", data=mlz_arr.astype(np.float64))
         h5.create_dataset("epsilon_min", data=Zmap.astype(np.float32))
         h5.create_dataset("omega_best", data=Omap.astype(np.float32))
         h5.create_dataset("theta_best", data=Tmap.astype(np.float32))
         h5.create_dataset("gamma_best", data=Gmap.astype(np.float32))
+        write_dataset_units(
+            h5,
+            {
+                "mcz": "Msun",
+                "td": "s",
+                "MLz": "s",
+                "omega_best": "dimensionless",
+                "theta_best": "dimensionless",
+                "gamma_best": "dimensionless",
+            },
+        )
+        h5["epsilon_min"].attrs["axis_order"] = "mcz,td"
+        h5["omega_best"].attrs["axis_order"] = "mcz,td"
+        h5["theta_best"].attrs["axis_order"] = "mcz,td"
+        h5["gamma_best"].attrs["axis_order"] = "mcz,td"
         write_missing_mcz_metadata(
             h5,
             expected_mcz=np.array(expected_mcz, dtype=np.float64),
@@ -247,6 +270,7 @@ def main(
         # Save source parameters as attributes if available
         for key, val in source_attrs.items():
             h5.attrs[key] = val
+        write_orientation_attr(h5, orientation_tag)
     print(f"Saved aggregated best-match results: {summary_path}")
     print(
         "Use python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match to plot the results."

@@ -40,6 +40,10 @@ from modules.bank_io import (
     create_mismatch_cube,
     write_source_attrs,
     write_mcz_grid_attrs,
+    write_orientation_attr,
+    write_parameter_attrs,
+    write_dataset_units,
+    extract_prefixed_params,
 )
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
@@ -168,6 +172,10 @@ def main(
             lens_params = dict(lens_base)
             lens_params["mcz"] = float(mcz) * SOLMASS2SEC
             lens_params["y"] = float(y)
+            mlz_arr = np.array(
+                [float(get_MLz_from_td(td, y) * SOLMASS2SEC) for td in td_arr],
+                dtype=np.float64,
+            )
 
             # Precompute PSD once for this mcz (independent of td)
             # Define f-array using mcz -> f_cut
@@ -200,10 +208,33 @@ def main(
             )
             with mmh5:
                 # Store source parameters as HDF5 attributes for later aggregation
-                write_source_attrs(mmh5, I, theta_J, phi_J, theta_S, phi_S)
+                write_source_attrs(
+                    mmh5,
+                    I,
+                    lens_params.get("theta_J"),
+                    lens_params.get("phi_J"),
+                    lens_params.get("theta_S"),
+                    lens_params.get("phi_S"),
+                )
+                write_orientation_attr(mmh5, tag)
+                write_parameter_attrs(
+                    mmh5,
+                    {**lens_params, "I": float(I)},
+                    prefix="source_param_",
+                    include_units=True,
+                )
+                # Carry template-generation metadata from the source bank file.
+                write_parameter_attrs(
+                    mmh5,
+                    extract_prefixed_params(h5.attrs, "template_param_"),
+                    prefix="template_param_",
+                    include_units=True,
+                )
                 # Store the intended mcz grid so aggregation can detect missing rows
                 # from the actual compute configuration (not inferred from filenames).
                 write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts)
+                mmh5.create_dataset("MLz", data=mlz_arr)
+                write_dataset_units(mmh5, {"MLz": "s"})
 
                 mm_dset = dsets.get("mismatch")
                 ep_min_grid_dset = dsets["epsilon_min_grid"]
@@ -212,7 +243,7 @@ def main(
                 # Iterate over td values
                 for j, td in enumerate(td_arr):
                     lens_params_j = dict(lens_params)
-                    lens_params_j["MLz"] = float(get_MLz_from_td(td, y) * SOLMASS2SEC)
+                    lens_params_j["MLz"] = float(mlz_arr[j])
                     s_strain = build_source_strain_for_td(
                         get_gw, lens_params_j, f_min=f_min, delta_f=delta_f
                     )

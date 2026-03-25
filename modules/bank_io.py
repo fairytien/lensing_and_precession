@@ -17,8 +17,88 @@ import numpy as np
 import h5py
 
 
-def _float_or_nan(value):
-    return np.nan if value is None else float(value)
+PARAM_UNITS: Dict[str, str] = {
+    "I": "dimensionless",
+    "theta_S": "rad",
+    "phi_S": "rad",
+    "theta_J": "rad",
+    "phi_J": "rad",
+    "mcz": "s",
+    "dist": "s",
+    "eta": "dimensionless",
+    "t_c": "s",
+    "phi_c": "rad",
+    "y": "dimensionless",
+    "MLz": "s",
+    "theta_tilde": "dimensionless",
+    "omega_tilde": "dimensionless",
+    "gamma_P": "dimensionless",
+    "f_min": "Hz",
+    "delta_f": "Hz",
+    "mcz_msun": "Msun",
+}
+
+
+def _is_scalar_metadata_value(value: Any) -> bool:
+    return np.isscalar(value) or isinstance(value, (str, bytes))
+
+
+def _normalize_attr_value(value: Any, *, none_as_nan: bool = False) -> Any:
+    if value is None and none_as_nan:
+        return np.nan
+    if isinstance(value, (str, bytes, bytearray)):
+        return bytes(value) if isinstance(value, bytearray) else value
+    if np.isscalar(value):
+        return value
+    raise TypeError(f"Unsupported metadata value type: {type(value)}")
+
+
+def _write_attrs(
+    h5: h5py.File, attrs: Dict[str, Any], *, none_as_nan: bool = False
+) -> None:
+    for key, value in attrs.items():
+        h5.attrs[str(key)] = _normalize_attr_value(value, none_as_nan=none_as_nan)
+
+
+def write_orientation_attr(h5: h5py.File, orientation_tag: str) -> None:
+    """Write orientation tag as file metadata."""
+    _write_attrs(h5, {"orientation_tag": str(orientation_tag)})
+
+
+def write_parameter_attrs(
+    h5: h5py.File,
+    params: Dict[str, Any],
+    *,
+    prefix: str,
+    include_units: bool = True,
+) -> None:
+    """Write scalar parameter snapshot into file attrs with optional unit attrs."""
+    for key, value in params.items():
+        if not _is_scalar_metadata_value(value):
+            continue
+        attr_key = f"{prefix}{key}"
+        _write_attrs(h5, {attr_key: value}, none_as_nan=True)
+        if include_units and key in PARAM_UNITS:
+            _write_attrs(h5, {f"{prefix}unit_{key}": PARAM_UNITS[key]})
+
+
+def write_dataset_units(h5: h5py.File, dataset_units: Dict[str, str]) -> None:
+    """Attach units attrs to datasets when they exist in the file."""
+    for name, unit in dataset_units.items():
+        if name in h5:
+            h5[name].attrs["units"] = str(unit)
+
+
+def extract_prefixed_params(attrs: Any, prefix: str) -> Dict[str, Any]:
+    """Extract prefixed scalar attrs as a plain param dict, skipping unit attrs."""
+    out: Dict[str, Any] = {}
+    unit_prefix = f"{prefix}unit_"
+    for key in attrs.keys():
+        key_str = str(key)
+        if not key_str.startswith(prefix) or key_str.startswith(unit_prefix):
+            continue
+        out[key_str.replace(prefix, "", 1)] = attrs[key]
+    return out
 
 
 def write_source_attrs(
@@ -30,11 +110,17 @@ def write_source_attrs(
     phi_S,
 ) -> None:
     """Write source metadata attributes to an open HDF5 file."""
-    h5.attrs["I"] = float(I)
-    h5.attrs["theta_J"] = _float_or_nan(theta_J)
-    h5.attrs["phi_J"] = _float_or_nan(phi_J)
-    h5.attrs["theta_S"] = _float_or_nan(theta_S)
-    h5.attrs["phi_S"] = _float_or_nan(phi_S)
+    _write_attrs(
+        h5,
+        {
+            "I": float(I),
+            "theta_J": theta_J,
+            "phi_J": phi_J,
+            "theta_S": theta_S,
+            "phi_S": phi_S,
+        },
+        none_as_nan=True,
+    )
 
 
 def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
@@ -42,6 +128,14 @@ def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
     attrs: Dict[str, Any] = {}
     for key in ("I", "theta_J", "phi_J", "theta_S", "phi_S"):
         if key in h5.attrs:
+            attrs[key] = h5.attrs[key]
+    # Propagate orientation and any source/template parameter snapshots.
+    if "orientation_tag" in h5.attrs:
+        attrs["orientation_tag"] = h5.attrs["orientation_tag"]
+    for key in h5.attrs.keys():
+        if str(key).startswith("source_param_") or str(key).startswith(
+            "template_param_"
+        ):
             attrs[key] = h5.attrs[key]
     return attrs
 
@@ -53,9 +147,14 @@ def write_mcz_grid_attrs(
     mcz_pts: int,
 ) -> None:
     """Write intended Stage 1 mcz grid metadata to an open HDF5 file."""
-    h5.attrs["mcz_min"] = float(mcz_min)
-    h5.attrs["mcz_max"] = float(mcz_max)
-    h5.attrs["mcz_pts"] = int(mcz_pts)
+    _write_attrs(
+        h5,
+        {
+            "mcz_min": float(mcz_min),
+            "mcz_max": float(mcz_max),
+            "mcz_pts": int(mcz_pts),
+        },
+    )
 
 
 def read_mcz_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
@@ -109,7 +208,7 @@ def write_missing_mcz_metadata(
     """Write aggregation completeness metadata to an open HDF5 file."""
     missing = np.asarray(missing_mcz, dtype=np.float64)
     expected = np.asarray(expected_mcz, dtype=np.float64)
-    h5.attrs["missing_mcz_count"] = int(missing.shape[0])
+    _write_attrs(h5, {"missing_mcz_count": int(missing.shape[0])})
     if missing.shape[0] > 0:
         h5.create_dataset("missing_mcz", data=missing)
     h5.create_dataset("expected_mcz", data=expected)
@@ -211,6 +310,16 @@ def create_mismatch_cube(
     h5.create_dataset("omega", data=omega_arr.astype(np.float64))
     h5.create_dataset("theta", data=theta_arr.astype(np.float64))
     h5.create_dataset("gamma", data=gamma_arr.astype(np.float64))
+    write_dataset_units(
+        h5,
+        {
+            "mcz": "Msun",
+            "td": "s",
+            "omega": "dimensionless",
+            "theta": "dimensionless",
+            "gamma": "dimensionless",
+        },
+    )
 
     n_theta = int(theta_arr.shape[0])
     n_omega = int(omega_arr.shape[0])
@@ -250,5 +359,10 @@ def create_mismatch_cube(
         shuffle=True,
         fletcher32=True,
     )
+
+    datasets["epsilon_min_grid"].attrs["axis_order"] = "td,theta,omega"
+    datasets["gamma_best_grid"].attrs["axis_order"] = "td,theta,omega"
+    if "mismatch" in datasets:
+        datasets["mismatch"].attrs["axis_order"] = "td,theta,omega,gamma"
 
     return h5, datasets

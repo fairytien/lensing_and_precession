@@ -26,7 +26,13 @@ from modules.default_params_v3 import SOLMASS2SEC
 from modules.Classes_v2 import Precessing as P2
 from modules.filenames import bank_filename
 from modules.chunking import choose_bank_chunks
-from modules.bank_io import create_bank_writer
+from modules.bank_io import (
+    create_bank_writer,
+    write_orientation_attr,
+    write_parameter_attrs,
+    write_dataset_units,
+    PARAM_UNITS,
+)
 
 
 def _grid_arrays(
@@ -154,6 +160,8 @@ def save_bank_hdf5(
     gamma_arr: np.ndarray,
     freq_meta: Dict[str, float],
     bank: np.ndarray,
+    orientation_tag: Optional[str] = None,
+    template_params: Optional[Dict] = None,
 ) -> str:
     """Write a complete bank and its axes to HDF5 with compression/checksums.
 
@@ -164,6 +172,14 @@ def save_bank_hdf5(
         h5.create_dataset("omega", data=np.asarray(omega_arr, dtype=np.float64))
         h5.create_dataset("theta", data=np.asarray(theta_arr, dtype=np.float64))
         h5.create_dataset("gamma", data=np.asarray(gamma_arr, dtype=np.float64))
+        write_dataset_units(
+            h5,
+            {
+                "omega": "dimensionless",
+                "theta": "dimensionless",
+                "gamma": "dimensionless",
+            },
+        )
         dset = h5.create_dataset(
             "bank",
             data=bank,
@@ -174,6 +190,9 @@ def save_bank_hdf5(
         )
         for k, v in freq_meta.items():
             dset.attrs[k] = v
+            if k in PARAM_UNITS:
+                dset.attrs[f"unit_{k}"] = PARAM_UNITS[k]
+        dset.attrs["axis_order"] = "theta,omega,gamma,freq"
         # Also store grid metadata on file attrs for clarity
         h5.attrs["omega_pts"] = int(omega_arr.shape[0])
         h5.attrs["theta_pts"] = int(theta_arr.shape[0])
@@ -182,6 +201,15 @@ def save_bank_hdf5(
         h5.attrs["omega_max"] = float(omega_arr.max()) if omega_arr.size else np.nan
         h5.attrs["theta_min"] = float(theta_arr.min()) if theta_arr.size else np.nan
         h5.attrs["theta_max"] = float(theta_arr.max()) if theta_arr.size else np.nan
+        if orientation_tag is not None:
+            write_orientation_attr(h5, orientation_tag)
+        if template_params:
+            write_parameter_attrs(
+                h5,
+                template_params,
+                prefix="template_param_",
+                include_units=True,
+            )
     return filepath
 
 
@@ -290,6 +318,26 @@ def build_and_save_bank(
         h5.create_dataset("omega", data=np.asarray(omega_arr, dtype=np.float64))
         h5.create_dataset("theta", data=np.asarray(theta_arr, dtype=np.float64))
         h5.create_dataset("gamma", data=np.asarray(gamma_arr, dtype=np.float64))
+        write_dataset_units(
+            h5,
+            {
+                "omega": "dimensionless",
+                "theta": "dimensionless",
+                "gamma": "dimensionless",
+            },
+        )
+        dset.attrs["axis_order"] = "theta,omega,gamma,freq"
+        for k in ("f_min", "delta_f", "mcz_msun"):
+            if k in PARAM_UNITS:
+                dset.attrs[f"unit_{k}"] = PARAM_UNITS[k]
+
+        write_orientation_attr(h5, orientation_tag)
+        write_parameter_attrs(
+            h5,
+            params,
+            prefix="template_param_",
+            include_units=True,
+        )
         h5.attrs["omega_pts"] = int(omega_arr.shape[0])
         h5.attrs["theta_pts"] = int(theta_arr.shape[0])
         h5.attrs["gamma_pts"] = int(gamma_arr.shape[0])

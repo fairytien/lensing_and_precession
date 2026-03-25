@@ -10,3 +10,4 @@ General utility scripts for data conversion and analysis.
 -   `plot_from_pickle.py` / `plot_from_hdf5.py`: Generic plotting utilities for saved data.
 -   `plot_cycles_and_extrema_mcz.py`: Helper functions for plotting lensing cycle lines and $m_{cz}$ extrema.
 -   `compare_contours.py`: CLI tool for comparing two or more mismatch contour files (Pickle or HDF5) with a unified color scale.
+-   `inspect_hdf5_metadata.py`: CLI tool to print file attrs and per-dataset attrs (including units/axis_order) from an HDF5 file.
