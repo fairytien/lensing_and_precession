@@ -1,4 +1,0 @@
-[INFO] Chunking mcz across 2 chunks: running indices [0:1)
-[INFO] [1/1] Building bank for mcz=30.0 Msun with omega 0-6 x61, theta 0-15 x151, gamma x101
-[INFO] Saved: /work/10000/fairytien33/ls6/lensing_and_precession/data/template_banks/rp_bank_mcz30Msun_omega0-6_theta0-15_o61-t151-g101_Taman_faceon.h5
-Total time to run the script: 0:5:29.57 (h:m:s)
