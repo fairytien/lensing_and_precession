@@ -11,6 +11,19 @@ This document describes the three-stage modular pipeline for computing mismatch 
 3. **Aggregate cubes into best-match file** (`python -m scripts.mismatch_mcz_td.aggregate_best_match`)
 4. **Plot mismatch contour** (`python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match`)
 
+## Default Production Configuration
+
+The production batch scripts are configured for the following default run:
+
+- Flux ratio: `I = 0.5`
+- Redshift: `z = 1e-8`
+- Orientation preset: `Taman_edgeon`
+- Chirp mass grid: `mcz = 10..90 Msun` with `81` points
+- Time delay grid: `td = 20..70 ms` with `51` points
+- Omega grid: `omega = 0..6` with `61` points
+- Theta grid: `theta = 0..15` with `151` points
+- Gamma grid: `[0, 2pi)` with `51` points
+
 ## Quick Start
 
 ```bash
@@ -25,16 +38,18 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --results_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 16 --mcz_max 25 \
-  --orientation_tag Taman_edgeon
+  --mcz_min 10 --mcz_max 90 \
+  --orientation_tag Taman_edgeon \
+  --z 1e-8
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --results_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 16 --mcz_max 25 \
-  --orientation_tag Taman_edgeon
+  --mcz_min 10 --mcz_max 90 \
+  --orientation_tag Taman_edgeon \
+  --z 1e-8
 ```
 
 ## HDF5 File Structure
@@ -79,10 +94,11 @@ Builds one HDF5 template bank per `mcz` value. The mismatch stage streams from t
 ```bash
 python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
-  --mcz_min 16 --mcz_max 25 --mcz_pts 10 \
+  --mcz_min 10 --mcz_max 90 --mcz_pts 81 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
+  --z 1e-8 \
   --bank_dir ./data/template_banks
 ```
 
@@ -97,11 +113,12 @@ Streams templates from prebuilt banks and evaluates mismatches across (td, theta
 python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --I 0.5 \
   --orient_preset Taman_edgeon \
-  --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
+  --mcz_min 10 --mcz_max 90 --mcz_pts 81 \
   --td_min_ms 20 --td_max_ms 70 --td_pts 51 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
+  --z 1e-8 \
   --n_workers 8 \
   --use_opt_match \
   --bank_dir ./data/template_banks \
@@ -130,8 +147,9 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --results_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 80 \
-  --orientation_tag Taman_edgeon
+  --mcz_min 10 --mcz_max 90 \
+  --orientation_tag Taman_edgeon \
+  --z 1e-8
 ```
 
 ## Stage 3: Plot Contour
@@ -146,9 +164,12 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --results_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 80 \
+  --mcz_min 10 --mcz_max 90 \
   --orientation_tag Taman_edgeon \
+  --z 1e-8 \
   --output_dir ./figures/mismatch
+
+```
 
 ## Batch Script Configuration
 
@@ -158,13 +179,19 @@ The batch pipeline shares defaults via:
 
 Important exported variables used by Stage 0/1/2 batch jobs:
 
+- `FLUX_RATIO` (default `0.5`)
+- `ORIENT_PRESET` (default `Taman_edgeon`)
+- `MCZ_MIN`, `MCZ_MAX`, `MCZ_PTS` (defaults `10`, `90`, `81`)
+- `TD_MIN_MS`, `TD_MAX_MS`, `TD_PTS` (defaults `20`, `70`, `51`)
+- `OMEGA_MIN`, `OMEGA_MAX`, `OMEGA_PTS` (defaults `0`, `6`, `61`)
+- `THETA_MIN`, `THETA_MAX`, `THETA_PTS` (defaults `0`, `15`, `151`)
+- `GAMMA_PTS` (default `51`, interpreted as `[0, 2pi)`)
 - `BANK_DIR` (default `./data/template_banks`)
 - `RESULTS_DIR` (default `./data/mismatch`)
-- `Z` (default `0`, propagated to Python scripts as `--z`)
+- `Z` (default `1e-8`, propagated to Python scripts as `--z`)
 
 Lindblom batch jobs also resolve canonical cube/bank paths from these settings,
 so avoid hardcoding file names in local wrappers.
-```
 
 ## Directory and File Naming Conventions
 
@@ -218,10 +245,11 @@ Build template banks before running this pipeline:
 ```bash
 python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
-  --mcz_min 10 --mcz_max 80 --mcz_pts 71 \
+  --mcz_min 10 --mcz_max 90 --mcz_pts 81 \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
+  --z 1e-8 \
   --bank_dir ./data/template_banks
 ```
 

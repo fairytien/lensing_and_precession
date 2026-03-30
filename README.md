@@ -44,16 +44,18 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --results_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 16 --mcz_max 25 \
-  --orientation_tag Taman_edgeon
+  --mcz_min 10 --mcz_max 90 \
+  --orientation_tag Taman_edgeon \
+  --z 1e-8
 
 # 4. Plot the final contour
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --results_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 16 --mcz_max 25 \
-  --orientation_tag Taman_edgeon
+  --mcz_min 10 --mcz_max 90 \
+  --orientation_tag Taman_edgeon \
+  --z 1e-8
 ```
 
 ### Plotting

@@ -2,7 +2,7 @@
 
 export FLUX_RATIO="${FLUX_RATIO:-0.5}"
 export ORIENT_PRESET="${ORIENT_PRESET:-Taman_edgeon}"
-export Z="${Z:-0}"
+export Z="${Z:-1e-8}"
 
 export MCZ_MIN="${MCZ_MIN:-10}"
 export MCZ_MAX="${MCZ_MAX:-90}"
