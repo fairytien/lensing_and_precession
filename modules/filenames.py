@@ -121,7 +121,7 @@ def template_bank_run_dir(base_dir: str, z: Optional[float]) -> str:
 
 def contour_run_dir(
     base_dir: str,
-    I: Optional[float],
+    I: float,
     mcz_min: float,
     mcz_max: float,
     td_min_ms: float,
@@ -136,7 +136,7 @@ def contour_run_dir(
     if all(token in base_name for token in ("_I", "_z", "_mcz", "_td")):
         return base_dir
 
-    i_part = f"I{_canonical_token(float(I))}" if I is not None else None
+    i_part = f"I{_canonical_token(float(I))}"
     mcz_part = (
         f"mcz{_canonical_token(float(mcz_min))}-{_canonical_token(float(mcz_max))}"
     )
@@ -144,10 +144,7 @@ def contour_run_dir(
         f"td{_canonical_token(float(td_min_ms))}-{_canonical_token(float(td_max_ms))}"
     )
     z_part = _z_dir_token(z)
-    parts = [base_dir]
-    if i_part is not None:
-        parts.append(i_part)
-    parts.extend([z_part, mcz_part, td_part])
+    parts = [base_dir, i_part, z_part, mcz_part, td_part]
     return "_".join(parts)
 
 
@@ -366,21 +363,19 @@ def find_mismatch_cube_files(
 
     mcz_token = "mcz*"
     z_token = _canonical_token(_canonical_z_value(z))
-    z_prefixes = [f"mismatch_cubes_z{z_token}_"]
+    z_prefix = f"mismatch_cubes_z{z_token}_"
 
-    patterns = []
-    for z_prefix in z_prefixes:
-        for td_token in td_tokens:
-            patterns.append(
-                os.path.join(
-                    results_dir,
-                    "mismatch_cubes",
-                    (
-                        f"{z_prefix}{mcz_token}_I*_{td_token}"
-                        f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
-                    ),
-                )
-            )
+    patterns = [
+        os.path.join(
+            results_dir,
+            "mismatch_cubes",
+            (
+                f"{z_prefix}{mcz_token}_I*_{td_token}"
+                f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
+            ),
+        )
+        for td_token in td_tokens
+    ]
     matches = _glob_union(patterns)
     selected = []
     for path in matches:
@@ -428,18 +423,15 @@ def find_best_match_file(
 
     z_token = _canonical_token(_canonical_z_value(z))
 
-    patterns = []
-    patterns.append(
-        os.path.join(
-            results_dir,
-            "best_match",
-            (
-                f"best_match_I*_z{z_token}_mcz{mcz_lo}-{mcz_hi}x*_td{td_lo}-{td_hi}x*"
-                f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
-            ),
-        )
+    pattern = os.path.join(
+        results_dir,
+        "best_match",
+        (
+            f"best_match_I*_z{z_token}_mcz{mcz_lo}-{mcz_hi}x*_td{td_lo}-{td_hi}x*"
+            f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
+        ),
     )
-    matches = _glob_union(patterns)
+    matches = _glob_union([pattern])
     if not matches:
         return None
 
