@@ -13,6 +13,10 @@ import h5py
 import numpy as np
 
 
+# Keep z~0 handling consistent with modules/cosmology.py ZMIN.
+_Z_ZERO_TOL = 1e-8
+
+
 def _format_min_precision(
     value: Optional[float] = None,
     prefix: str = "",
@@ -92,10 +96,15 @@ def timestamp_path(
 
 def _z_dir_token(z: Optional[float]) -> str:
     """Return a stable z token for directory names."""
-    z_val = 0.0 if z is None else float(z)
-    if _is_close(z_val, 0.0, 1e-12):
-        z_val = 0.0
-    return f"z{_canonical_token(z_val)}"
+    return f"z{_canonical_token(_canonical_z_value(z))}"
+
+
+def _canonical_z_value(z: Optional[float]) -> float:
+    """Return canonical z value for naming/search (always explicit, including z0)."""
+    if z is None:
+        return 0.0
+    z_val = float(z)
+    return 0.0 if _is_close(z_val, 0.0, _Z_ZERO_TOL) else z_val
 
 
 def template_bank_run_dir(base_dir: str, z: Optional[float]) -> str:
@@ -161,7 +170,7 @@ def bank_filename(
     Returns a path under bank_dir; the directory is created if missing.
     """
     os.makedirs(bank_dir, exist_ok=True)
-    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
+    z_name = _canonical_z_value(z)
     name = (
         f"{prefix}{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_msun)}"
@@ -197,7 +206,7 @@ def mismatch_cube_filename(
     """
     mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
     os.makedirs(mismatch_dir, exist_ok=True)
-    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
+    z_name = _canonical_z_value(z)
     name = (
         f"mismatch_cubes{_format_min_precision(z_name, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_msun)}"
@@ -237,7 +246,7 @@ def best_match_mcz_td_filename(
     """
     best_match_dir = os.path.join(results_dir, "best_match")
     os.makedirs(best_match_dir, exist_ok=True)
-    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
+    z_name = _canonical_z_value(z)
     mcz_token = (
         f"{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}"
         if mcz_pts is None
@@ -295,7 +304,7 @@ def contour_mcz_td_filename(
     Order: I, mcz ranges, td ranges, suffix, orientation_tag.
     """
     os.makedirs(fig_dir, exist_ok=True)
-    z_name = None if z is None or _is_close(float(z), 0.0, 1e-12) else z
+    z_name = _canonical_z_value(z)
     name = (
         f"contour_I{_format_min_precision(I)}"
         f"{_format_min_precision(z_name, prefix='_z')}"
@@ -356,12 +365,8 @@ def find_mismatch_cube_files(
         td_tokens = [f"td{td_lo}-{td_hi}x*"]
 
     mcz_token = "mcz*"
-    if z is None:
-        z_prefixes = ["mismatch_cubes_"]
-    elif _is_close(float(z), 0.0, 1e-12):
-        z_prefixes = ["mismatch_cubes_"]
-    else:
-        z_prefixes = [f"mismatch_cubes_z{_canonical_token(float(z))}_"]
+    z_token = _canonical_token(_canonical_z_value(z))
+    z_prefixes = [f"mismatch_cubes_z{z_token}_"]
 
     patterns = []
     for z_prefix in z_prefixes:
@@ -421,26 +426,19 @@ def find_best_match_file(
     td_lo = _canonical_token(td_min_ms)
     td_hi = _canonical_token(td_max_ms)
 
-    if z is None:
-        z_tokens = [None]
-    elif _is_close(float(z), 0.0, 1e-12):
-        z_tokens = [None]
-    else:
-        z_tokens = [_canonical_token(float(z))]
+    z_token = _canonical_token(_canonical_z_value(z))
 
     patterns = []
-    for z_tok in z_tokens:
-        z_part = "" if z_tok is None else f"_z{z_tok}"
-        patterns.append(
-            os.path.join(
-                results_dir,
-                "best_match",
-                (
-                    f"best_match_I*{z_part}_mcz{mcz_lo}-{mcz_hi}x*_td{td_lo}-{td_hi}x*"
-                    f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
-                ),
-            )
+    patterns.append(
+        os.path.join(
+            results_dir,
+            "best_match",
+            (
+                f"best_match_I*_z{z_token}_mcz{mcz_lo}-{mcz_hi}x*_td{td_lo}-{td_hi}x*"
+                f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
+            ),
         )
+    )
     matches = _glob_union(patterns)
     if not matches:
         return None
