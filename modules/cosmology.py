@@ -187,7 +187,17 @@ def apply_z(params: dict, z: float, mcz_is_source: bool = True) -> dict:
     Returns:
         A shallow-copied dict with `dist` set from z and `mcz` redshifted if
         requested. The input `params` dict is not mutated.
+
+    Raises:
+        ValueError: If z is not finite or z <= 0.
     """
+    z = float(z)
+    if not np.isfinite(z) or z <= 0:
+        raise ValueError(
+            "apply_z requires a finite redshift z > 0 because it maps z to luminosity distance. "
+            "Use a small positive value such as z=1e-8 for near-zero cosmology, or skip apply_z to keep dist unchanged."
+        )
+
     out = params.copy()
     out["dist"] = z_to_DL(z) * GIGAPC2SEC
 
