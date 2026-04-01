@@ -32,7 +32,7 @@ from modules.filenames import find_mismatch_cube_files
 
 
 def _find_mismatch_cube(
-    mcz: float,
+    mcz_msun: float,
     orientation_tag: str,
     results_roots: List[str],
 ) -> Optional[str]:
@@ -49,7 +49,7 @@ def _find_mismatch_cube(
             td_min_ms=None,
             td_max_ms=None,
             orientation_tag=orientation_tag,
-            mcz_msun=float(mcz),
+            mcz_msun=float(mcz_msun),
         )
         if matches:
             return matches[0]
@@ -122,7 +122,13 @@ def main():
             "Requires the per-mcz mismatch cube HDF5 produced by compute_mismatch_cubes.py."
         )
     )
-    p.add_argument("--mcz", type=float, required=True, help="Chirp mass (Msun)")
+    p.add_argument(
+        "--mcz",
+        dest="mcz_msun",
+        type=float,
+        required=True,
+        help="Chirp mass (Msun)",
+    )
     p.add_argument("--td_ms", type=float, required=True, help="Time delay (ms)")
     p.add_argument(
         "--orientation_tag",
@@ -159,6 +165,7 @@ def main():
     # Locate mismatch cube file
     cube_path = args.cube_path
     if cube_path is None:
+        mcz_msun = float(args.mcz_msun)
         roots = (
             [args.results_root]
             if args.results_root
@@ -166,7 +173,7 @@ def main():
                 os.path.join("data", "mismatch"),
             ]
         )
-        cube_path = _find_mismatch_cube(args.mcz, args.orientation_tag, roots)
+        cube_path = _find_mismatch_cube(mcz_msun, args.orientation_tag, roots)
 
     if cube_path is None or not os.path.isfile(cube_path):
         print("ERROR: Could not find per-mcz mismatch cube for plotting.")

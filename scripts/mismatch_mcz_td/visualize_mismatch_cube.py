@@ -370,10 +370,10 @@ def main():
 
     os.makedirs(args.outdir, exist_ok=True)
     tag = _infer_orientation_tag_from_filename(args.input)
-    mcz_tag = _infer_mcz_from_filename(args.input)
+    mcz_msun_tag = _infer_mcz_from_filename(args.input)
     td_range_tag = _format_td_range_tag(td)
 
-    base = f"epsilon_cube_td_sweep_mcz{mcz_tag}_{td_range_tag}_{res_suffix}_{tag}"
+    base = f"epsilon_cube_td_sweep_mcz{mcz_msun_tag}_{td_range_tag}_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 

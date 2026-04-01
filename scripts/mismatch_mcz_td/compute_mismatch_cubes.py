@@ -27,6 +27,7 @@ from modules.functions_v3 import (
     timer_decorator,
     get_fcut_from_mcz,
 )
+from modules.cosmology import apply_z
 from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.filenames import (
@@ -91,7 +92,7 @@ def main(
     gamma_pts: int,
     f_min: float,
     delta_f: float,
-    z: float,
+    z: Optional[float],
     bank_dir: str,
     bank_prefix: str,
     n_workers: Optional[int],
@@ -102,8 +103,8 @@ def main(
     mcz_chunk_index: Optional[int] = None,
     mcz_chunk_count: Optional[int] = None,
 ):
-    z = float(z)
-    bank_dir = template_bank_run_dir(bank_dir, z)
+    z_val = None if z is None else float(z)
+    bank_dir = template_bank_run_dir(bank_dir, z_val)
     results_dir = contour_run_dir(
         results_dir,
         I=I,
@@ -111,14 +112,14 @@ def main(
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
-        z=z,
+        z=z_val,
     )
     os.makedirs(results_dir, exist_ok=True)
     logging.info(f"Resolved bank input directory: {bank_dir}")
     logging.info(f"Resolved mismatch output directory: {results_dir}")
 
     # Axes arrays
-    mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
+    mcz_src_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
     td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_pts)
     td_arr = td_arr_ms / 1e3
 
@@ -155,18 +156,29 @@ def main(
     else:
         sel = range(mcz_pts)
 
+    y = float(get_y_from_I(I))
+    z_str = "None" if z_val is None else f"{z_val:g}"
+
     # Loop over mcz values
     for i in sel:
-        mcz = float(mcz_arr[i])
-        mcz_det = mcz * (1.0 + z)
+        mcz_src_msun = float(mcz_src_msun_arr[i])
+        lens_params = dict(lens_base)
+        lens_params["mcz"] = mcz_src_msun * SOLMASS2SEC
+        if z_val is not None:
+            lens_params = apply_z(lens_params, z_val, mcz_is_source=True)
+        mcz_det_msun = float(lens_params["mcz"] / SOLMASS2SEC)
+        lens_params["y"] = y
+        lens_params["z"] = z_val
+        lens_params["mcz_source_msun"] = mcz_src_msun
+        lens_params["mcz_detector_msun"] = mcz_det_msun
         logging.info(
-            f"[{i+1}/{len(mcz_arr)}] Processing mcz_src={mcz} Msun, z={z:g}, mcz_det={mcz_det} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
+            f"[{i+1}/{len(mcz_src_msun_arr)}] Processing mcz_src={mcz_src_msun} Msun, z={z_str}, mcz_det={mcz_det_msun} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
         )
 
         # Bank path (must have been created already)
         bank_path = bank_filename(
             bank_dir,
-            mcz,
+            mcz_src_msun,
             omega_min,
             omega_max,
             omega_pts,
@@ -175,7 +187,7 @@ def main(
             theta_pts,
             gamma_pts,
             tag,
-            z=z,
+            z=z_val,
             prefix=bank_prefix,
         )
         if not os.path.isfile(bank_path):
@@ -190,14 +202,6 @@ def main(
                 n_theta == theta_pts and n_omega == omega_pts and n_gamma == gamma_pts
             )
 
-            # Set source mcz
-            y = get_y_from_I(I)
-            lens_params = dict(lens_base)
-            lens_params["mcz"] = float(mcz_det) * SOLMASS2SEC
-            lens_params["y"] = float(y)
-            lens_params["z"] = z
-            lens_params["mcz_source_msun"] = float(mcz)
-            lens_params["mcz_detector_msun"] = float(mcz_det)
             mlz_arr = np.array(
                 [float(get_MLz_from_td(td, y) * SOLMASS2SEC) for td in td_arr],
                 dtype=np.float64,
@@ -205,14 +209,14 @@ def main(
 
             # Precompute PSD once for this mcz (independent of td)
             # Define f-array using mcz -> f_cut
-            f_cut = float(get_fcut_from_mcz(mcz_det, eta=lens_params["eta"]))
+            f_cut = float(get_fcut_from_mcz(mcz_det_msun, eta=lens_params["eta"]))
             s_f = np.arange(f_min, f_cut, delta_f)
             psd = Sn(s_f, f_min=f_min, delta_f=delta_f)
 
             # Prepare HDF5 output for mismatch cubes (per-mcz)
             mm_out_path = mismatch_cube_filename(
                 results_dir,
-                mcz_msun=mcz,
+                mcz_msun=mcz_src_msun,
                 I=I,
                 td_min_ms=td_min_ms,
                 td_max_ms=td_max_ms,
@@ -225,7 +229,7 @@ def main(
                 theta_pts=theta_pts,
                 gamma_pts=gamma_pts,
                 orientation_tag=tag,
-                z=z,
+                z=z_val,
             )
             mmh5, dsets = create_mismatch_cube(
                 filepath=mm_out_path,
@@ -233,7 +237,7 @@ def main(
                 theta_arr=theta_arr,
                 omega_arr=omega_arr,
                 gamma_arr=gamma_arr,
-                mcz=mcz,
+                mcz=mcz_src_msun,
                 td_arr=td_arr,
                 save_full_mismatch=save_full_mismatch,
             )
@@ -264,7 +268,7 @@ def main(
                 # Store the intended mcz grid so aggregation can detect missing rows
                 # from the actual compute configuration (not inferred from filenames).
                 write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts)
-                write_scalar_attr_with_unit(mmh5, "z", float(z))
+                write_scalar_attr_with_unit(mmh5, "z", z_val, none_as_nan=True)
                 mmh5.create_dataset("MLz", data=mlz_arr)
                 write_dataset_units(mmh5, {"MLz": "s"})
 
@@ -348,7 +352,7 @@ if __name__ == "__main__":
         gamma_pts=51,
     )
     add_frequency_args(p, f_min=20.0, delta_f=0.25)
-    add_redshift_arg(p, default_z=0.0)
+    add_redshift_arg(p, default_z=None)
     p.add_argument(
         "--bank_dir",
         type=str,

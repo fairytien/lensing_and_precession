@@ -15,6 +15,7 @@ import numpy as np
 
 # Keep z~0 handling consistent with modules/cosmology.py ZMIN.
 _Z_ZERO_TOL = 1e-8
+_Z_NONE_TOKEN = "NaN"
 
 
 def _format_min_precision(
@@ -96,15 +97,28 @@ def timestamp_path(
 
 def _z_dir_token(z: Optional[float]) -> str:
     """Return a stable z token for directory names."""
-    return f"z{_canonical_token(_canonical_z_value(z))}"
+    return f"z{_canonical_z_token(z)}"
 
 
 def _canonical_z_value(z: Optional[float]) -> float:
-    """Return canonical z value for naming/search (always explicit, including z0)."""
+    """Return canonical numeric z value.
+
+    Returns NaN when z is omitted (None).
+    """
     if z is None:
-        return 0.0
+        return np.nan
     z_val = float(z)
+    if np.isnan(z_val):
+        return np.nan
     return 0.0 if _is_close(z_val, 0.0, _Z_ZERO_TOL) else z_val
+
+
+def _canonical_z_token(z: Optional[float]) -> str:
+    """Return canonical z token used in filenames/directories."""
+    z_val = _canonical_z_value(z)
+    if np.isnan(z_val):
+        return _Z_NONE_TOKEN
+    return _canonical_token(z_val)
 
 
 def template_bank_run_dir(base_dir: str, z: Optional[float]) -> str:
@@ -167,9 +181,9 @@ def bank_filename(
     Returns a path under bank_dir; the directory is created if missing.
     """
     os.makedirs(bank_dir, exist_ok=True)
-    z_name = _canonical_z_value(z)
+    z_token = _canonical_z_token(z)
     name = (
-        f"{prefix}{_format_min_precision(z_name, prefix='_z')}"
+        f"{prefix}_z{z_token}"
         f"_mcz{_format_min_precision(mcz_msun)}"
         f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
         f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
@@ -203,9 +217,9 @@ def mismatch_cube_filename(
     """
     mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
     os.makedirs(mismatch_dir, exist_ok=True)
-    z_name = _canonical_z_value(z)
+    z_token = _canonical_z_token(z)
     name = (
-        f"mismatch_cubes{_format_min_precision(z_name, prefix='_z')}"
+        f"mismatch_cubes_z{z_token}"
         f"_mcz{_format_min_precision(mcz_msun)}"
         f"_I{_format_min_precision(I)}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}x{td_pts}"
@@ -243,7 +257,7 @@ def best_match_mcz_td_filename(
     """
     best_match_dir = os.path.join(results_dir, "best_match")
     os.makedirs(best_match_dir, exist_ok=True)
-    z_name = _canonical_z_value(z)
+    z_token = _canonical_z_token(z)
     mcz_token = (
         f"{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}"
         if mcz_pts is None
@@ -256,7 +270,7 @@ def best_match_mcz_td_filename(
     )
     name = (
         f"best_match_I{_format_min_precision(I)}"
-        f"{_format_min_precision(z_name, prefix='_z')}"
+        f"_z{z_token}"
         f"_mcz{mcz_token}"
         f"_td{td_token}"
     )
@@ -301,10 +315,10 @@ def contour_mcz_td_filename(
     Order: I, mcz ranges, td ranges, suffix, orientation_tag.
     """
     os.makedirs(fig_dir, exist_ok=True)
-    z_name = _canonical_z_value(z)
+    z_token = _canonical_z_token(z)
     name = (
         f"contour_I{_format_min_precision(I)}"
-        f"{_format_min_precision(z_name, prefix='_z')}"
+        f"_z{z_token}"
         f"_mcz{_format_min_precision(mcz_min)}-{_format_min_precision(mcz_max)}"
         f"{'' if mcz_pts is None else f'x{int(mcz_pts)}'}"
         f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}"
@@ -362,15 +376,14 @@ def find_mismatch_cube_files(
         td_tokens = [f"td{td_lo}-{td_hi}x*"]
 
     mcz_token = "mcz*"
-    z_token = _canonical_token(_canonical_z_value(z))
-    z_prefix = f"mismatch_cubes_z{z_token}_"
+    z_token = _canonical_z_token(z)
 
     patterns = [
         os.path.join(
             results_dir,
             "mismatch_cubes",
             (
-                f"{z_prefix}{mcz_token}_I*_{td_token}"
+                f"mismatch_cubes_z{z_token}_{mcz_token}_I*_{td_token}"
                 f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
             ),
         )
@@ -421,8 +434,7 @@ def find_best_match_file(
     td_lo = _canonical_token(td_min_ms)
     td_hi = _canonical_token(td_max_ms)
 
-    z_token = _canonical_token(_canonical_z_value(z))
-
+    z_token = _canonical_z_token(z)
     pattern = os.path.join(
         results_dir,
         "best_match",

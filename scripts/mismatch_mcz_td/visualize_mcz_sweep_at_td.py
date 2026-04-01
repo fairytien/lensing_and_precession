@@ -36,7 +36,7 @@ def _infer_orientation_tag_from_filename(path: str) -> str:
     return "unknown"
 
 
-def _infer_mcz_numeric(h5_file) -> float:
+def _infer_mcz_msun_numeric(h5_file) -> float:
     """Read numeric mcz from HDF5 dataset 'mcz'."""
     if "mcz" in h5_file:
         val = np.array(h5_file["mcz"]).astype(float).ravel()
@@ -78,7 +78,7 @@ def save_movie_over_mcz(
     omega: np.ndarray,
     theta: np.ndarray,
     eps_grid_over_mcz: np.ndarray,
-    mcz_list: np.ndarray,
+    mcz_msun_list: np.ndarray,
     out_path: str,
     cmap: str = "jet",
     levels: int = 100,
@@ -91,7 +91,7 @@ def save_movie_over_mcz(
     omega : (n_omega,) array
     theta : (n_theta,) array
     eps_grid_over_mcz : (n_mcz, n_theta, n_omega)
-    mcz_list : (n_mcz,) array in Msun
+    mcz_msun_list : (n_mcz,) array in Msun
     out_path : output movie path (.mp4 or .gif)
     """
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -108,7 +108,7 @@ def save_movie_over_mcz(
     cbar.set_label(r"$\epsilon(\tilde{h}_L, \tilde{h}_P)$")
     ax.set_xlabel(r"$\tilde{\Omega}$")
     ax.set_ylabel(r"$\tilde{\theta}$")
-    ttl = ax.set_title(f"mcz = {mcz_list[0]:.2f} Msun")
+    ttl = ax.set_title(f"mcz = {mcz_msun_list[0]:.2f} Msun")
     fig.tight_layout()
 
     def _update(i):
@@ -117,11 +117,15 @@ def save_movie_over_mcz(
         ax.contourf(
             X, Y, eps_grid_over_mcz[i], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax
         )
-        ttl.set_text(f"mcz = {mcz_list[i]:.2f} Msun")
+        ttl.set_text(f"mcz = {mcz_msun_list[i]:.2f} Msun")
         return ax.collections + [ttl]
 
     ani = animation.FuncAnimation(
-        fig, _update, frames=len(mcz_list), blit=False, interval=1000 / max(fps, 1)
+        fig,
+        _update,
+        frames=len(mcz_msun_list),
+        blit=False,
+        interval=1000 / max(fps, 1),
     )
 
     ext = os.path.splitext(out_path)[1].lower()
@@ -152,7 +156,7 @@ def save_html_slider_over_mcz(
     omega: np.ndarray,
     theta: np.ndarray,
     eps_grid_over_mcz: np.ndarray,
-    mcz_list: np.ndarray,
+    mcz_msun_list: np.ndarray,
     out_path: str,
     cmap: str = "Jet",
     levels: int = 100,
@@ -200,7 +204,7 @@ def save_html_slider_over_mcz(
                         zmax=zmax,
                     )
                 ],
-                name=f"mcz={mcz_list[i]:.2f}Msun",
+                name=f"mcz={mcz_msun_list[i]:.2f}Msun",
             )
         )
 
@@ -209,13 +213,13 @@ def save_html_slider_over_mcz(
     steps = [
         dict(
             method="animate",
-            label=f"{mcz_list[i]:.2f} Msun",
+            label=f"{mcz_msun_list[i]:.2f} Msun",
             args=[
-                [f"mcz={mcz_list[i]:.2f}Msun"],
+                [f"mcz={mcz_msun_list[i]:.2f}Msun"],
                 {"frame": {"duration": 0, "redraw": True}, "mode": "immediate"},
             ],
         )
-        for i in range(len(mcz_list))
+        for i in range(len(mcz_msun_list))
     ]
 
     sliders = [
@@ -294,7 +298,7 @@ def save_grid_with_individual_colorbars(
     omega: np.ndarray,
     theta: np.ndarray,
     eps_grid_over_mcz: np.ndarray,
-    mcz_list: np.ndarray,
+    mcz_msun_list: np.ndarray,
     out_path: str,
     cmap: str = "jet",
     levels: int = 100,
@@ -332,7 +336,7 @@ def save_grid_with_individual_colorbars(
         cbar.set_label(r"$\epsilon$")
         ax.set_xlabel(r"$\tilde{\Omega}$")
         ax.set_ylabel(r"$\tilde{\theta}$")
-        ax.set_title(f"mcz = {mcz_list[i]:.2f} Msun", fontsize=10)
+        ax.set_title(f"mcz = {mcz_msun_list[i]:.2f} Msun", fontsize=10)
 
     fig.tight_layout()
     fig.savefig(out_path, dpi=160, bbox_inches="tight")
@@ -397,7 +401,7 @@ def main():
         )
 
     # Load axes consistency and collect per-mcz slices at fixed td
-    mcz_vals: List[float] = []
+    mcz_msun_vals: List[float] = []
     eps_slices: List[np.ndarray] = []
     theta_ref: Optional[np.ndarray] = None
     omega_ref: Optional[np.ndarray] = None
@@ -441,12 +445,12 @@ def main():
 
             slice_eps = eps[td_idx]
             eps_slices.append(slice_eps)
-            mcz_vals.append(_infer_mcz_numeric(h5))
+            mcz_msun_vals.append(_infer_mcz_msun_numeric(h5))
 
     # Sort by mcz
-    mcz_arr = np.array(mcz_vals, dtype=float)
-    order = np.argsort(mcz_arr)
-    mcz_arr = mcz_arr[order]
+    mcz_msun_arr = np.array(mcz_msun_vals, dtype=float)
+    order = np.argsort(mcz_msun_arr)
+    mcz_msun_arr = mcz_msun_arr[order]
     eps_stack = np.stack(
         [eps_slices[i] for i in order], axis=0
     )  # (n_mcz, n_theta, n_omega)
@@ -458,9 +462,9 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
     tag = orient_tag or "unknown"
     td_tag = f"td{args.td_ms:.1f}".replace(".", "p")
-    mcz_min = f"{float(np.nanmin(mcz_arr)):g}".replace(".", "p")
-    mcz_max = f"{float(np.nanmax(mcz_arr)):g}".replace(".", "p")
-    base = f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_min}-{mcz_max}_{res_suffix}_{tag}"
+    mcz_msun_min = f"{float(np.nanmin(mcz_msun_arr)):g}".replace(".", "p")
+    mcz_msun_max = f"{float(np.nanmax(mcz_msun_arr)):g}".replace(".", "p")
+    base = f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_msun_min}-{mcz_msun_max}_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.outdir, base + movie_ext)
 
@@ -469,7 +473,7 @@ def main():
         omega=omega_ref,
         theta=theta_ref,
         eps_grid_over_mcz=eps_stack,
-        mcz_list=mcz_arr,
+        mcz_msun_list=mcz_msun_arr,
         out_path=movie_path,
         cmap=args.cmap,
         levels=args.levels,
@@ -483,7 +487,7 @@ def main():
             omega=omega_ref,
             theta=theta_ref,
             eps_grid_over_mcz=eps_stack,
-            mcz_list=mcz_arr,
+            mcz_msun_list=mcz_msun_arr,
             out_path=html_path,
             cmap="Jet",
             levels=args.levels,
@@ -496,7 +500,7 @@ def main():
             omega=omega_ref,
             theta=theta_ref,
             eps_grid_over_mcz=eps_stack,
-            mcz_list=mcz_arr,
+            mcz_msun_list=mcz_msun_arr,
             out_path=grid_path,
             cmap=args.cmap,
             levels=args.levels,

@@ -12,6 +12,7 @@ Pipeline:
 """
 
 import os, argparse
+from typing import Optional
 
 import numpy as np
 import h5py
@@ -41,7 +42,7 @@ def main(
     mcz_min: float,
     mcz_max: float,
     orientation_tag: str,
-    z: float,
+    z: Optional[float],
     output_dir: str,
     variable: str = "epsilon",
     overlay_cycles: bool = False,
@@ -70,7 +71,7 @@ def main(
         eta: Symmetric mass ratio (default 0.25).
         f_min: Minimum frequency in Hz (default 20.0).
     """
-    z = float(z)
+    z_val = None if z is None else float(z)
     results_dir = contour_run_dir(
         results_dir,
         I=I,
@@ -78,7 +79,7 @@ def main(
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
-        z=z,
+        z=z_val,
     )
     output_dir = contour_run_dir(
         output_dir,
@@ -87,7 +88,7 @@ def main(
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
-        z=z,
+        z=z_val,
     )
     os.makedirs(output_dir, exist_ok=True)
     logging.info(f"Resolved best-match input directory: {results_dir}")
@@ -100,7 +101,7 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
-        z=z,
+        z=z_val,
     )
     if summary_path is None:
         raise FileNotFoundError(
@@ -160,7 +161,7 @@ def main(
                 f"Available datasets: {list(h5.keys())}"
             )
 
-        mcz_arr = np.array(h5["mcz"])
+        mcz_msun_arr = np.array(h5["mcz"])
         td_arr = np.array(h5["td"])
         Zmap = np.array(h5[var_info["dataset"]])
 
@@ -177,10 +178,10 @@ def main(
     td_arr_ms = td_arr * 1e3
 
     # Get actual data range for overlays
-    mcz_data_min, mcz_data_max = mcz_arr.min(), mcz_arr.max()
+    mcz_msun_data_min, mcz_msun_data_max = mcz_msun_arr.min(), mcz_msun_arr.max()
 
     # Create contour plot
-    TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
+    TD, MCZ = np.meshgrid(td_arr_ms, mcz_msun_arr)
     plt.figure(figsize=(8, 6))
     cf = plt.contourf(TD, MCZ, Zmap, levels=100, cmap="jet")
     cbar = plt.colorbar(cf)
@@ -196,8 +197,8 @@ def main(
     if overlay_troughs or overlay_peaks:
         plot_mcz_extrema(
             td_arr,
-            mcz_data_min,
-            mcz_data_max,
+            mcz_msun_data_min,
+            mcz_msun_data_max,
             eta=eta,
             plot_troughs=overlay_troughs,
             plot_peaks=overlay_peaks,
@@ -216,14 +217,14 @@ def main(
     base_path = contour_mcz_td_filename(
         output_dir,
         I=I_value,
-        mcz_min=float(np.nanmin(mcz_arr)),
-        mcz_max=float(np.nanmax(mcz_arr)),
-        mcz_pts=int(mcz_arr.shape[0]),
+        mcz_min=float(np.nanmin(mcz_msun_arr)),
+        mcz_max=float(np.nanmax(mcz_msun_arr)),
+        mcz_pts=int(mcz_msun_arr.shape[0]),
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         td_pts=int(td_arr.shape[0]),
         orientation_tag=orientation_tag,
-        z=z,
+        z=z_val,
         ext="pdf",
     )
 
@@ -282,7 +283,7 @@ if __name__ == "__main__":
         default_pts=None,
         required=True,
     )
-    add_redshift_arg(p, default_z=0.0)
+    add_redshift_arg(p, default_z=None)
     p.add_argument(
         "--orientation_tag",
         type=str,

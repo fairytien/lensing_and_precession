@@ -24,6 +24,7 @@ except Exception:
 from modules.functions_v3 import get_gw
 from modules.default_params_v3 import SOLMASS2SEC
 from modules.Classes_v2 import Precessing as P2
+from modules.cosmology import apply_z
 from modules.filenames import bank_filename
 from modules.chunking import choose_bank_chunks
 from modules.bank_io import (
@@ -248,7 +249,7 @@ def build_and_save_bank(
     delta_f: float,
     bank_dir: str,
     orientation_tag: str,
-    z: float = 0.0,
+    z: Optional[float] = None,
     bank_prefix: str = "rp_bank",
     n_workers: Optional[int] = None,
     dtype: str = "complex128",
@@ -261,9 +262,11 @@ def build_and_save_bank(
     # Prepare parameters
     params = copy.deepcopy(base_rp_params)
     mcz_src_msun = float(mcz_msun)
-    z_val = float(z)
-    mcz_det_msun = mcz_src_msun * (1.0 + z_val)
-    params["mcz"] = mcz_det_msun * SOLMASS2SEC
+    z_val = None if z is None else float(z)
+    params["mcz"] = mcz_src_msun * SOLMASS2SEC
+    if z_val is not None:
+        params = apply_z(params, z_val, mcz_is_source=True)
+    mcz_det_msun = float(params["mcz"] / SOLMASS2SEC)
 
     # Build grid arrays
     omega_arr, theta_arr, gamma_arr = _grid_arrays(
@@ -313,7 +316,7 @@ def build_and_save_bank(
         "delta_f": float(df_actual),
         "mcz_msun": mcz_src_msun,
         "mcz_det_msun": mcz_det_msun,
-        "z": z_val,
+        "z": np.nan if z_val is None else z_val,
     }
     with create_bank_writer(
         path,
@@ -346,7 +349,7 @@ def build_and_save_bank(
             prefix="template_param_",
             include_units=True,
         )
-        write_scalar_attr_with_unit(h5, "z", z_val)
+        write_scalar_attr_with_unit(h5, "z", z_val, none_as_nan=True)
         h5.attrs["omega_pts"] = int(omega_arr.shape[0])
         h5.attrs["theta_pts"] = int(theta_arr.shape[0])
         h5.attrs["gamma_pts"] = int(gamma_arr.shape[0])

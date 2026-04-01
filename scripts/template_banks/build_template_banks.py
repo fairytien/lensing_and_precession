@@ -51,7 +51,7 @@ def main(
     gamma_pts: int,
     f_min: float,
     delta_f: float,
-    z: float,
+    z: Optional[float],
     bank_dir: str,
     bank_prefix: str,
     n_workers: Optional[int],
@@ -59,7 +59,6 @@ def main(
     mcz_chunk_index: Optional[int],
     mcz_chunk_count: Optional[int],
 ):
-    z = float(z)
     bank_dir = template_bank_run_dir(bank_dir, z)
     os.makedirs(bank_dir, exist_ok=True)
     logging.info(f"Resolved bank output directory: {bank_dir}")
@@ -77,7 +76,7 @@ def main(
         default_orientation="edgeon",
     )
 
-    mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
+    mcz_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
 
     # Resolve chunking from CLI or SLURM env vars
     env_idx = get_env_int("SLURM_ARRAY_TASK_ID")
@@ -101,13 +100,13 @@ def main(
         sel = range(mcz_pts)
 
     for i in sel:
-        mcz = float(mcz_arr[i])
+        mcz_msun = float(mcz_msun_arr[i])
         logging.info(
-            f"[{i+1}/{len(mcz_arr)}] Building bank for mcz={mcz} Msun with omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
+            f"[{i+1}/{len(mcz_msun_arr)}] Building bank for mcz={mcz_msun} Msun with omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
         )
         out_path = build_and_save_bank(
             base_params,
-            mcz,
+            mcz_msun,
             omega_min,
             omega_max,
             omega_pts,
@@ -144,7 +143,7 @@ if __name__ == "__main__":
         gamma_pts=101,
     )
     add_frequency_args(p, f_min=20.0, delta_f=0.25)
-    add_redshift_arg(p, default_z=0.0)
+    add_redshift_arg(p, default_z=None)
     p.add_argument(
         "--bank_dir",
         type=str,

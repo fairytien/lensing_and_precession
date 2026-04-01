@@ -102,7 +102,7 @@ def add_frequency_args(
 
 def add_redshift_arg(
     parser: ArgumentParser,
-    default_z: float = 0.0,
+    default_z: Optional[float] = None,
 ) -> ArgumentParser:
     """Attach redshift argument used by template and mismatch pipelines."""
     parser.add_argument(
@@ -111,7 +111,7 @@ def add_redshift_arg(
         default=default_z,
         help=(
             "Source redshift. Effective detector-frame chirp mass is "
-            "mcz_det = mcz * (1 + z)."
+            "mcz_det = mcz * (1 + z). If omitted, no cosmology mapping is applied."
         ),
     )
     return parser

@@ -1,6 +1,8 @@
 import sys, os, argparse
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 from modules.contours_v3 import *
 
 
@@ -13,11 +15,13 @@ def main(output_dir):
 
     # Assign parameters
     RP_params = set_orientation(orient_params["Taman"]["edgeon"], RP_params_1)[0]
-    mcz = 40
-    RP_params["mcz"] = mcz * SOLMASS2SEC
+    mcz_msun = 40
+    RP_params["mcz"] = mcz_msun * SOLMASS2SEC
 
-    results = create_RP_templates(
-        RP_params, output_dir + "/sys2_template_grid_mcz" + str(mcz) + ".npz", npz=True
+    create_RP_templates(
+        RP_params,
+        output_dir + "/sys2_template_grid_mcz" + str(mcz_msun) + ".npz",
+        npz=True,
     )
 
 
