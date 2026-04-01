@@ -12,21 +12,12 @@ cd $SLURM_SUBMIT_DIR
 source "$HOME/miniconda3/etc/profile.d/conda.sh"
 conda activate fairytien_gw
 
-# # Specify the mcz value
-# MCZ_VALUE=40
-# export MCZ_VALUE
-
-# # Load the RP template grid
-# WORK_DIR=${WORK:-.}
-# TEMPLATE_GRID_PATH="$WORK_DIR/data/sys2_template_grid_mcz${MCZ_VALUE}.npz"
-# export TEMPLATE_GRID_PATH
-
 # Compute angles once (more efficient than multiple Python calls)
 read theta_S phi_S theta_J phi_J <<< $(python -c "import numpy as np; print(np.pi / 4, 0, np.pi / 2, np.pi / 2)")
 
 # Run the contour computation
 srun python -m scripts.indiv_contours.v3_indiv_contour_otf \
-    --mcz_msun 20 \
+    --mcz_msun 10 \
     --td_ms 30.0 \
     --I 0.5 \
     --theta_S "$theta_S" \
@@ -41,4 +32,5 @@ srun python -m scripts.indiv_contours.v3_indiv_contour_otf \
     --theta_points 151 \
     --f_min 20.0 \
     --delta_f 0.25 \
-    --redshift 0.2
+    --redshift 1 \
+    --use_opt_match
