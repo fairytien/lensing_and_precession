@@ -1,5 +1,0 @@
-[INFO] Resolved bank output directory: ./data/template_banks_z1e-08
-[INFO] Chunking mcz across 30 chunks: running indices [18:19)
-[INFO] [19/30] Building bank for mcz=29.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
-[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz29_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
-Total time to run the script: 0:2:28.59 (h:m:s)
