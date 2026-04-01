@@ -11,17 +11,9 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-# Activate your conda environment for this project
-if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-  source "$HOME/miniconda3/etc/profile.d/conda.sh"
-fi
-if command -v conda >/dev/null 2>&1; then
-  conda activate fairytien_gw 2>/dev/null || { source ~/.bashrc && conda activate fairytien_gw; }
-fi
-
-# Change to submission directory or PROJECT_ROOT if provided
-PROJECT_ROOT="${PROJECT_ROOT:-$SLURM_SUBMIT_DIR}"
-cd "$PROJECT_ROOT"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
+source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 # Set thread limits to prevent oversubscription
 export OMP_NUM_THREADS=1
@@ -31,7 +23,8 @@ export NUMEXPR_NUM_THREADS=1
 export MPLBACKEND=Agg
 
 # Keep grid sizing configurable and consistent with worker cap
-MCZ_POINTS=${MCZ_POINTS:-81}
+MCZ_POINTS=${MCZ_POINTS:-${MCZ_PTS}}
+TD_POINTS=${TD_POINTS:-${TD_PTS}}
 
 # Use allocated CPUs, but do not exceed number of mcz rows to compute
 ALLOC_CPUS=${SLURM_CPUS_PER_TASK:-64}
@@ -40,14 +33,14 @@ NWORKERS=${NWORKERS:-$DEFAULT_WORKERS}
 
 # Run the contour script with all available CPUs
 python -m scripts.super_contours.contour_L_NP_mcz_td \
-  --I 0.5 \
-  --mcz_min 5.0 \
-  --mcz_max 45.0 \
+  --I "${FLUX_RATIO}" \
+  --mcz_min "${MCZ_MIN}" \
+  --mcz_max "${MCZ_MAX}" \
   --mcz_points ${MCZ_POINTS} \
-  --td_min_ms 20.0 \
-  --td_max_ms 70.0 \
-  --td_points 51 \
+  --td_min_ms "${TD_MIN_MS}" \
+  --td_max_ms "${TD_MAX_MS}" \
+  --td_points "${TD_POINTS}" \
   --f_min 20.0 \
   --delta_f 0.25 \
   --n_processes ${NWORKERS} \
-  --redshift 1
+  --redshift "${Z}"
