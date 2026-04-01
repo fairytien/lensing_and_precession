@@ -12,15 +12,12 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/batch_scripts"
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 # For better queue efficiency with mcz-dependent runtimes, submit with:
 #   bash batch_scripts/submit_build_template_banks_tiered.sh
-
-# Use all allocated CPUs for multiprocessing workers
-NWORKERS=${NWORKERS:-32}
 
 python -m scripts.template_banks.build_template_banks \
   --orient_preset "${ORIENT_PRESET}" \

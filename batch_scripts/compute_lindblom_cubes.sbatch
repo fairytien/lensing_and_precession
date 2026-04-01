@@ -12,12 +12,9 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/batch_scripts"
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
-
-# Use all allocated CPUs for multiprocessing workers
-NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
 # Map array index to mcz value from configured grid
 MCZ_VAL=$(python - <<'PY'
@@ -40,11 +37,8 @@ if idx < 0 or idx >= mcz_pts:
 mcz_grid = np.linspace(mcz_min, mcz_max, mcz_pts, dtype=float)
 print(f"{mcz_grid[idx]:g}")
 PY
-)
+) || exit 2
 
-if [ $? -ne 0 ]; then
-  exit 2
-fi
 export MCZ_VAL
 
 # Paths
@@ -58,12 +52,10 @@ from modules.filenames import template_bank_run_dir
 z = float(os.environ.get("Z", "0"))
 print(template_bank_run_dir(os.environ["BANK_DIR"], z))
 PY
-)
-
-if [ $? -ne 0 ]; then
+) || {
   echo "Error: failed to resolve template bank directory"
   exit 2
-fi
+}
 
 CUBE_PATH=$(python - <<'PY'
 import os
@@ -101,12 +93,10 @@ path = mismatch_cube_filename(
 )
 print(path)
 PY
-)
-
-if [ $? -ne 0 ]; then
+) || {
   echo "Error: failed to resolve canonical mismatch cube path"
   exit 2
-fi
+}
 
 # Check if cube exists
 if [ ! -f "$CUBE_PATH" ]; then
@@ -118,8 +108,7 @@ fi
 LINDBLOM_PATH="${CUBE_PATH%.h5}_lindblom.h5"
 if [ -f "$LINDBLOM_PATH" ]; then
   # Check if it has SNR data
-  python -c "import h5py; h5 = h5py.File('$LINDBLOM_PATH', 'r'); has_snr = 'snr_cube' in h5; h5.close(); exit(0 if has_snr else 1)" 2>/dev/null
-  if [ $? -eq 0 ]; then
+  if python -c "import h5py; h5 = h5py.File('$LINDBLOM_PATH', 'r'); has_snr = 'snr_cube' in h5; h5.close(); exit(0 if has_snr else 1)" 2>/dev/null; then
     echo "Lindblom cube with SNR already exists for mcz=$MCZ_VAL, skipping..."
     exit 0
   fi

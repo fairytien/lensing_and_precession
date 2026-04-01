@@ -11,7 +11,7 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/batch_scripts"
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
@@ -25,11 +25,6 @@ export MPLBACKEND=Agg
 # Keep grid sizing configurable and consistent with worker cap
 MCZ_POINTS=${MCZ_POINTS:-${MCZ_PTS}}
 TD_POINTS=${TD_POINTS:-${TD_PTS}}
-
-# Use allocated CPUs, but do not exceed number of mcz rows to compute
-ALLOC_CPUS=${SLURM_CPUS_PER_TASK:-64}
-DEFAULT_WORKERS=$(( ALLOC_CPUS < MCZ_POINTS ? ALLOC_CPUS : MCZ_POINTS ))
-NWORKERS=${NWORKERS:-$DEFAULT_WORKERS}
 
 # Run the contour script with all available CPUs
 python -m scripts.super_contours.contour_L_NP_mcz_td \

@@ -12,12 +12,9 @@
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}/batch_scripts"
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
-
-# Use all allocated CPUs for multiprocessing workers
-NWORKERS=${NWORKERS:-${SLURM_CPUS_PER_TASK:-64}}
 
 MCZ_MIN=30
 MCZ_MAX=30

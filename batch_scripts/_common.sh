@@ -5,14 +5,21 @@ if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
 fi
 
 if command -v conda >/dev/null 2>&1; then
-  conda activate "${CONDA_ENV_NAME:-fairytien_gw}" 2>/dev/null || {
-    source ~/.bashrc && conda activate "${CONDA_ENV_NAME:-fairytien_gw}"
+  ENV_NAME="${CONDA_ENV_NAME:-fairytien_gw}"
+  conda activate "$ENV_NAME" 2>/dev/null || {
+    [ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc" >/dev/null 2>&1
+    conda activate "$ENV_NAME" 2>/dev/null || {
+      echo "Error: failed to activate conda env '$ENV_NAME'." >&2
+      exit 2
+    }
   }
 fi
 
 PROJECT_ROOT="${PROJECT_ROOT:-${SLURM_SUBMIT_DIR:-$PWD}}"
 cd "$PROJECT_ROOT" || exit 1
 export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
+
+NWORKERS="${NWORKERS:-${SLURM_CPUS_PER_TASK:-128}}"
 
 export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
