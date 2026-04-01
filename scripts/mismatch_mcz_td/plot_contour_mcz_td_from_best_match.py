@@ -11,7 +11,8 @@ Pipeline:
 4. python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match - plot contour
 """
 
-import os, argparse
+import os
+import argparse
 from typing import Optional
 
 import numpy as np
@@ -80,6 +81,7 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         z=z_val,
+        orientation_tag=orientation_tag,
     )
     output_dir = contour_run_dir(
         output_dir,
@@ -89,6 +91,7 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         z=z_val,
+        orientation_tag=orientation_tag,
     )
     os.makedirs(output_dir, exist_ok=True)
     logging.info(f"Resolved best-match input directory: {results_dir}")

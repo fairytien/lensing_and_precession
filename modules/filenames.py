@@ -121,16 +121,39 @@ def _canonical_z_token(z: Optional[float]) -> str:
     return _canonical_token(z_val)
 
 
-def template_bank_run_dir(base_dir: str, z: Optional[float]) -> str:
+def _with_optional_orientation_suffix(path: str, orientation_tag: Optional[str]) -> str:
+    """Append orientation suffix once when provided."""
+    if orientation_tag is None:
+        return path
+    tag = str(orientation_tag).strip()
+    if not tag:
+        return path
+
+    # Avoid producing ".../_tag" for inputs that include trailing separators.
+    trimmed_path = path.rstrip("/\\")
+    if not trimmed_path:
+        return path
+    suffix = f"_{tag}"
+    if os.path.basename(trimmed_path).endswith(suffix):
+        return trimmed_path
+    return f"{trimmed_path}{suffix}"
+
+
+def template_bank_run_dir(
+    base_dir: str, z: Optional[float], orientation_tag: Optional[str] = None
+) -> str:
     """Return bank output directory with explicit redshift token.
+
+    Appends orientation tag suffix when provided.
 
     If base_dir already ends with a z token (e.g., _z0p2), it is returned unchanged.
     """
-    if os.path.basename(base_dir).startswith(
-        "template_banks_"
-    ) and "_z" in os.path.basename(base_dir):
-        return base_dir
-    return f"{base_dir}_{_z_dir_token(z)}"
+    base_dir = base_dir.rstrip("/\\") or base_dir
+    run_dir = base_dir
+    base_name = os.path.basename(base_dir)
+    if not (base_name.startswith("template_banks_") and "_z" in base_name):
+        run_dir = f"{base_dir}_{_z_dir_token(z)}"
+    return _with_optional_orientation_suffix(run_dir, orientation_tag)
 
 
 def contour_run_dir(
@@ -141,25 +164,28 @@ def contour_run_dir(
     td_min_ms: float,
     td_max_ms: float,
     z: Optional[float],
+    orientation_tag: Optional[str] = None,
 ) -> str:
     """Return run directory tagged by I, z, mcz/td ranges.
 
+    Appends orientation tag suffix when provided.
+
     If base_dir already appears to include I/z/mcz/td tokens, it is returned unchanged.
     """
+    base_dir = base_dir.rstrip("/\\") or base_dir
+    run_dir = base_dir
     base_name = os.path.basename(base_dir)
-    if all(token in base_name for token in ("_I", "_z", "_mcz", "_td")):
-        return base_dir
+    if not all(token in base_name for token in ("_I", "_z", "_mcz", "_td")):
+        i_part = f"I{_canonical_token(float(I))}"
+        mcz_part = (
+            f"mcz{_canonical_token(float(mcz_min))}-{_canonical_token(float(mcz_max))}"
+        )
+        td_part = f"td{_canonical_token(float(td_min_ms))}-{_canonical_token(float(td_max_ms))}"
+        z_part = _z_dir_token(z)
+        parts = [base_dir, i_part, z_part, mcz_part, td_part]
+        run_dir = "_".join(parts)
 
-    i_part = f"I{_canonical_token(float(I))}"
-    mcz_part = (
-        f"mcz{_canonical_token(float(mcz_min))}-{_canonical_token(float(mcz_max))}"
-    )
-    td_part = (
-        f"td{_canonical_token(float(td_min_ms))}-{_canonical_token(float(td_max_ms))}"
-    )
-    z_part = _z_dir_token(z)
-    parts = [base_dir, i_part, z_part, mcz_part, td_part]
-    return "_".join(parts)
+    return _with_optional_orientation_suffix(run_dir, orientation_tag)
 
 
 def bank_filename(

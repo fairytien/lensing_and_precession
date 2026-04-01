@@ -59,10 +59,6 @@ def main(
     mcz_chunk_index: Optional[int],
     mcz_chunk_count: Optional[int],
 ):
-    bank_dir = template_bank_run_dir(bank_dir, z)
-    os.makedirs(bank_dir, exist_ok=True)
-    logging.info(f"Resolved bank output directory: {bank_dir}")
-
     # Base RP params and orientation/tag handling via shared helper
     base_params, tag = resolve_orientation(
         orient_preset,
@@ -75,6 +71,10 @@ def main(
         default_author="Taman",
         default_orientation="edgeon",
     )
+
+    bank_dir = template_bank_run_dir(bank_dir, z, orientation_tag=tag)
+    os.makedirs(bank_dir, exist_ok=True)
+    logging.info(f"Resolved bank output directory: {bank_dir}")
 
     mcz_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
 

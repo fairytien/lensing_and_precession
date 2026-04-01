@@ -104,24 +104,6 @@ def main(
     mcz_chunk_count: Optional[int] = None,
 ):
     z_val = None if z is None else float(z)
-    bank_dir = template_bank_run_dir(bank_dir, z_val)
-    results_dir = contour_run_dir(
-        results_dir,
-        I=I,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
-        z=z_val,
-    )
-    os.makedirs(results_dir, exist_ok=True)
-    logging.info(f"Resolved bank input directory: {bank_dir}")
-    logging.info(f"Resolved mismatch output directory: {results_dir}")
-
-    # Axes arrays
-    mcz_src_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
-    td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_pts)
-    td_arr = td_arr_ms / 1e3
 
     # Orientation/tag used to find matching banks and to set source orientation
     lens_base, tag = resolve_orientation(
@@ -135,6 +117,26 @@ def main(
         default_author="Taman",
         default_orientation="edgeon",
     )
+
+    bank_dir = template_bank_run_dir(bank_dir, z_val, orientation_tag=tag)
+    results_dir = contour_run_dir(
+        results_dir,
+        I=I,
+        mcz_min=mcz_min,
+        mcz_max=mcz_max,
+        td_min_ms=td_min_ms,
+        td_max_ms=td_max_ms,
+        z=z_val,
+        orientation_tag=tag,
+    )
+    os.makedirs(results_dir, exist_ok=True)
+    logging.info(f"Resolved bank input directory: {bank_dir}")
+    logging.info(f"Resolved mismatch output directory: {results_dir}")
+
+    # Axes arrays
+    mcz_src_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
+    td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_pts)
+    td_arr = td_arr_ms / 1e3
 
     # Resolve chunking from CLI or SLURM env vars
     env_idx = get_env_int("SLURM_ARRAY_TASK_ID")

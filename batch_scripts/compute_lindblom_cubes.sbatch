@@ -50,7 +50,13 @@ import os
 from modules.filenames import template_bank_run_dir
 
 z = float(os.environ.get("Z", "0"))
-print(template_bank_run_dir(os.environ["BANK_DIR"], z))
+print(
+    template_bank_run_dir(
+        os.environ["BANK_DIR"],
+        z,
+        orientation_tag=os.environ["ORIENT_PRESET"],
+    )
+)
 PY
 ) || {
   echo "Error: failed to resolve template bank directory"
@@ -66,12 +72,13 @@ z = float(os.environ.get("Z", "0"))
 results_root = os.environ["RESULTS_DIR"]
 run_dir = contour_run_dir(
     results_root,
-  I=float(os.environ["FLUX_RATIO"]),
+    I=float(os.environ["FLUX_RATIO"]),
     mcz_min=float(os.environ["MCZ_MIN"]),
     mcz_max=float(os.environ["MCZ_MAX"]),
     td_min_ms=float(os.environ["TD_MIN_MS"]),
     td_max_ms=float(os.environ["TD_MAX_MS"]),
     z=z,
+    orientation_tag=os.environ["ORIENT_PRESET"],
 )
 
 path = mismatch_cube_filename(

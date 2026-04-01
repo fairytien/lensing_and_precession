@@ -7,7 +7,8 @@ Use python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match to plo
 the aggregated results.
 """
 
-import os, argparse
+import os
+import argparse
 import h5py
 import numpy as np
 import logging
@@ -56,6 +57,7 @@ def main(
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         z=z_val,
+        orientation_tag=orientation_tag,
     )
     logging.info(f"Resolved aggregation input directory: {results_dir}")
     logging.info(
@@ -118,7 +120,8 @@ def main(
                             "(td/theta/omega/gamma). Results may be partial for mismatched files."
                         )
                         warned_shape_mismatch = True
-            ep_min_grid = np.array(h5["epsilon_min_grid"])  # (td, theta, omega)
+            # (td, theta, omega)
+            ep_min_grid = np.array(h5["epsilon_min_grid"])
             g_best_grid = np.array(h5["gamma_best_grid"])  # (td, theta, omega)
             theta_arr = np.array(h5["theta"])  # (theta,)
             omega_arr = np.array(h5["omega"])  # (omega,)
