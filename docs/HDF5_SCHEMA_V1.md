@@ -85,8 +85,8 @@ Goals:
 | `theta_S` | float or NaN | `NaN` | Source/lens orientation metadata. |
 | `phi_S` | float or NaN | `NaN` | Source/lens orientation metadata. |
 | `mcz_min` | float | `10.0` | Intended Stage 1 grid min. |
-| `mcz_max` | float | `80.0` | Intended Stage 1 grid max. |
-| `mcz_pts` | int | `71` | Intended Stage 1 grid size. |
+| `mcz_max` | float | `90.0` | Intended Stage 1 grid max. |
+| `mcz_pts` | int | `81` | Intended Stage 1 grid size. |
 
 ### Required dataset attributes
 

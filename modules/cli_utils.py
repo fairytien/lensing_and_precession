@@ -37,8 +37,8 @@ def set_argument_choices(
 def add_mcz_grid_args(
     parser: ArgumentParser,
     default_min: Optional[float] = 10.0,
-    default_max: Optional[float] = 80.0,
-    default_pts: Optional[int] = 71,
+    default_max: Optional[float] = 90.0,
+    default_pts: Optional[int] = 81,
     required: bool = False,
 ) -> ArgumentParser:
     """Attach mcz grid arguments used by contour pipeline scripts."""

@@ -131,7 +131,7 @@ if __name__ == "__main__":
         description="Build RP template banks across mcz range and save as HDF5."
     )
     add_orientation_args(p)
-    add_mcz_grid_args(p, default_min=10.0, default_max=80.0, default_pts=71)
+    add_mcz_grid_args(p, default_min=10.0, default_max=90.0, default_pts=81)
     add_template_grid_args(
         p,
         omega_min=0.0,
