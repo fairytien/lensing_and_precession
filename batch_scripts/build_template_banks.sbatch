@@ -7,7 +7,7 @@
 #SBATCH --mem=0 # Use all available memory on node
 #SBATCH -t 00:09:00 # Fallback walltime (prefer tiered submit helper)
 #SBATCH -p normal # Queue name where job is submitted
-#SBATCH --array=0-80 # One mcz per task for 81-point grid (10..90)
+#SBATCH --array=0-29
 #SBATCH -o batch_outputs/build_template_banks_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu

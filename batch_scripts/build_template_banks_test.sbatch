@@ -5,8 +5,8 @@
 #SBATCH --ntasks=1 # Single task (not MPI)
 #SBATCH --cpus-per-task=128 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
-#SBATCH -t 00:12:00 # Walltime (estimated for higher resolution runs)
-#SBATCH -p development # Queue name where job is submitted (faster queue)
+#SBATCH -t 00:03:00 # Walltime
+#SBATCH -p normal # Queue name where job is submitted
 #SBATCH --array=0 # Single job (no array)
 #SBATCH -o batch_outputs/build_template_banks_test_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
@@ -16,11 +16,10 @@ SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
-ORIENT_PRESET=Taman_random
-MCZ_MIN=30
-MCZ_MAX=30
+ORIENT_PRESET=Taman_edgeon
+MCZ_MIN=40
+MCZ_MAX=40
 MCZ_PTS=1
-GAMMA_PTS=101
 
 python -m scripts.template_banks.build_template_banks \
   --orient_preset "${ORIENT_PRESET}" \
