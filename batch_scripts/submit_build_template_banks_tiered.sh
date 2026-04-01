@@ -13,7 +13,7 @@ fi
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 # Data-driven tier configuration (override via env vars when needed).
-JOB_SUMMARY="${JOB_SUMMARY:-$SCRIPT_DIR/../data/run_logs/job_summary.csv}"
+JOB_SUMMARY="${JOB_SUMMARY:-$SCRIPT_DIR/../data/run_logs/job_summary_Taman_edgeon.csv}"
 TIER1_UPPER_MCZ="${TIER1_UPPER_MCZ:-30}"
 TIER2_UPPER_MCZ="${TIER2_UPPER_MCZ:-50}"
 SAFETY_FACTOR="${SAFETY_FACTOR:-1.25}"
