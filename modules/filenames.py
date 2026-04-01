@@ -13,8 +13,7 @@ import h5py
 import numpy as np
 
 
-# Keep z~0 handling consistent with modules/cosmology.py ZMIN.
-_Z_ZERO_TOL = 1e-8
+# Omitted redshift is encoded explicitly via this token.
 _Z_NONE_TOKEN = "NaN"
 
 
@@ -104,13 +103,14 @@ def _canonical_z_value(z: Optional[float]) -> float:
     """Return canonical numeric z value.
 
     Returns NaN when z is omitted (None).
+    Preserves provided finite z values exactly (no near-zero snapping).
     """
     if z is None:
         return np.nan
     z_val = float(z)
     if np.isnan(z_val):
         return np.nan
-    return 0.0 if _is_close(z_val, 0.0, _Z_ZERO_TOL) else z_val
+    return z_val
 
 
 def _canonical_z_token(z: Optional[float]) -> str:
