@@ -1,0 +1,23 @@
+[INFO] Resolved bank input directory: ./data/template_banks_z1e-08
+[INFO] Resolved mismatch output directory: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70
+[INFO] [1/10] Processing mcz_src=70.0 Msun, z=1e-08, mcz_det=70.0000007 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz70_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [2/10] Processing mcz_src=71.0 Msun, z=1e-08, mcz_det=71.00000071 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz71_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [3/10] Processing mcz_src=72.0 Msun, z=1e-08, mcz_det=72.00000071999999 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz72_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [4/10] Processing mcz_src=73.0 Msun, z=1e-08, mcz_det=73.00000073 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz73_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [5/10] Processing mcz_src=74.0 Msun, z=1e-08, mcz_det=74.00000073999999 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz74_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [6/10] Processing mcz_src=75.0 Msun, z=1e-08, mcz_det=75.00000075 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz75_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [7/10] Processing mcz_src=76.0 Msun, z=1e-08, mcz_det=76.00000076 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz76_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [8/10] Processing mcz_src=77.0 Msun, z=1e-08, mcz_det=77.00000077 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz77_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [9/10] Processing mcz_src=78.0 Msun, z=1e-08, mcz_det=78.00000078000001 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz78_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [10/10] Processing mcz_src=79.0 Msun, z=1e-08, mcz_det=79.00000079 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1e-08_mcz70-79_td20-70/mismatch_cubes/mismatch_cubes_z1e-08_mcz79_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+Total time to run the script: 0:54:28.45 (h:m:s)

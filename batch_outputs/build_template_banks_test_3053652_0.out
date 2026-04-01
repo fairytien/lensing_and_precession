@@ -1,0 +1,22 @@
+[INFO] Resolved bank output directory: ./data/template_banks_z1e-08
+[INFO] [1/10] Building bank for mcz=70.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz70_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [2/10] Building bank for mcz=71.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz71_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [3/10] Building bank for mcz=72.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz72_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [4/10] Building bank for mcz=73.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz73_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [5/10] Building bank for mcz=74.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz74_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [6/10] Building bank for mcz=75.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz75_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [7/10] Building bank for mcz=76.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz76_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [8/10] Building bank for mcz=77.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz77_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [9/10] Building bank for mcz=78.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz78_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+[INFO] [10/10] Building bank for mcz=79.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1e-08/rp_bank_z1e-08_mcz79_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+Total time to run the script: 0:18:8.92 (h:m:s)
