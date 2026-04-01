@@ -1,5 +1,5 @@
 Using 128 workers over a 51x151 grid
-Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/indiv_contours/v3_indiv_contour_mcz40_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1e-08_2026-04-01_10-10-40.pkl
-Figure saved as /work/10000/fairytien33/ls6/lensing_and_precession/figures/indiv_contours/v3_indiv_contour_mcz40_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1e-08_20260401_101041.pdf
-Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/indiv_contours/v3_indiv_contour_mcz40_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1e-08_2026-04-01_10-10-40.pkl
-Total time to run the script: 0:0:16.79 (h:m:s)
+Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/indiv_contours/v3_indiv_contour_mcz29_td50ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_15-29-09.pkl
+Figure saved as /work/10000/fairytien33/ls6/lensing_and_precession/figures/indiv_contours/v3_indiv_contour_mcz29_td50ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_20260401_152909.pdf
+Pickle saved as /work/10000/fairytien33/ls6/lensing_and_precession/data/indiv_contours/v3_indiv_contour_mcz29_td50ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_15-29-09.pkl
+Total time to run the script: 0:0:15.68 (h:m:s)

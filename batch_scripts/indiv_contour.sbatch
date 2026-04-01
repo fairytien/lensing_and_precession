@@ -17,8 +17,8 @@ read theta_S phi_S theta_J phi_J <<< $(python -c "import numpy as np; print(np.p
 
 # Run the contour computation
 srun python -m scripts.indiv_contours.v3_indiv_contour_otf \
-    --mcz_msun 40 \
-    --td_ms 30.0 \
+    --mcz_msun 29 \
+    --td_ms 50.0 \
     --I 0.5 \
     --theta_S "$theta_S" \
     --phi_S "$phi_S" \
@@ -32,5 +32,5 @@ srun python -m scripts.indiv_contours.v3_indiv_contour_otf \
     --theta_points 151 \
     --f_min 20.0 \
     --delta_f 0.25 \
-    --redshift 1e-8 \
+    --redshift 1 \
     --use_opt_match
