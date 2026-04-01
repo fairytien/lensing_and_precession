@@ -1,4 +1,10 @@
 #!/bin/bash
+#SBATCH -J submit_build_banks_tiered
+#SBATCH -p normal
+#SBATCH -N 1
+#SBATCH --ntasks=1
+#SBATCH -t 00:05:00
+#SBATCH -o batch_outputs/submit_build_template_banks_tiered_%j.out
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -13,7 +19,7 @@ fi
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 # Data-driven tier configuration (override via env vars when needed).
-JOB_SUMMARY="${JOB_SUMMARY:-$SCRIPT_DIR/../data/run_logs/job_summary.csv}"
+JOB_SUMMARY="${JOB_SUMMARY:-$SCRIPT_DIR/../data/run_logs/job_summary_Taman_edgeon.csv}"
 TIER1_UPPER_MCZ="${TIER1_UPPER_MCZ:-30}"
 TIER2_UPPER_MCZ="${TIER2_UPPER_MCZ:-50}"
 SAFETY_FACTOR="${SAFETY_FACTOR:-1.25}"
@@ -21,6 +27,7 @@ SAFETY_PAD_SEC="${SAFETY_PAD_SEC:-30}"
 MIN_WALLTIME="${MIN_WALLTIME:-00:02:00}"
 MAX_WALLTIME="${MAX_WALLTIME:-00:12:00}"
 DRY_RUN="${DRY_RUN:-0}"
+SUBMIT_PARTITION="${SUBMIT_PARTITION:-${SLURM_JOB_PARTITION:-normal}}"
 
 export JOB_SUMMARY TIER1_UPPER_MCZ TIER2_UPPER_MCZ SAFETY_FACTOR SAFETY_PAD_SEC MIN_WALLTIME MAX_WALLTIME
 
@@ -127,7 +134,7 @@ if summary_path.is_file():
 if not samples_by_mcz:
   raise SystemExit(
     f"No usable build runtime samples found in {summary_path}. "
-    "Populate data/run_logs/job_summary.csv first or set JOB_SUMMARY."
+    "Populate that file with build rows or set JOB_SUMMARY to a valid summary CSV."
   )
 
 obs_mcz = np.array(sorted(samples_by_mcz.keys()), dtype=float)
@@ -202,6 +209,7 @@ PY
 echo "Submitting tiered template-bank jobs from: $JOB_SCRIPT"
 echo "mcz grid: ${MCZ_MIN}..${MCZ_MAX} (${MCZ_PTS} points)"
 echo "tier source: ${JOB_SUMMARY}"
+echo "submit partition: ${SUBMIT_PARTITION}"
 echo "tier split: mcz<${TIER1_UPPER_MCZ}, ${TIER1_UPPER_MCZ}<=mcz<${TIER2_UPPER_MCZ}, mcz>=${TIER2_UPPER_MCZ}"
 echo "tier controls: SAFETY_FACTOR=${SAFETY_FACTOR}, SAFETY_PAD_SEC=${SAFETY_PAD_SEC}, MIN_WALLTIME=${MIN_WALLTIME}, MAX_WALLTIME=${MAX_WALLTIME}"
 
@@ -222,13 +230,13 @@ while IFS='|' read -r kind a b c d e f g; do
   mcz_lo="$c"
   mcz_hi="$d"
 
-  echo "  - mcz ${mcz_lo}..${mcz_hi}: sbatch --array=${array_range} --time=${wall} ${JOB_SCRIPT}"
+  echo "  - mcz ${mcz_lo}..${mcz_hi}: sbatch --partition=${SUBMIT_PARTITION} --array=${array_range} --time=${wall} ${JOB_SCRIPT}"
 
   if [ "$DRY_RUN" = "1" ]; then
     continue
   fi
 
-  sbatch --array="${array_range}" --time="${wall}" "${JOB_SCRIPT}"
+  sbatch --partition="${SUBMIT_PARTITION}" --array="${array_range}" --time="${wall}" "${JOB_SCRIPT}"
 done <<< "$PLAN"
 
 if [ "$DRY_RUN" = "1" ]; then
