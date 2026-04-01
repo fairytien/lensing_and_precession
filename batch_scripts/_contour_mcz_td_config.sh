@@ -1,11 +1,11 @@
 #!/bin/bash
 
 export FLUX_RATIO="${FLUX_RATIO:-0.5}"
-export ORIENT_PRESET="${ORIENT_PRESET:-Taman_edgeon}"
-export Z="${Z:-1e-8}"
+export ORIENT_PRESET="${ORIENT_PRESET:-Taman_random}"
+export Z="${Z:-1}"
 
-export MCZ_MIN="${MCZ_MIN:-10}"
-export MCZ_MAX="${MCZ_MAX:-90}"
+export MCZ_MIN="${MCZ_MIN:-5}"
+export MCZ_MAX="${MCZ_MAX:-45}"
 export MCZ_PTS="${MCZ_PTS:-81}"
 
 export TD_MIN_MS="${TD_MIN_MS:-20}"

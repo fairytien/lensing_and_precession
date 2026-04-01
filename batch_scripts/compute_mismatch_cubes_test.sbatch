@@ -16,10 +16,10 @@ SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
-ORIENT_PRESET=Taman_edgeon
-MCZ_MIN=70
-MCZ_MAX=79
-MCZ_PTS=10
+ORIENT_PRESET=Taman_random
+MCZ_MIN=5
+MCZ_MAX=45
+MCZ_PTS=81
 
 python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --I "${FLUX_RATIO}" \
