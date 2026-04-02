@@ -1,9 +1,0 @@
-[INFO] Resolved bank output directory: ./data/template_banks_z1_Taman_random
-[INFO] Chunking mcz across 81 chunks: running indices [51:52)
-[INFO] [52/81] Building bank for mcz=30.5 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
-/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:951: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
-  integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
-/work/10000/fairytien33/ls6/lensing_and_precession/modules/Classes_v2.py:951: ODEintWarning: Excess work done on this call (perhaps wrong Dfun type). Run with full_output = 1 to get quantitative information.
-  integral = odeint(self.integrand_delta_phi, 0, f, rtol=rtol, atol=atol)
-[INFO] Saved: ./data/template_banks_z1_Taman_random/rp_bank_z1_mcz30p5_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5
-Total time to run the script: 0:1:44.63 (h:m:s)
