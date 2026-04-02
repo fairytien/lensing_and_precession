@@ -7,7 +7,18 @@
 #SBATCH -o batch_outputs/submit_build_template_banks_tiered_%j.out
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_PATH_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="${SCRIPT_PATH_DIR}"
+
+# Under sbatch, this script runs from a spool path; prefer the original submit dir.
+if [ -n "${SLURM_SUBMIT_DIR:-}" ]; then
+  if [ -d "${SLURM_SUBMIT_DIR}/batch_scripts" ]; then
+    SCRIPT_DIR="${SLURM_SUBMIT_DIR}/batch_scripts"
+  elif [ -f "${SLURM_SUBMIT_DIR}/build_template_banks.sbatch" ]; then
+    SCRIPT_DIR="${SLURM_SUBMIT_DIR}"
+  fi
+fi
+
 JOB_SCRIPT="${JOB_SCRIPT:-$SCRIPT_DIR/build_template_banks.sbatch}"
 
 if [ ! -f "$JOB_SCRIPT" ]; then
