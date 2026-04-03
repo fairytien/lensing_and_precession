@@ -26,6 +26,7 @@ def load_generic_dataset(path):
     - Pickle with keys: 'omega_matrix', 'theta_matrix', 'epsilon_matrix'
     - Pickle with keys: 'td_arr' (s), 'mcz_arr' (Msun), 'epsilon_matrix' (mcz x td)
     - HDF5 best_match: datasets 'mcz', 'td', 'epsilon_min'
+    - HDF5 super_contour: datasets 'mcz_arr', 'td_arr', 'epsilon_matrix'
     - HDF5 mismatch_cube: datasets 'td', 'theta', 'omega', 'epsilon_min_grid' (uses first td slice)
 
     Returns
@@ -78,6 +79,20 @@ def load_generic_dataset(path):
                     r"$\mathcal{M}_s\ [M_\odot]$",
                     "td_mcz",
                 )
+            # Case 2: super_contour file
+            elif all(k in h5 for k in ("mcz_arr", "td_arr", "epsilon_matrix")):
+                mcz = np.asarray(h5["mcz_arr"], dtype=float)
+                td = np.asarray(h5["td_arr"], dtype=float)
+                Z = np.asarray(h5["epsilon_matrix"], dtype=float)
+                X, Y = np.meshgrid(td * 1e3, mcz)  # x in ms
+                return (
+                    X,
+                    Y,
+                    Z,
+                    r"$\Delta t_d$ [ms]",
+                    r"$\mathcal{M}_s\ [M_\odot]$",
+                    "td_mcz",
+                )
             # Case 2: mismatch cube file (td, theta, omega)
             elif all(k in h5 for k in ("td", "theta", "omega", "epsilon_min_grid")):
                 td = np.asarray(h5["td"], dtype=float)  # (n_td,)
@@ -108,6 +123,7 @@ def load_generic_dataset(path):
                 )
         raise ValueError(
             "Unsupported HDF5 structure: expecting best_match (mcz, td, epsilon_min) "
+            "or super_contour (mcz_arr, td_arr, epsilon_matrix) "
             "or mismatch_cube (td, theta, omega, epsilon_min_grid)"
         )
     else:
@@ -266,7 +282,6 @@ def create_ratio_contour(
         ratio,
         levels=n_levels if isinstance(n_levels, (list, np.ndarray)) else n_levels,
         cmap=cmap,
-        extend="both",
     )
 
     # Set title (custom or default)
@@ -481,7 +496,6 @@ def create_comparison_contours(
             eps_masked[i],
             levels=np.linspace(global_min, global_max, n_levels),
             cmap=cmap,
-            extend="both",
         )
         ax.set_title(labels[i], pad=15)
         ax.set_xlabel(xlabels[i])

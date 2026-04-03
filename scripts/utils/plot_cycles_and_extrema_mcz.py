@@ -4,11 +4,22 @@ from typing import Tuple, Optional
 import numpy as np
 import matplotlib.pyplot as plt
 
+from modules.cosmology import source_mass_redshift_scale
 from modules.functions_v3 import mcz_for_n_lens_cycles
 from modules.filenames import contour_mcz_td_filename
 
 
 SOLMASS2SEC = 4.92624076e-6
+
+
+def _optional_positive_float(container, key: str) -> Optional[float]:
+    """Read optional scalar metadata and keep only finite positive values."""
+    if key not in container:
+        return None
+    value = float(container[key])
+    if not np.isfinite(value) or value <= 0:
+        return None
+    return value
 
 
 def _mcz_extremum_for_n(td_s: float, n: float, eta: float = 0.25) -> float:
@@ -90,6 +101,7 @@ def plot_mcz_extrema(
     eta: float = 0.25,
     plot_troughs: bool = True,
     plot_peaks: bool = True,
+    mcz_scale: float = 1.0,
     ax=None,
 ) -> None:
     """Overlay mcz trough and/or peak points on specified matplotlib axes.
@@ -106,16 +118,26 @@ def plot_mcz_extrema(
         If True, plot mcz trough points (default: True)
     plot_peaks : bool
         If True, plot mcz peak points (default: True)
+    mcz_scale : float
+        Multiplicative factor applied to overlay mcz values before plotting.
     ax : matplotlib.axes.Axes, optional
         Axes to plot on. If None, uses current axes.
     """
     if ax is None:
         ax = plt.gca()
 
+    if not plot_troughs and not plot_peaks:
+        return
+
+    # Generate overlays in unscaled coordinates, then map onto displayed mcz axis.
+    mcz_min_unscaled = float(mcz_min) / mcz_scale
+    mcz_max_unscaled = float(mcz_max) / mcz_scale
+
     if plot_troughs:
         td_trough_pts, mcz_trough_pts = find_mcz_troughs(
-            td_arr, eta=eta, mcz_min=mcz_min, mcz_max=mcz_max
+            td_arr, eta=eta, mcz_min=mcz_min_unscaled, mcz_max=mcz_max_unscaled
         )
+        mcz_trough_pts = mcz_trough_pts * mcz_scale
         if td_trough_pts.size > 0:
             ax.scatter(
                 td_trough_pts * 1e3,  # Convert to ms
@@ -130,8 +152,9 @@ def plot_mcz_extrema(
 
     if plot_peaks:
         td_peak_pts, mcz_peak_pts = find_mcz_peaks(
-            td_arr, eta=eta, mcz_min=mcz_min, mcz_max=mcz_max
+            td_arr, eta=eta, mcz_min=mcz_min_unscaled, mcz_max=mcz_max_unscaled
         )
+        mcz_peak_pts = mcz_peak_pts * mcz_scale
         if td_peak_pts.size > 0:
             ax.scatter(
                 td_peak_pts * 1e3,  # Convert to ms
@@ -150,6 +173,7 @@ def plot_cycle_lines(
     td_arr_ms: np.ndarray,
     eta: float = 0.25,
     f_min: float = 20.0,
+    mcz_scale: float = 1.0,
     ax=None,
 ) -> None:
     """Overlay 1/2/3 lensing cycle lines on specified matplotlib axes.
@@ -164,6 +188,8 @@ def plot_cycle_lines(
         Symmetric mass ratio (default: 0.25)
     f_min : float
         Minimum frequency in Hz (default: 20.0)
+    mcz_scale : float
+        Multiplicative factor applied to cycle-line mcz values before plotting.
     ax : matplotlib.axes.Axes, optional
         Axes to plot on. If None, uses current axes.
     """
@@ -171,15 +197,15 @@ def plot_cycle_lines(
         ax = plt.gca()
 
     for n_cyc, ls_style in [(1.0, "-"), (2.0, "--"), (3.0, ":")]:
-        mcz_cyc = mcz_for_n_lens_cycles(n_cyc, td_arr, f_min=f_min, eta=eta)
+        mcz_cyc = mcz_for_n_lens_cycles(n_cyc, td_arr, f_min=f_min, eta=eta) * mcz_scale
         label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
         ax.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
 
 
 def _load_data(
     input_path: str,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[float]]:
-    """Load (mcz_arr [Msun], td_arr [s], epsilon_matrix, I) from .pkl or .h5 file.
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[float], Optional[float]]:
+    """Load (mcz_arr [Msun], td_arr [s], epsilon_matrix, I, z) from .pkl or .h5 file.
 
     - Pickle must contain keys: 'mcz_arr' (Msun), 'td_arr' (seconds), 'epsilon_matrix'.
     - HDF5 (best_match) must contain datasets: 'mcz', 'td', 'epsilon_min', and 'I' attr.
@@ -197,7 +223,8 @@ def _load_data(
         Z = np.asarray(data["epsilon_matrix"], dtype=float)
         # Old pickle format may not have I; leave as None if missing
         I_value = float(data["I"]) if "I" in data else None
-        return mcz_arr, td_arr, Z, I_value
+        z_value = _optional_positive_float(data, "z")
+        return mcz_arr, td_arr, Z, I_value, z_value
     elif ext == ".h5":
         import h5py  # local import to avoid hard dep if unused
 
@@ -211,9 +238,57 @@ def _load_data(
             Z = np.asarray(h5["epsilon_min"], dtype=float)
             # Extract I from attributes (may be absent)
             I_value = float(h5.attrs["I"]) if "I" in h5.attrs else None
-            return mcz_arr, td_arr, Z, I_value
+            z_value = _optional_positive_float(h5.attrs, "z")
+            return mcz_arr, td_arr, Z, I_value, z_value
     else:
         raise ValueError(f"Unsupported input extension '{ext}'. Use .pkl or .h5")
+
+
+def _validate_redshift(name: str, z_value: Optional[float]) -> Optional[float]:
+    if z_value is None:
+        return None
+    z = float(z_value)
+    if not np.isfinite(z) or z <= 0:
+        raise ValueError(f"{name} must be finite and > 0, got {z_value}")
+    return z
+
+
+def _apply_redshift_conversion(
+    mcz_arr: np.ndarray,
+    input_z: Optional[float],
+    z_from: Optional[float],
+    z_to: Optional[float],
+) -> Tuple[np.ndarray, Optional[float], Optional[float], Optional[float], float]:
+    """Optionally remap mcz axis from z_from to z_to.
+
+    Returns converted mcz_arr, z_from_used, z_to_used, z_for_output_token, mcz_scale.
+    """
+    z_from_val = _validate_redshift("z_from", z_from)
+    z_to_val = _validate_redshift("z_to", z_to)
+    input_z_val = _validate_redshift("input z", input_z)
+
+    if z_to_val is None:
+        if z_from_val is not None:
+            raise ValueError("--z_from requires --z_to")
+        return mcz_arr, None, None, input_z_val, 1.0
+
+    if z_from_val is None:
+        if input_z_val is None:
+            raise ValueError(
+                "Cannot infer input redshift. Provide --z_from when using --z_to."
+            )
+        z_from_val = input_z_val
+
+    scale = source_mass_redshift_scale(z_from_val, z_to_val)
+    return mcz_arr * scale, z_from_val, z_to_val, z_to_val, scale
+
+
+def _clean_axis_endpoint(value: float, tol: float = 1e-6) -> float:
+    """Snap near-integer endpoints to clean tokens and trim float noise."""
+    nearest_int = round(float(value))
+    if abs(float(value) - float(nearest_int)) <= tol:
+        return float(nearest_int)
+    return float(np.round(value, 8))
 
 
 def _infer_orientation_tag(input_path: str) -> str:
@@ -277,6 +352,18 @@ def main():
         action="store_true",
         help="Show legend for any plotted overlays (cycles, peaks, troughs)",
     )
+    parser.add_argument(
+        "--z_from",
+        type=float,
+        default=None,
+        help="Input redshift override used for mcz-axis conversion.",
+    )
+    parser.add_argument(
+        "--z_to",
+        type=float,
+        default=None,
+        help="If provided, remap mcz axis to this redshift via (1+z_from)/(1+z_to).",
+    )
     args = parser.parse_args()
 
     base_dir = os.path.dirname(
@@ -287,7 +374,15 @@ def main():
 
     input_path = args.input_path
 
-    mcz_arr, td_arr, Z, I_value = _load_data(input_path)
+    mcz_arr, td_arr, Z, I_value, input_z = _load_data(input_path)
+    mcz_arr, z_from_used, z_to_used, z_for_output, overlay_mcz_scale = (
+        _apply_redshift_conversion(
+            mcz_arr,
+            input_z=input_z,
+            z_from=args.z_from,
+            z_to=args.z_to,
+        )
+    )
 
     # Validate data
     if mcz_arr.size == 0 or td_arr.size == 0:
@@ -295,12 +390,11 @@ def main():
 
     # Build grid for plotting
     td_arr_ms = td_arr * 1e3
-    TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
     mcz_min, mcz_max = mcz_arr.min(), mcz_arr.max()
 
     # Plot
     plt.figure(figsize=(8, 6))
-    cf = plt.contourf(TD, MCZ, Z, levels=100, cmap="jet")
+    cf = plt.contourf(td_arr_ms, mcz_arr, Z, levels=100, cmap="jet")
     cbar = plt.colorbar(cf)
     if args.optimize_mcz:
         cbar.set_label(
@@ -315,17 +409,25 @@ def main():
 
     # Overlay cycle lines if requested
     if args.overlay_cycles:
-        plot_cycle_lines(td_arr, td_arr_ms, eta=args.eta, f_min=args.f_min)
+        plot_cycle_lines(
+            td_arr,
+            td_arr_ms,
+            eta=args.eta,
+            f_min=args.f_min,
+            mcz_scale=overlay_mcz_scale,
+        )
 
     # Overlay mcz extrema points if requested
-    plot_mcz_extrema(
-        td_arr,
-        mcz_min,
-        mcz_max,
-        eta=args.eta,
-        plot_troughs=args.overlay_troughs,
-        plot_peaks=args.overlay_peaks,
-    )
+    if args.overlay_troughs or args.overlay_peaks:
+        plot_mcz_extrema(
+            td_arr,
+            mcz_min,
+            mcz_max,
+            eta=args.eta,
+            plot_troughs=args.overlay_troughs,
+            plot_peaks=args.overlay_peaks,
+            mcz_scale=overlay_mcz_scale,
+        )
 
     # Optionally show legend if there are labeled artists
     if args.show_legend:
@@ -344,13 +446,14 @@ def main():
     base_fig = contour_mcz_td_filename(
         fig_dir,
         I=I_value,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
+        mcz_min=_clean_axis_endpoint(mcz_min),
+        mcz_max=_clean_axis_endpoint(mcz_max),
         mcz_pts=int(len(mcz_arr)),
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         td_pts=int(len(td_arr)),
         orientation_tag=orientation_tag,
+        z=z_for_output,
         ext="pdf",
     )
     base_name, base_ext = os.path.splitext(base_fig)
@@ -361,6 +464,10 @@ def main():
         suffixes.append(args.tag)
     out_path = f"{base_name}_{'_'.join(suffixes)}{base_ext}"
     plt.savefig(out_path, dpi=200)
+    if z_to_used is not None:
+        print(
+            f"Applied mcz-axis redshift conversion: z_from={z_from_used:g}, z_to={z_to_used:g}, scale={overlay_mcz_scale:.12g}"
+        )
     print("Figure saved as", out_path)
 
 

@@ -169,6 +169,31 @@ def mcz_det_to_src(
     return mcz_det / (1 + z)
 
 
+def source_mass_redshift_scale(z_from: float, z_to: float) -> float:
+    """Scale source-frame masses when remapping between redshifts.
+
+    For a fixed detector-frame mass,
+    m_src(z_to) = m_src(z_from) * ((1 + z_from) / (1 + z_to)).
+
+    Args:
+        z_from: Original source redshift.
+        z_to: Target source redshift.
+
+    Returns:
+        Multiplicative source-mass scale factor.
+
+    Raises:
+        ValueError: If either redshift is non-finite or <= 0.
+    """
+    z_from = float(z_from)
+    z_to = float(z_to)
+    if not np.isfinite(z_from) or not np.isfinite(z_to):
+        raise ValueError("z_from and z_to must be finite")
+    if z_from <= 0 or z_to <= 0:
+        raise ValueError("z_from and z_to must be > 0")
+    return (1.0 + z_from) / (1.0 + z_to)
+
+
 #######################################
 # Section 4: Parameter Dict Utilities #
 #######################################
