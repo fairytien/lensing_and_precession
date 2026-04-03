@@ -1,31 +1,21 @@
-"""Create mismatch contour plots from aggregated best-match HDF5 file.
+"""Create mismatch contour plots from one aggregated best-match HDF5 file.
 
-This script reads the best-match file produced by
-python -m scripts.mismatch_mcz_td.aggregate_best_match and generates a contour plot
-of the minimal mismatch across (td, mcz).
-
-Pipeline:
-1. python -m scripts.template_banks.build_template_banks - build per-mcz template banks
-2. python -m scripts.mismatch_mcz_td.compute_mismatch_cubes - compute per-mcz mismatch cubes
-3. python -m scripts.mismatch_mcz_td.aggregate_best_match - consolidate cubes into best-match file
-4. python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match - plot contour
+This script requires an exact best-match file path produced by
+python -m scripts.mismatch_mcz_td.aggregate_best_match.
+All contour naming parameters are inferred from that file's metadata.
 """
 
 import os
 import argparse
-from typing import Optional
 
 import numpy as np
-import h5py
 import matplotlib.pyplot as plt
 
 from modules.filenames import (
     contour_mcz_td_filename,
     contour_run_dir,
-    find_best_match_file,
 )
-from modules.cli_utils import add_mcz_grid_args, add_td_grid_args, add_redshift_arg
-from modules.bank_io import read_missing_mcz_metadata
+from modules.bank_io import read_best_match_contour_data
 
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
@@ -35,15 +25,27 @@ import logging
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
+VARIABLE_MAPPING = {
+    "epsilon": {
+        "dataset": "epsilon_min",
+        "label": r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$",
+        "suffix": "epsilon_min",
+    },
+    "omega": {
+        "dataset": "omega_best",
+        "label": r"$\tilde{\Omega}_{\rm best}$",
+        "suffix": "omega_best",
+    },
+    "theta": {
+        "dataset": "theta_best",
+        "label": r"$\tilde{\theta}_{\rm best}$",
+        "suffix": "theta_best",
+    },
+}
+
+
 def main(
-    input_dir: str,
-    I: float,
-    td_min_ms: float,
-    td_max_ms: float,
-    mcz_min: float,
-    mcz_max: float,
-    orientation_tag: str,
-    z: Optional[float],
+    input_path: str,
     output_dir: str,
     variable: str = "epsilon",
     overlay_cycles: bool = False,
@@ -56,13 +58,7 @@ def main(
     """Plot mismatch contour from aggregated best-match file.
 
     Args:
-        input_dir: Directory containing the best-match HDF5 file.
-        I: Flux ratio used to resolve the canonical run directory.
-        td_min_ms: Minimum time delay in ms (for filename matching).
-        td_max_ms: Maximum time delay in ms (for filename matching).
-        mcz_min: Minimum chirp mass in Msun (for filename matching).
-        mcz_max: Maximum chirp mass in Msun (for filename matching).
-        orientation_tag: Orientation tag (for filename matching).
+        input_path: Exact path to an aggregated best-match HDF5 file.
         output_dir: Directory where the figure will be saved.
         variable: Variable to plot ("epsilon", "omega", or "theta").
         overlay_cycles: If True, overlay 1/2/3 lensing cycle lines.
@@ -72,110 +68,38 @@ def main(
         eta: Symmetric mass ratio (default 0.25).
         f_min: Minimum frequency in Hz (default 20.0).
     """
-    z_val = None if z is None else float(z)
-    input_dir = contour_run_dir(
-        input_dir,
-        I=I,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
-        z=z_val,
-        orientation_tag=orientation_tag,
-    )
-    output_dir = contour_run_dir(
-        output_dir,
-        I=I,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
-        z=z_val,
-        orientation_tag=orientation_tag,
-    )
-    os.makedirs(output_dir, exist_ok=True)
-    logging.info(f"Resolved best-match input directory: {input_dir}")
-    logging.info(f"Resolved figure output directory: {output_dir}")
-
-    summary_path = find_best_match_file(
-        results_dir=input_dir,
-        mcz_min=mcz_min,
-        mcz_max=mcz_max,
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
-        orientation_tag=orientation_tag,
-        z=z_val,
-    )
-    if summary_path is None:
-        raise FileNotFoundError(
-            "No best-match file found for the requested td/mcz range and orientation tag."
-        )
-
-    if not os.path.isfile(summary_path):
-        raise FileNotFoundError(
-            f"Best-match file not found: {summary_path}\n"
-            f"Please run python -m scripts.mismatch_mcz_td.aggregate_best_match first to create this file."
-        )
-
-    logging.info(f"Loading best-match data from: {summary_path}")
-
-    # Define variable names and labels
-    variable_mapping = {
-        "epsilon": {
-            "dataset": "epsilon_min",
-            "label": r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$",
-            "suffix": "epsilon_min",
-        },
-        "omega": {
-            "dataset": "omega_best",
-            "label": r"$\tilde{\Omega}_{\rm best}$",
-            "suffix": "omega_best",
-        },
-        "theta": {
-            "dataset": "theta_best",
-            "label": r"$\tilde{\theta}_{\rm best}$",
-            "suffix": "theta_best",
-        },
-    }
-
-    if variable not in variable_mapping:
+    if variable not in VARIABLE_MAPPING:
         raise ValueError(
-            f"Invalid variable '{variable}'. Must be one of: {list(variable_mapping.keys())}"
+            f"Invalid variable '{variable}'. Must be one of: {list(VARIABLE_MAPPING.keys())}"
         )
 
-    var_info = variable_mapping[variable]
+    var_info = VARIABLE_MAPPING[variable]
+    best_match = read_best_match_contour_data(input_path, var_info["dataset"])
 
-    # Read all data and extract I from a single file open
-    I_value = None
-    missing_mcz_count = 0
-    with h5py.File(summary_path, "r") as h5:
-        # Extract I from attributes
-        if "I" in h5.attrs:
-            I_value = float(h5.attrs["I"])
-        missing_meta = read_missing_mcz_metadata(h5)
-        missing_mcz_count = int(missing_meta["missing_mcz_count"])
-
-        # Validate that required datasets exist
-        required_datasets = ["mcz", "td", var_info["dataset"]]
-        missing = [ds for ds in required_datasets if ds not in h5]
-        if missing:
-            raise KeyError(
-                f"Missing datasets in {summary_path}: {missing}. "
-                f"Available datasets: {list(h5.keys())}"
-            )
-
-        mcz_msun_arr = np.array(h5["mcz"])
-        td_arr = np.array(h5["td"])
-        Zmap = np.array(h5[var_info["dataset"]])
-
-    if I_value is None:
-        raise ValueError("Could not infer I value from best-match file")
-
-    if missing_mcz_count > 0:
+    if best_match["missing_mcz_count"] > 0:
         logging.warning(
             "Best-match file reports %d missing mcz rows; contour will include NaN gaps.",
-            missing_mcz_count,
+            best_match["missing_mcz_count"],
         )
+
+    logging.info(f"Using best-match file: {input_path}")
+
+    output_dir = contour_run_dir(
+        output_dir,
+        I=best_match["I"],
+        mcz_min=best_match["mcz_min"],
+        mcz_max=best_match["mcz_max"],
+        td_min_ms=best_match["td_min_ms"],
+        td_max_ms=best_match["td_max_ms"],
+        z=best_match["z"],
+        orientation_tag=best_match["orientation_tag"],
+    )
+    os.makedirs(output_dir, exist_ok=True)
+    logging.info(f"Resolved figure output directory: {output_dir}")
+
+    mcz_msun_arr = best_match["mcz"]
+    td_arr = best_match["td"]
+    Zmap = best_match["values"]
 
     # Convert td from seconds to ms for plotting
     td_arr_ms = td_arr * 1e3
@@ -219,15 +143,15 @@ def main(
     # Generate filename with variable suffix and overlay suffixes
     base_path = contour_mcz_td_filename(
         output_dir,
-        I=I_value,
-        mcz_min=float(np.nanmin(mcz_msun_arr)),
-        mcz_max=float(np.nanmax(mcz_msun_arr)),
-        mcz_pts=int(mcz_msun_arr.shape[0]),
-        td_min_ms=td_min_ms,
-        td_max_ms=td_max_ms,
-        td_pts=int(td_arr.shape[0]),
-        orientation_tag=orientation_tag,
-        z=z_val,
+        I=best_match["I"],
+        mcz_min=best_match["mcz_min"],
+        mcz_max=best_match["mcz_max"],
+        mcz_pts=best_match["mcz_pts"],
+        td_min_ms=best_match["td_min_ms"],
+        td_max_ms=best_match["td_max_ms"],
+        td_pts=best_match["td_pts"],
+        orientation_tag=best_match["orientation_tag"],
+        z=best_match["z"],
         ext="pdf",
     )
 
@@ -262,45 +186,24 @@ if __name__ == "__main__":
 
     p = argparse.ArgumentParser(
         description=(
-            "Plot mismatch contour from aggregated best-match HDF5 file. "
-            "Run python -m scripts.mismatch_mcz_td.aggregate_best_match first to create the best-match file."
+            "Plot mismatch contour from one aggregated best-match HDF5 file. "
+            "Provide an exact --input_path from Stage 2 aggregation output."
         )
     )
     p.add_argument(
-        "--input_dir",
-        type=str,
-        default=os.path.join(project_root, "data", "mismatch"),
-        help=(
-            "Base input directory containing best_match/. "
-            "Final tagged run directory is auto-derived if needed."
-        ),
-    )
-    add_td_grid_args(
-        p,
-        default_min_ms=None,
-        default_max_ms=None,
-        default_pts=None,
-        required=True,
-    )
-    add_mcz_grid_args(
-        p,
-        default_min=None,
-        default_max=None,
-        default_pts=None,
-        required=True,
-    )
-    add_redshift_arg(p, default_z=None)
-    p.add_argument(
-        "--orientation_tag",
+        "--input_path",
         type=str,
         required=True,
-        help="Orientation tag (for filename matching, e.g., 'Taman_edgeon').",
+        help="Exact path to aggregated best-match HDF5 file under best_match/.",
     )
     p.add_argument(
         "--output_dir",
         type=str,
         default=os.path.join(project_root, "figures", "mismatch"),
-        help="Directory where the figure will be saved.",
+        help=(
+            "Base directory where the figure will be saved. "
+            "A canonical run-tagged subdirectory is inferred from file metadata."
+        ),
     )
     p.add_argument(
         "--variable",
@@ -341,23 +244,11 @@ if __name__ == "__main__":
         default=20.0,
         help="Minimum frequency in Hz for cycle calculations (default: 20.0).",
     )
-    p.add_argument(
-        "--I",
-        type=float,
-        required=True,
-        help="Flux ratio used to resolve run directories (I token in paths).",
-    )
 
     args = p.parse_args()
 
     main(
-        input_dir=args.input_dir,
-        td_min_ms=args.td_min_ms,
-        td_max_ms=args.td_max_ms,
-        mcz_min=args.mcz_min,
-        mcz_max=args.mcz_max,
-        orientation_tag=args.orientation_tag,
-        z=args.z,
+        input_path=args.input_path,
         output_dir=args.output_dir,
         variable=args.variable,
         overlay_cycles=args.overlay_cycles,
@@ -366,5 +257,4 @@ if __name__ == "__main__":
         show_legend=args.show_legend,
         eta=args.eta,
         f_min=args.f_min,
-        I=args.I,
     )

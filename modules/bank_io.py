@@ -11,7 +11,7 @@ fletcher32 checksums for robustness.
 
 import os
 from contextlib import contextmanager
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 
 import numpy as np
 import h5py
@@ -248,6 +248,91 @@ def read_missing_mcz_metadata(h5: h5py.File) -> Dict[str, Any]:
         "missing_mcz_count": count,
         "missing_mcz": missing,
         "expected_mcz": expected,
+    }
+
+
+def _decode_string_attr(value: Any) -> str:
+    if isinstance(value, bytes):
+        return value.decode("utf-8")
+    return str(value)
+
+
+def _read_optional_float_attr(attrs: Any, key: str) -> Optional[float]:
+    if key not in attrs:
+        return None
+    value = float(attrs[key])
+    if np.isnan(value):
+        return None
+    return value
+
+
+def read_best_match_contour_data(input_path: str, value_dataset: str) -> Dict[str, Any]:
+    """Load one best-match contour dataset and infer plotting metadata.
+
+    Returns a dict with arrays and metadata needed by contour plotting scripts.
+    """
+    if not os.path.isfile(input_path):
+        raise FileNotFoundError(f"Best-match file not found: {input_path}")
+
+    with h5py.File(input_path, "r") as h5:
+        required = ("mcz", "td", value_dataset)
+        missing = [name for name in required if name not in h5]
+        if missing:
+            raise KeyError(
+                f"Missing datasets in {input_path}: {missing}. "
+                f"Available datasets: {list(h5.keys())}"
+            )
+
+        mcz_arr = np.array(h5["mcz"], dtype=np.float64)
+        td_arr = np.array(h5["td"], dtype=np.float64)
+        values = np.array(h5[value_dataset], dtype=np.float64)
+
+        if mcz_arr.ndim != 1 or td_arr.ndim != 1:
+            raise ValueError(
+                f"Expected 1D axes in {input_path}, got mcz ndim={mcz_arr.ndim}, td ndim={td_arr.ndim}."
+            )
+        if mcz_arr.size == 0 or td_arr.size == 0:
+            raise ValueError(f"Empty axis dataset found in {input_path}.")
+
+        expected_shape = (int(mcz_arr.shape[0]), int(td_arr.shape[0]))
+        if values.shape != expected_shape:
+            raise ValueError(
+                f"Dataset '{value_dataset}' in {input_path} has shape {values.shape}, "
+                f"expected {expected_shape}."
+            )
+
+        if "I" not in h5.attrs:
+            raise ValueError(f"Missing required attribute 'I' in {input_path}.")
+        if "orientation_tag" not in h5.attrs:
+            raise ValueError(
+                f"Missing required attribute 'orientation_tag' in {input_path}."
+            )
+
+        i_raw = np.asarray(h5.attrs["I"])
+        if i_raw.size != 1:
+            raise ValueError(f"Attribute 'I' must be scalar in {input_path}.")
+        I_value = float(i_raw.reshape(-1)[0])
+        orientation_tag = _decode_string_attr(h5.attrs["orientation_tag"]).strip()
+        if not orientation_tag:
+            raise ValueError(f"Attribute 'orientation_tag' is empty in {input_path}.")
+
+        z_value = _read_optional_float_attr(h5.attrs, "z")
+        missing_meta = read_missing_mcz_metadata(h5)
+
+    return {
+        "mcz": mcz_arr,
+        "td": td_arr,
+        "values": values,
+        "I": I_value,
+        "orientation_tag": orientation_tag,
+        "z": z_value,
+        "mcz_min": float(np.round(np.nanmin(mcz_arr), decimals=10)),
+        "mcz_max": float(np.round(np.nanmax(mcz_arr), decimals=10)),
+        "mcz_pts": int(mcz_arr.shape[0]),
+        "td_min_ms": float(np.round(np.nanmin(td_arr) * 1e3, decimals=10)),
+        "td_max_ms": float(np.round(np.nanmax(td_arr) * 1e3, decimals=10)),
+        "td_pts": int(td_arr.shape[0]),
+        "missing_mcz_count": int(missing_meta["missing_mcz_count"]),
     }
 
 

@@ -44,12 +44,8 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_dir ./data/mismatch \
-  --I 0.5 \
-  --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 90 \
-  --orientation_tag Taman_edgeon \
-  --z 1e-8
+  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --output_dir ./figures/mismatch
 ```
 
 ## HDF5 File Structure
@@ -82,6 +78,7 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
 
 **File Attributes:**
 - `I`, `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
+- `orientation_tag`, `z`: Used by Stage 3 for automatic figure naming
 - `missing_mcz_count`: Number of missing internal mcz rows detected by Stage 2
 
 ## Stage 0: Build Template Banks
@@ -157,16 +154,12 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
 **Script:** `python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match`
 
 Generates publication-quality contour plot of mismatch vs (td, mcz) from the best-match file.
+This stage now requires an exact best-match `--input_path`; all run tokens are inferred from file metadata.
 
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_dir ./data/mismatch \
-  --I 0.5 \
-  --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 90 \
-  --orientation_tag Taman_edgeon \
-  --z 1e-8 \
+  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
   --output_dir ./figures/mismatch
 
 ```

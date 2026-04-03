@@ -50,12 +50,8 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
 
 # 4. Plot the final contour
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_dir ./data/mismatch \
-  --I 0.5 \
-  --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 90 \
-  --orientation_tag Taman_edgeon \
-  --z 1e-8
+  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --output_dir ./figures/mismatch
 ```
 
 ### Plotting
