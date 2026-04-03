@@ -91,6 +91,21 @@ python -m scripts.template_banks.build_template_banks \
 - `visualize_mcz_sweep_at_td.py`
 - `plot_omega_theta_from_cube.py`
 
+Quick helper usage examples:
+
+```bash
+python -m scripts.mismatch_mcz_td.visualize_mismatch_cube \
+  --input_path ./data/mismatch/mismatch_cubes/<cube>.h5 \
+  --output_dir ./figures/mismatch_cubes \
+  --gif
+
+python -m scripts.mismatch_mcz_td.visualize_mcz_sweep_at_td \
+  --input_dir ./data/mismatch/mismatch_cubes \
+  --output_dir ./figures/mismatch_cubes_mcz_sweep \
+  --td_ms 40 \
+  --gif
+```
+
 ### Maintenance helpers
 
 - `convert_best_match_redshift.py`

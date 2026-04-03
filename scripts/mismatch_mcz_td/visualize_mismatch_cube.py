@@ -5,7 +5,6 @@ then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
 
-If --input_path is omitted, the newest cube in data/mismatch/mismatch_cubes is used.
 """
 
 import os
@@ -55,27 +54,6 @@ def _format_td_range_tag(td_s: np.ndarray) -> str:
     td_min = f"{float(np.nanmin(td_ms)):g}".replace(".", "p")
     td_max = f"{float(np.nanmax(td_ms)):g}".replace(".", "p")
     return f"td{td_min}-{td_max}"
-
-
-def _discover_default_input(repo_root: str) -> Optional[str]:
-    """Pick the newest valid mismatch cube under the default mismatch cube directory."""
-    default_dir = os.path.join(repo_root, "data", "mismatch", "mismatch_cubes")
-    if not os.path.isdir(default_dir):
-        return None
-
-    candidates = []
-    for name in os.listdir(default_dir):
-        if not name.endswith(".h5"):
-            continue
-        path = os.path.join(default_dir, name)
-        if parse_mcz_from_mismatch_cube_path(path) is None:
-            continue
-        candidates.append(path)
-
-    if not candidates:
-        return None
-    candidates.sort(key=os.path.getmtime, reverse=True)
-    return candidates[0]
 
 
 def _format_resolution_suffix(h5_file) -> str:
@@ -314,11 +292,8 @@ def main():
     )
     p.add_argument(
         "--input_path",
-        default=None,
-        help=(
-            "Path to mismatch cube HDF5. If omitted, auto-select the newest cube "
-            "under data/mismatch/mismatch_cubes/."
-        ),
+        required=True,
+        help=("Path to mismatch cube HDF5."),
     )
     p.add_argument(
         "--output_dir",
@@ -336,14 +311,6 @@ def main():
     p.add_argument("--gif", action="store_true", help="Force GIF output")
     p.add_argument("--html", action="store_true", help="Generate HTML slider output")
     args = p.parse_args()
-
-    if args.input_path is None:
-        args.input_path = _discover_default_input(repo_root)
-        if args.input_path is None:
-            raise FileNotFoundError(
-                "No mismatch cube found in default directory: "
-                f"{os.path.join(repo_root, 'data', 'mismatch', 'mismatch_cubes')}"
-            )
 
     if not os.path.isfile(args.input_path):
         raise FileNotFoundError(f"Input cube not found: {args.input_path}")

@@ -371,7 +371,7 @@ def main():
         help="Time delay in milliseconds to slice each cube",
     )
     p.add_argument(
-        "--outdir",
+        "--output_dir",
         default=os.path.join(repo_root, "figures/mismatch_cubes_mcz_sweep"),
         help="Directory for outputs (movie + slider)",
     )
@@ -459,14 +459,14 @@ def main():
     theta_ref = np.asarray(theta_ref)
     omega_ref = np.asarray(omega_ref)
 
-    os.makedirs(args.outdir, exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
     tag = orient_tag or "unknown"
     td_tag = f"td{args.td_ms:.1f}".replace(".", "p")
     mcz_msun_min = f"{float(np.nanmin(mcz_msun_arr)):g}".replace(".", "p")
     mcz_msun_max = f"{float(np.nanmax(mcz_msun_arr)):g}".replace(".", "p")
     base = f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_msun_min}-{mcz_msun_max}_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
-    movie_path = os.path.join(args.outdir, base + movie_ext)
+    movie_path = os.path.join(args.output_dir, base + movie_ext)
 
     # Movie over mcz
     save_movie_over_mcz(
@@ -482,7 +482,7 @@ def main():
 
     # HTML slider over mcz
     if args.html:
-        html_path = os.path.join(args.outdir, base + ".html")
+        html_path = os.path.join(args.output_dir, base + ".html")
         save_html_slider_over_mcz(
             omega=omega_ref,
             theta=theta_ref,
@@ -495,7 +495,7 @@ def main():
 
     # Grid with individual colorbars
     if args.grid:
-        grid_path = os.path.join(args.outdir, base + "_grid.png")
+        grid_path = os.path.join(args.output_dir, base + "_grid.png")
         save_grid_with_individual_colorbars(
             omega=omega_ref,
             theta=theta_ref,
