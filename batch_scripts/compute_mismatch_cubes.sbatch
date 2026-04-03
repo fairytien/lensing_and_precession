@@ -5,9 +5,9 @@
 #SBATCH --ntasks=1 # Single task (not MPI)
 #SBATCH --cpus-per-task=128 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
-#SBATCH -t 00:07:00 # Walltime
+#SBATCH -t 00:09:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
-#SBATCH --array=0-29
+#SBATCH --array=0-80
 #SBATCH -o batch_outputs/compute_mismatch_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
