@@ -237,3 +237,7 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,visualstudiocode,python,jupyternotebooks
+
+# Thread-generated presentation artifacts
+presentation/repo_dataflow_presentation/
+presentation/mcz_td_pipeline_detailed/
