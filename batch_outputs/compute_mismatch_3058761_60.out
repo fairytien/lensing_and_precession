@@ -1,0 +1,6 @@
+[INFO] Resolved bank input directory: ./data/template_banks_z1_Taman_random
+[INFO] Resolved mismatch output directory: ./data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random
+[INFO] Chunking mcz across 81 chunks: running indices [60:61)
+[INFO] [61/81] Processing mcz_src=35.0 Msun, z=1, mcz_det=70.0 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved mismatch cube: ./data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random/mismatch_cubes/mismatch_cubes_z1_mcz35_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5
+Total time to run the script: 0:5:16.94 (h:m:s)
