@@ -160,10 +160,22 @@ def main(
 
     y = float(get_y_from_I(I))
     z_str = "None" if z_val is None else f"{z_val:g}"
+    processed_count = 0
+    skipped_count = 0
 
     # Loop over mcz values
     for i in sel:
         mcz_src_msun = float(mcz_src_msun_arr[i])
+
+        def skip_current_mcz(message: str, *fmt_args):
+            nonlocal skipped_count
+            logging.warning(
+                "Skipping mcz_src=%s Msun: " + message,
+                mcz_src_msun,
+                *fmt_args,
+            )
+            skipped_count += 1
+
         lens_params = dict(lens_base)
         lens_params["mcz"] = mcz_src_msun * SOLMASS2SEC
         if z_val is not None:
@@ -193,16 +205,34 @@ def main(
             prefix=bank_prefix,
         )
         if not os.path.isfile(bank_path):
-            raise FileNotFoundError(f"Template bank not found: {bank_path}")
+            skip_current_mcz("template bank not found: %s", bank_path)
+            continue
 
         # Open bank for slicing without loading to memory
-        h5, omega_arr, theta_arr, gamma_arr, bank, _ = open_bank_readonly(bank_path)
+        try:
+            h5, omega_arr, theta_arr, gamma_arr, bank, _ = open_bank_readonly(bank_path)
+        except Exception as exc:
+            skip_current_mcz("failed to open template bank %s (%s)", bank_path, exc)
+            continue
+
+        mm_out_path = None
         with h5:
             n_theta, n_omega, n_gamma, n_freq = bank.shape
 
-            assert (
+            if not (
                 n_theta == theta_pts and n_omega == omega_pts and n_gamma == gamma_pts
-            )
+            ):
+                skip_current_mcz(
+                    "bank grid mismatch in %s (expected theta=%d omega=%d gamma=%d, got theta=%d omega=%d gamma=%d)",
+                    bank_path,
+                    theta_pts,
+                    omega_pts,
+                    gamma_pts,
+                    n_theta,
+                    n_omega,
+                    n_gamma,
+                )
+                continue
 
             mlz_arr = np.array(
                 [float(get_MLz_from_td(td, y) * SOLMASS2SEC) for td in td_arr],
@@ -233,16 +263,24 @@ def main(
                 orientation_tag=tag,
                 z=z_val,
             )
-            mmh5, dsets = create_mismatch_cube(
-                filepath=mm_out_path,
-                td_pts=td_pts,
-                theta_arr=theta_arr,
-                omega_arr=omega_arr,
-                gamma_arr=gamma_arr,
-                mcz=mcz_src_msun,
-                td_arr=td_arr,
-                save_full_mismatch=save_full_mismatch,
-            )
+            try:
+                mmh5, dsets = create_mismatch_cube(
+                    filepath=mm_out_path,
+                    td_pts=td_pts,
+                    theta_arr=theta_arr,
+                    omega_arr=omega_arr,
+                    gamma_arr=gamma_arr,
+                    mcz=mcz_src_msun,
+                    td_arr=td_arr,
+                    save_full_mismatch=save_full_mismatch,
+                )
+            except Exception as exc:
+                skip_current_mcz(
+                    "failed to create mismatch cube file %s (%s)", mm_out_path, exc
+                )
+                continue
+
+            mcz_failed_exc = None
             with mmh5:
                 # Store source parameters as HDF5 attributes for later aggregation
                 write_source_attrs(
@@ -298,37 +336,69 @@ def main(
 
                     # Stream results to reduce memory; open bank inside workers
                     gamma_chunk = choose_gamma_chunk(int(n_gamma))
-                    with Pool(
-                        n_workers_eff,
-                        initializer=init_mismatch_worker,
-                        initargs=(
-                            s_strain,
-                            psd,
-                            delta_f,
-                            compare_both,
-                            use_opt_match,
-                            bank_path,
-                            gamma_arr,
-                            gamma_chunk,
-                        ),
-                        maxtasksperchild=256,
-                    ) as pool:
-                        job_iter = (
-                            (r, c) for r in range(n_theta) for c in range(n_omega)
-                        )
-                        for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
-                            mismatch_gamma_job, job_iter, chunksize=1
-                        ):
-                            if save_full_mismatch and mm_dset is not None:
-                                mm_dset[j, r, c, :] = ep_vec
-                            Zgrid[r, c] = ep_min
-                            Ggrid[r, c] = g_best
+                    try:
+                        with Pool(
+                            n_workers_eff,
+                            initializer=init_mismatch_worker,
+                            initargs=(
+                                s_strain,
+                                psd,
+                                delta_f,
+                                compare_both,
+                                use_opt_match,
+                                bank_path,
+                                gamma_arr,
+                                gamma_chunk,
+                            ),
+                            maxtasksperchild=256,
+                        ) as pool:
+                            job_iter = (
+                                (r, c) for r in range(n_theta) for c in range(n_omega)
+                            )
+                            for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
+                                mismatch_gamma_job, job_iter, chunksize=1
+                            ):
+                                if save_full_mismatch and mm_dset is not None:
+                                    mm_dset[j, r, c, :] = ep_vec
+                                Zgrid[r, c] = ep_min
+                                Ggrid[r, c] = g_best
+                    except Exception as exc:
+                        mcz_failed_exc = exc
+                        break
 
                     # Save per-td min grids
                     ep_min_grid_dset[j, :, :] = Zgrid
                     g_best_grid_dset[j, :, :] = Ggrid
 
+            if mcz_failed_exc is not None:
+                if mm_out_path is not None and os.path.isfile(mm_out_path):
+                    try:
+                        os.remove(mm_out_path)
+                        logging.warning(
+                            "Removed partial mismatch cube after failure: %s",
+                            mm_out_path,
+                        )
+                    except OSError as exc:
+                        logging.warning(
+                            "Could not remove partial mismatch cube %s (%s)",
+                            mm_out_path,
+                            exc,
+                        )
+                skip_current_mcz(
+                    "mismatch evaluation failed for bank %s (%s)",
+                    bank_path,
+                    mcz_failed_exc,
+                )
+                continue
+
         logging.info(f"Saved mismatch cube: {mm_out_path}")
+        processed_count += 1
+
+    logging.info(
+        "Mismatch cube computation completed: processed=%d skipped=%d",
+        processed_count,
+        skipped_count,
+    )
 
 
 if __name__ == "__main__":
