@@ -277,17 +277,17 @@ def save_html_slider_over_mcz(
     return out_path
 
 
-def _discover_cube_files(inputs_dir: str, orientation_tag: Optional[str]) -> List[str]:
-    """Find valid mismatch cube files under inputs_dir, optionally filtering by orientation tag."""
-    if not os.path.isdir(inputs_dir):
+def _discover_cube_files(input_dir: str, orientation_tag: Optional[str]) -> List[str]:
+    """Find valid mismatch cube files under input_dir, optionally filtering by orientation tag."""
+    if not os.path.isdir(input_dir):
         return []
     files = []
-    for name in os.listdir(inputs_dir):
+    for name in os.listdir(input_dir):
         if not name.endswith(".h5"):
             continue
         if orientation_tag and not name.endswith(f"_{orientation_tag}.h5"):
             continue
-        path = os.path.join(inputs_dir, name)
+        path = os.path.join(input_dir, name)
         if parse_mcz_from_mismatch_cube_path(path) is None:
             continue
         files.append(path)
@@ -354,7 +354,7 @@ def main():
         description="Make movie and/or slider sweeping mcz at fixed td"
     )
     p.add_argument(
-        "--inputs_dir",
+        "--input_dir",
         default=os.path.join(repo_root, "data/mismatch/mismatch_cubes"),
         help="Directory containing per-mcz mismatch cube HDF5 files",
     )
@@ -394,10 +394,10 @@ def main():
     p.add_argument("--grid_max_panels", type=int, default=12)
     args = p.parse_args()
 
-    files = _discover_cube_files(args.inputs_dir, args.orientation_tag)
+    files = _discover_cube_files(args.input_dir, args.orientation_tag)
     if not files:
         raise FileNotFoundError(
-            f"No mismatch cube files found in {args.inputs_dir} (tag={args.orientation_tag})"
+            f"No mismatch cube files found in {args.input_dir} (tag={args.orientation_tag})"
         )
 
     # Load axes consistency and collect per-mcz slices at fixed td

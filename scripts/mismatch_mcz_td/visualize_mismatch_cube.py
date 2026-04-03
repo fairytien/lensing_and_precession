@@ -5,7 +5,7 @@ then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
 
-If --input is omitted, the newest cube in data/mismatch/mismatch_cubes is used.
+If --input_path is omitted, the newest cube in data/mismatch/mismatch_cubes is used.
 """
 
 import os
@@ -313,7 +313,7 @@ def main():
         description="Make movie and/or slider from mismatch cube"
     )
     p.add_argument(
-        "--input",
+        "--input_path",
         default=None,
         help=(
             "Path to mismatch cube HDF5. If omitted, auto-select the newest cube "
@@ -321,7 +321,7 @@ def main():
         ),
     )
     p.add_argument(
-        "--outdir",
+        "--output_dir",
         default=os.path.join(repo_root, "figures/mismatch_cubes"),
         help="Directory for outputs (movie + slider)",
     )
@@ -337,22 +337,22 @@ def main():
     p.add_argument("--html", action="store_true", help="Generate HTML slider output")
     args = p.parse_args()
 
-    if args.input is None:
-        args.input = _discover_default_input(repo_root)
-        if args.input is None:
+    if args.input_path is None:
+        args.input_path = _discover_default_input(repo_root)
+        if args.input_path is None:
             raise FileNotFoundError(
                 "No mismatch cube found in default directory: "
                 f"{os.path.join(repo_root, 'data', 'mismatch', 'mismatch_cubes')}"
             )
 
-    if not os.path.isfile(args.input):
-        raise FileNotFoundError(f"Input cube not found: {args.input}")
+    if not os.path.isfile(args.input_path):
+        raise FileNotFoundError(f"Input cube not found: {args.input_path}")
 
-    with h5py.File(args.input, "r") as h5:
+    with h5py.File(args.input_path, "r") as h5:
         for ds in ("td", "theta", "omega", "epsilon_min_grid"):
             if ds not in h5:
                 raise KeyError(
-                    f"Dataset '{ds}' missing in {args.input}; found keys: {list(h5.keys())}"
+                    f"Dataset '{ds}' missing in {args.input_path}; found keys: {list(h5.keys())}"
                 )
 
         td = np.array(h5["td"], dtype=float)  # seconds
@@ -368,14 +368,14 @@ def main():
             f"Unexpected epsilon_min_grid shape {eps.shape}; expected (n_td, {theta.size}, {omega.size})"
         )
 
-    os.makedirs(args.outdir, exist_ok=True)
-    tag = _infer_orientation_tag_from_filename(args.input)
-    mcz_msun_tag = _infer_mcz_from_filename(args.input)
+    os.makedirs(args.output_dir, exist_ok=True)
+    tag = _infer_orientation_tag_from_filename(args.input_path)
+    mcz_msun_tag = _infer_mcz_from_filename(args.input_path)
     td_range_tag = _format_td_range_tag(td)
 
     base = f"epsilon_cube_td_sweep_mcz{mcz_msun_tag}_{td_range_tag}_{res_suffix}_{tag}"
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
-    movie_path = os.path.join(args.outdir, base + movie_ext)
+    movie_path = os.path.join(args.output_dir, base + movie_ext)
 
     # Movie
     save_movie(
@@ -391,7 +391,7 @@ def main():
 
     # HTML slider
     if args.html:
-        html_path = os.path.join(args.outdir, base + ".html")
+        html_path = os.path.join(args.output_dir, base + ".html")
         save_html_slider(
             omega=omega,
             theta=theta,
@@ -411,5 +411,5 @@ if __name__ == "__main__":
 Example CLI Usage on TACC:
     conda activate fairytien_gw 
     && python -m scripts.mismatch_mcz_td.visualize_mismatch_cube 
-    --input /work/10000/fairytien33/ls6/lensing_and_precession/data/mismatch/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5 --gif
+    --input_path /work/10000/fairytien33/ls6/lensing_and_precession/data/mismatch/mismatch_cubes/mismatch_cubes_mcz30_I0p5_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5 --gif
 """

@@ -1,6 +1,6 @@
 """Aggregate per-mcz mismatch cubes into one best-match HDF5 file.
 
-Scans results_dir/mismatch_cubes for per-mcz cubes, reduces each across
+Scans run_dir/mismatch_cubes for per-mcz cubes, reduces each across
 (theta, omega), stacks over mcz, and writes a combined best_match_*.h5.
 
 Use python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match to plot
@@ -38,7 +38,7 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 @timer_decorator
 def main(
-    results_dir: str,
+    run_dir: str,
     I: float,
     td_min_ms: float,
     td_max_ms: float,
@@ -49,8 +49,8 @@ def main(
 ):
     tol = 1e-6
     z_val = None if z is None else float(z)
-    results_dir = contour_run_dir(
-        results_dir,
+    run_dir = contour_run_dir(
+        run_dir,
         I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
@@ -59,13 +59,13 @@ def main(
         z=z_val,
         orientation_tag=orientation_tag,
     )
-    logging.info(f"Resolved aggregation input directory: {results_dir}")
+    logging.info(f"Resolved aggregation run directory: {run_dir}")
     logging.info(
-        f"Resolved best-match output directory: {os.path.join(results_dir, 'best_match')}"
+        f"Resolved best-match output directory: {os.path.join(run_dir, 'best_match')}"
     )
 
     cube_paths = find_mismatch_cube_files(
-        results_dir=results_dir,
+        results_dir=run_dir,
         td_min_ms=td_min_ms,
         td_max_ms=td_max_ms,
         orientation_tag=orientation_tag,
@@ -269,7 +269,7 @@ def main(
     mcz_min_msun_out = float(np.min(desired_mcz_msun))
     mcz_max_msun_out = float(np.max(desired_mcz_msun))
     summary_path = best_match_mcz_td_filename(
-        results_dir,
+        run_dir,
         I=I_value,
         mcz_min=mcz_min_msun_out,
         mcz_max=mcz_max_msun_out,
@@ -331,7 +331,15 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description="Aggregate per-mcz mismatch cubes into a combined best-match file."
     )
-    p.add_argument("--results_dir", type=str, required=True)
+    p.add_argument(
+        "--run_dir",
+        type=str,
+        required=True,
+        help=(
+            "Base contour run directory used to read mismatch_cubes/ and write best_match/. "
+            "Final tagged run directory is auto-derived if needed."
+        ),
+    )
     p.add_argument(
         "--I",
         type=float,
@@ -357,7 +365,7 @@ if __name__ == "__main__":
     args = p.parse_args()
 
     main(
-        results_dir=args.results_dir,
+        run_dir=args.run_dir,
         I=args.I,
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,

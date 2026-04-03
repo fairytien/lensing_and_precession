@@ -41,7 +41,7 @@ sbatch batch_scripts/compute_mismatch_cubes.sbatch
 
 # 3. After all array tasks complete, aggregate results
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --results_dir ./data/mismatch \
+  --run_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
@@ -50,7 +50,7 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
 
 # 4. Plot the final contour
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --results_dir ./data/mismatch \
+  --input_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \

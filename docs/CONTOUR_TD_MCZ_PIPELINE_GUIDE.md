@@ -35,7 +35,7 @@ sbatch batch_scripts/compute_mismatch_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --results_dir ./data/mismatch \
+  --run_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
@@ -44,7 +44,7 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --results_dir ./data/mismatch \
+  --input_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
@@ -54,7 +54,7 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
 
 ## HDF5 File Structure
 
-### Per-mcz Mismatch Cube (`results_dir/mismatch_cubes/*.h5`)
+### Per-mcz Mismatch Cube (`run_dir/mismatch_cubes/*.h5`)
 
 **Datasets:**
 - `mcz`: Scalar chirp mass value (Msun)
@@ -70,7 +70,7 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
 - `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
 - `mcz_min`, `mcz_max`, `mcz_pts`: Intended mcz grid from Stage 1 compute settings
 
-### Best-Match File (`results_dir/best_match/*.h5`)
+### Best-Match File (`run_dir/best_match/*.h5`)
 
 **Datasets:**
 - `mcz`: Expected chirp mass grid for plotting (missing internal rows are kept)
@@ -122,7 +122,7 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --n_workers 8 \
   --use_opt_match \
   --bank_dir ./data/template_banks \
-  --results_dir ./data/mismatch
+  --run_dir ./data/mismatch
 ```
 
 **Key arguments:**
@@ -132,7 +132,7 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
 - `--td_min_ms/max_ms/pts`: Time delay grid (milliseconds)
 - `--omega/theta/gamma`: Template parameter grids
 - `--mcz_chunk_index/count`: For SLURM array job chunking
-- `--results_dir` is a base root; final run directory is auto-derived.
+- `--run_dir` is a base root; final run directory is auto-derived.
 
 ## Stage 2: Aggregate Best-Match Data
 
@@ -144,7 +144,7 @@ If internal mcz rows are missing, Stage 2 keeps those rows as NaNs so the contou
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --results_dir ./data/mismatch \
+  --run_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
@@ -161,7 +161,7 @@ Generates publication-quality contour plot of mismatch vs (td, mcz) from the bes
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --results_dir ./data/mismatch \
+  --input_dir ./data/mismatch \
   --I 0.5 \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
@@ -177,7 +177,7 @@ The batch pipeline shares defaults via:
 
 - `batch_scripts/_contour_mcz_td_config.sh`
 
-Important exported variables used by Stage 0/1/2 batch jobs:
+Important exported variables used by Stage 0/1 and Lindblom batch jobs:
 
 - `FLUX_RATIO` (default `0.5`)
 - `ORIENT_PRESET` (default `Taman_edgeon`)
@@ -187,7 +187,7 @@ Important exported variables used by Stage 0/1/2 batch jobs:
 - `THETA_MIN`, `THETA_MAX`, `THETA_PTS` (defaults `0`, `15`, `151`)
 - `GAMMA_PTS` (default `51`, interpreted as `[0, 2pi)`)
 - `BANK_DIR` (default `./data/template_banks`)
-- `RESULTS_DIR` (default `./data/mismatch`)
+- `RUN_DIR` (default `./data/mismatch`)
 - `Z` (default `1e-8`, propagated to Python scripts as `--z`)
 
 Lindblom batch jobs also resolve canonical cube/bank paths from these settings,
@@ -199,7 +199,7 @@ so avoid hardcoding file names in local wrappers.
 
 - **Template banks:** `{bank_dir_base}_z{z}`
   - Example: `./data/template_banks_z0p2`
-- **Contour results (cubes + best_match):** `{results_dir_base}_I{I}_z{z}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}`
+- **Contour results (cubes + best_match):** `{run_dir_base}_I{I}_z{z}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}`
   - Example: `./data/mismatch_I0p5_z0p2_mcz16-25_td20-70`
 - **Contour figures:** `{fig_dir_base}_I{I}_z{z}_mcz{mcz_min}-{mcz_max}_td{td_min}-{td_max}`
   - Example: `./figures/mismatch_I0p5_z0p2_mcz16-25_td20-70`

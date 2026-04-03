@@ -4,7 +4,7 @@ This script streams templates directly from HDF5, computes per-(theta, omega)
 minima across gamma in parallel, and writes per-mcz mismatch cubes incrementally.
 Designed for array-job chunking and low-memory operation.
 
-Outputs per-mcz HDF5 files to results_dir/mismatch_cubes/ containing:
+Outputs per-mcz HDF5 files to run_dir/mismatch_cubes/ containing:
   - epsilon_min_grid (td, theta, omega)
   - gamma_best_grid (td, theta, omega)
   - optional mismatch (td, theta, omega, gamma) if --save_full_mismatch
@@ -99,7 +99,7 @@ def main(
     compare_both: bool,
     use_opt_match: bool,
     save_full_mismatch: bool,
-    results_dir: str,
+    run_dir: str,
     mcz_chunk_index: Optional[int] = None,
     mcz_chunk_count: Optional[int] = None,
 ):
@@ -119,8 +119,8 @@ def main(
     )
 
     bank_dir = template_bank_run_dir(bank_dir, z_val, orientation_tag=tag)
-    results_dir = contour_run_dir(
-        results_dir,
+    run_dir = contour_run_dir(
+        run_dir,
         I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
@@ -129,9 +129,9 @@ def main(
         z=z_val,
         orientation_tag=tag,
     )
-    os.makedirs(results_dir, exist_ok=True)
+    os.makedirs(run_dir, exist_ok=True)
     logging.info(f"Resolved bank input directory: {bank_dir}")
-    logging.info(f"Resolved mismatch output directory: {results_dir}")
+    logging.info(f"Resolved mismatch output directory: {run_dir}")
 
     # Axes arrays
     mcz_src_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
@@ -217,7 +217,7 @@ def main(
 
             # Prepare HDF5 output for mismatch cubes (per-mcz)
             mm_out_path = mismatch_cube_filename(
-                results_dir,
+                run_dir,
                 mcz_msun=mcz_src_msun,
                 I=I,
                 td_min_ms=td_min_ms,
@@ -370,12 +370,16 @@ if __name__ == "__main__":
     p.add_argument("--use_opt_match", action="store_true")
     p.add_argument("--save_full_mismatch", action="store_true")
     p.add_argument(
-        "--results_dir",
+        "--run_dir",
         type=str,
         default=os.path.join(
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             "data",
             "mismatch",
+        ),
+        help=(
+            "Base contour run directory used to write mismatch_cubes/. "
+            "Final tagged run directory is auto-derived if needed."
         ),
     )
     add_chunking_args(p)
@@ -414,7 +418,7 @@ if __name__ == "__main__":
         compare_both=args.compare_both,
         use_opt_match=args.use_opt_match,
         save_full_mismatch=args.save_full_mismatch,
-        results_dir=args.results_dir,
+        run_dir=args.run_dir,
         mcz_chunk_index=args.mcz_chunk_index,
         mcz_chunk_count=args.mcz_chunk_count,
     )

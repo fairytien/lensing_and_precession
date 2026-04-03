@@ -36,7 +36,7 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
 def main(
-    results_dir: str,
+    input_dir: str,
     I: float,
     td_min_ms: float,
     td_max_ms: float,
@@ -56,7 +56,7 @@ def main(
     """Plot mismatch contour from aggregated best-match file.
 
     Args:
-        results_dir: Directory containing the best-match HDF5 file.
+        input_dir: Directory containing the best-match HDF5 file.
         I: Flux ratio used to resolve the canonical run directory.
         td_min_ms: Minimum time delay in ms (for filename matching).
         td_max_ms: Maximum time delay in ms (for filename matching).
@@ -73,8 +73,8 @@ def main(
         f_min: Minimum frequency in Hz (default 20.0).
     """
     z_val = None if z is None else float(z)
-    results_dir = contour_run_dir(
-        results_dir,
+    input_dir = contour_run_dir(
+        input_dir,
         I=I,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
@@ -94,11 +94,11 @@ def main(
         orientation_tag=orientation_tag,
     )
     os.makedirs(output_dir, exist_ok=True)
-    logging.info(f"Resolved best-match input directory: {results_dir}")
+    logging.info(f"Resolved best-match input directory: {input_dir}")
     logging.info(f"Resolved figure output directory: {output_dir}")
 
     summary_path = find_best_match_file(
-        results_dir=results_dir,
+        results_dir=input_dir,
         mcz_min=mcz_min,
         mcz_max=mcz_max,
         td_min_ms=td_min_ms,
@@ -267,10 +267,13 @@ if __name__ == "__main__":
         )
     )
     p.add_argument(
-        "--results_dir",
+        "--input_dir",
         type=str,
         default=os.path.join(project_root, "data", "mismatch"),
-        help="Directory containing the best-match HDF5 file.",
+        help=(
+            "Base input directory containing best_match/. "
+            "Final tagged run directory is auto-derived if needed."
+        ),
     )
     add_td_grid_args(
         p,
@@ -348,7 +351,7 @@ if __name__ == "__main__":
     args = p.parse_args()
 
     main(
-        results_dir=args.results_dir,
+        input_dir=args.input_dir,
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
         mcz_min=args.mcz_min,

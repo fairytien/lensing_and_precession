@@ -69,7 +69,7 @@ import os
 from modules.filenames import contour_run_dir, mismatch_cube_filename
 
 z = float(os.environ.get("Z", "0"))
-results_root = os.environ["RESULTS_DIR"]
+results_root = os.environ["RUN_DIR"]
 run_dir = contour_run_dir(
     results_root,
     I=float(os.environ["FLUX_RATIO"]),

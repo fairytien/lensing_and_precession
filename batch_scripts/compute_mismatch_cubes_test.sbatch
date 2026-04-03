@@ -33,4 +33,4 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --n_workers ${NWORKERS} \
   --use_opt_match \
   --bank_dir "${BANK_DIR}" \
-  --results_dir "${RESULTS_DIR}" \
+  --run_dir "${RUN_DIR}" \

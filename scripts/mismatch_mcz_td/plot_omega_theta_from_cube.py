@@ -14,7 +14,7 @@ Notes:
 Usage example:
     python -m scripts.mismatch_mcz_td.plot_omega_theta_from_cube \
     --mcz 50 --td_ms 35 \
-        --results_root data/mismatch \
+        --input_dir data/mismatch \
     --orientation_tag Taman_edgeon \
     --save_path figures/mismatch_cubes/mismatch_contour_mcz50_td35ms.png
 """
@@ -34,18 +34,18 @@ from modules.filenames import find_mismatch_cube_files
 def _find_mismatch_cube(
     mcz_msun: float,
     orientation_tag: str,
-    results_roots: List[str],
+    input_dirs: List[str],
 ) -> Optional[str]:
-    """Search common results roots for the per-mcz mismatch cube file.
+    """Search common input directories for the per-mcz mismatch cube file.
 
         Looks under:
-            {root}/mismatch_cubes/*.h5
+            {input_dir}/mismatch_cubes/*.h5
         and filters through canonical parsing rules.
     Returns the first matching path if found, else None.
     """
-    for root in results_roots:
+    for input_dir in input_dirs:
         matches = find_mismatch_cube_files(
-            results_dir=root,
+            results_dir=input_dir,
             td_min_ms=None,
             td_max_ms=None,
             orientation_tag=orientation_tag,
@@ -137,11 +137,11 @@ def main():
         help="Orientation tag used in filenames (default: Taman_edgeon)",
     )
     p.add_argument(
-        "--results_root",
+        "--input_dir",
         type=str,
         default=None,
         help=(
-            "Root directory that contains mismatch_cubes/. If omitted, searches in "
+            "Input directory that contains mismatch_cubes/. If omitted, searches in "
             "['data/mismatch']"
         ),
     )
@@ -149,7 +149,7 @@ def main():
         "--cube_path",
         type=str,
         default=None,
-        help="Direct path to a mismatch cube HDF5; overrides results_root search",
+        help="Direct path to a mismatch cube HDF5; overrides input_dir search",
     )
     p.add_argument(
         "--save_path", type=str, default=None, help="Path to save the figure"
@@ -166,14 +166,14 @@ def main():
     cube_path = args.cube_path
     if cube_path is None:
         mcz_msun = float(args.mcz_msun)
-        roots = (
-            [args.results_root]
-            if args.results_root
+        input_dirs = (
+            [args.input_dir]
+            if args.input_dir
             else [
                 os.path.join("data", "mismatch"),
             ]
         )
-        cube_path = _find_mismatch_cube(mcz_msun, args.orientation_tag, roots)
+        cube_path = _find_mismatch_cube(mcz_msun, args.orientation_tag, input_dirs)
 
     if cube_path is None or not os.path.isfile(cube_path):
         print("ERROR: Could not find per-mcz mismatch cube for plotting.")
@@ -184,9 +184,9 @@ def main():
             "- Please run python -m scripts.mismatch_mcz_td.compute_mismatch_cubes for the requested mcz/td range, "
             "then retry."
         )
-        print("Searched roots:")
-        if args.results_root:
-            print(f"  - {args.results_root}")
+        print("Searched input directories:")
+        if args.input_dir:
+            print(f"  - {args.input_dir}")
         else:
             print("  - data/mismatch")
         sys.exit(2)

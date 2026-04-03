@@ -33,6 +33,6 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --n_workers ${NWORKERS} \
   --use_opt_match \
   --bank_dir "${BANK_DIR}" \
-  --results_dir "${RESULTS_DIR}" \
+  --run_dir "${RUN_DIR}" \
   --mcz_chunk_index ${SLURM_ARRAY_TASK_ID} \
   --mcz_chunk_count ${SLURM_ARRAY_TASK_COUNT}

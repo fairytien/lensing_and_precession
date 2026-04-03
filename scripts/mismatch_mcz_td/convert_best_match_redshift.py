@@ -61,14 +61,14 @@ def _default_output_path(
     td: np.ndarray,
     z_to: float,
 ) -> str:
-    # results_dir is parent of "best_match"
-    results_dir = os.path.dirname(os.path.dirname(input_path))
+    # run_dir is parent of "best_match"
+    run_dir = os.path.dirname(os.path.dirname(input_path))
     orientation_tag = str(attrs.get("orientation_tag", "orientation"))
     i_value = float(attrs["I"])
     grid_tokens = _parse_template_grid_tokens(input_path) or {}
 
     return best_match_mcz_td_filename(
-        results_dir=results_dir,
+        results_dir=run_dir,
         I=i_value,
         mcz_min=_clean_endpoint(float(np.nanmin(mcz_new))),
         mcz_max=_clean_endpoint(float(np.nanmax(mcz_new))),
@@ -164,9 +164,11 @@ def main() -> None:
             "Source-mass axes are rescaled by (1+z_from)/(1+z_to)."
         )
     )
-    parser.add_argument("--input", required=True, help="Path to input best_match HDF5")
     parser.add_argument(
-        "--output",
+        "--input_path", required=True, help="Path to input best_match HDF5"
+    )
+    parser.add_argument(
+        "--output_path",
         default=None,
         help=(
             "Path to output HDF5. If omitted, a canonical best_match filename is built "
@@ -186,8 +188,8 @@ def main() -> None:
     args = parser.parse_args()
 
     out_path = convert_best_match(
-        input_path=args.input,
-        output_path=args.output,
+        input_path=args.input_path,
+        output_path=args.output_path,
         z_from=args.z_from,
         z_to=args.z_to,
         overwrite=args.overwrite,
