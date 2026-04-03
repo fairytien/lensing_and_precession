@@ -63,6 +63,16 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
 - **Per-cube inspection**: Use the helper scripts under `scripts/mismatch_mcz_td/` for slices, sweeps, and interactive cube inspection
 - **Workflow guide**: See `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` for the current stage-by-stage reference
 
+## Documentation Guide
+
+Detailed usage documentation is centralized under `docs/`.
+
+- `docs/SCRIPTS_PIPELINES_GUIDE.md`: Script inventory and task-based usage across all `scripts/` workflows.
+- `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`: Stage-by-stage `(td, mcz)` mismatch pipeline details.
+- `docs/WORKFLOW_DATA_LFS.md`: Data organization, Git LFS workflow, checksums, and size guard.
+- `docs/WORKFLOW_STOCKYARD.md`: Shared STOCKYARD workflow and symlink patterns on TACC.
+- `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata schema conventions.
+
 ## Authors
 * Tien Nguyen
 * Tamanjyot Singh

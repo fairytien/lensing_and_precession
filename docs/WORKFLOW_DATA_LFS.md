@@ -1,148 +1,197 @@
-# Data & Large File Workflow Guide
+# Data and Large File Workflow Guide
 
-This guide explains how to use the repository's data organization, Git LFS integration, checksum integrity tooling, and size guard to manage large analysis artifacts.
+This document is the canonical guide for managing generated outputs under `data/` and large binary artifacts tracked with Git LFS.
 
-## Overview
+It consolidates the previous `data/README.md` and `lfs/README.md` material into one reference for collaborators.
 
-| Task | Tool / File | Purpose |
-|------|-------------|---------|
-| Track large pickle outputs | `.gitattributes` (`*.pkl` rule) | Store large binary content via Git LFS (lightweight pointers in Git) |
-| Organize new result files | `lfs/organize_data.py` | Classify raw output files into `TACC/`, `super_contours/`, `indiv_contours/` deterministically |
-| Automate LFS enablement | `lfs/setup_lfs.sh` | Ensure LFS installed, track `*.pkl`, convert staged pickles to LFS pointers |
-| Prevent oversized mistakes | `lfs/precommit_size_guard.sh` + `lfs/install_precommit_hook.sh` | Block accidental commit of large non-LFS blobs |
-| Integrity & drift detection | `lfs/checksums.py` | Generate / verify SHA256 manifest of data pickles |
-| Optional deep cleanup | `lfs/history_cleanup.md` | Instructions for rewriting history to expunge historical large blobs |
+## 1. Data Layout
 
-## 1. Clone / Initial Setup
+Generated analysis artifacts are organized under `data/`.
+
+### Canonical subdirectories
+
+- `data/TACC/`
+  - Outputs produced on TACC, commonly with `TACC_` in the filename.
+- `data/super_contours/`
+  - Super contour and multi-system aggregate outputs.
+- `data/indiv_contours/`
+  - Individual target/system contour outputs (`indiv_contour`, `indiv_mismatch`, and versioned variants).
+- `data/contours/`
+  - Reserved placeholder directory for future derived contour products.
+
+### Typical filename tokens
+
+Common underscore-delimited tokens include:
+
+- `mcz20`, `mcz30`, `mcz40` for chirp-mass configurations
+- `L_NP`, `L_RP` for model pair tags
+- `td22ms`, `td10_100`, `td0.03` for time-delay settings
+- `I0.5`, `I0.6` for flux-ratio settings
+- `res_omega101_theta401`, `res_51x51` for grid resolution
+- `v2_`, `v3_`, `v4_` for experiment/version series
+
+## 2. LFS Toolkit Overview
+
+Scripts in `lfs/` are the standard tooling for large-file workflow:
+
+| Tool | Purpose |
+|---|---|
+| `lfs/setup_lfs.sh` | One-shot setup and pointer normalization for tracked files. |
+| `lfs/install_precommit_hook.sh` | Installs the non-LFS size guard hook. |
+| `lfs/precommit_size_guard.sh` | Prevents oversized files from being committed outside LFS rules. |
+| `lfs/organize_data.py` | Classifies/moves output files into canonical `data/` folders. |
+| `lfs/organize_data.sh` | Convenience wrapper for organizer execution from repo root. |
+| `lfs/checksums.py` | Generate, verify, and diff SHA256 manifests for tracked outputs. |
+| `lfs/history_cleanup.md` | Optional history rewrite procedures if repository bloat must be removed. |
+
+## 3. First-Time Setup (Per Machine)
+
+From repository root:
+
 ```bash
-python3 lfs/organize_data.py --dry-run   # Preview moves
-python3 lfs/organize_data.py            # Apply moves
-cd lensing_and_precession
-
-# Install Git LFS once per machine
 git lfs install
-
-# Pull any large objects (usually automatic after checkout; explicit for safety)
 git lfs pull
-```
-
-## 2. Producing New Data Files
-Drop raw newly generated `.pkl` result files into `data/` (root) or let scripts write them there. Then run the organizer:
-```bash
-python3 lfs/organize_data.py --dry-run   # Preview moves
-python3 lfs/organize_data.py            # Apply moves
-```
-Classification priority (first match wins):
-1. `TACC_`
-2. `indiv_contour`
-3. `super_contour`
-4. `mismatch_contour` / `mismatch_contours`
-5. plural `contours`
-6. `mismatch_` dictionaries
-
-## 3. Ensuring Files Are Tracked by LFS
-The repo already includes a wildcard rule:
-```
-*.pkl filter=lfs diff=lfs merge=lfs -text
-```
-To be sure new large pickles are pointers:
-```bash
-git add path/to/new.pkl
-python3 lfs/checksums.py generate
-# Inspect pointer
-head -n 3 path/to/new.pkl
-```
-If it is a proper pointer, the first line starts with `version https://git-lfs.github.com/spec/v1`.
-
-If you ever add a *new* large type (e.g. notebooks):
-```bash
-git lfs track "*.ipynb"
-git add .gitattributes
-git commit -m "chore: track notebooks in LFS"
-```
-
-## 4. Automating (If LFS Not Yet Active Locally)
-```
-This installs (if possible), ensures the pattern, re-adds pickles to convert them to pointers, and commits if needed.
-
-## 5. Preventing Accidental Large Commits (Size Guard)
-Install the pre-commit hook:
-```bash
 bash lfs/install_precommit_hook.sh
 ```
-Default limit: 5 MB for non-LFS files. Override temporarily:
-```bash
-export MAX_SIZE_MB=15  # for this shell session
-```
-A failed commit prints which files exceeded the limit and suggests tracking them with LFS or reducing size.
 
-## 6. Integrity: Checksums
-Generate (or refresh) a baseline manifest:
-```bash
-python3 lfs/checksums.py generate
-# Commit if you intentionally updated data set
-```
-Verify integrity later:
-```bash
-python3 lfs/checksums.py verify
-```
-See what changed relative to the manifest:
-```bash
-python3 lfs/checksums.py changed
-```
-The manifest stores relative path + SHA256 digest. (Hashes reflect current on-disk content; ensure `git lfs pull` before trusting them on a fresh clone.)
+Optional one-shot normalization:
 
-## 7. Typical Contribution Flow
 ```bash
-# Produce data locally
-python3 some_pipeline_script.py
+bash lfs/setup_lfs.sh
+```
 
-# Organize
+## 4. Daily Workflow for New Results
+
+1. Generate data files (usually `.pkl` and `.h5`) from pipeline scripts.
+2. If outputs land in top-level `data/`, classify them:
+
+```bash
 python3 lfs/organize_data.py --dry-run
 python3 lfs/organize_data.py
-
-# (Optional) Update checksum baseline if adding authoritative results
-python3 lfs/checksums.py generate
-
-git add data/updated.pkl lfs/checksums/manifest.sha256
-
-git commit -m "feat: add updated mcz40 results"
-git push origin main
 ```
 
-## 8. Listing Large Objects & LFS Status
+3. Stage files and confirm large pickle files are LFS pointers:
+
 ```bash
-git lfs ls-files          # list pointer files
-# Quick largest working-tree pickle sizes
+git add data/path/to/new_file.pkl
+head -n 3 data/path/to/new_file.pkl
+```
+
+The first line should be:
+
+`version https://git-lfs.github.com/spec/v1`
+
+4. Update checksum manifest when adding or replacing authoritative outputs:
+
+```bash
+python3 lfs/checksums.py generate
+git add lfs/checksums/manifest.sha256
+```
+
+5. Commit and push normally.
+
+## 5. Organizer Classification Rules
+
+`lfs/organize_data.py` uses first-match priority:
+
+1. `TACC_`
+2. `indiv_contour` or `indiv_mismatch`
+3. `super_contour`
+4. `mismatch_contour` or `mismatch_contours`
+5. plural `contours`
+6. `mismatch_` dictionary-style outputs
+
+Notes:
+
+- The organizer skips files already inside classified destination folders.
+- Destination folders are never moved by the organizer.
+
+## 6. LFS Tracking Rules and Checks
+
+This repository tracks pickle files with:
+
+```gitattributes
+*.pkl filter=lfs diff=lfs merge=lfs -text
+```
+
+Useful checks:
+
+```bash
+git lfs ls-files
 du -h data/**/*.pkl 2>/dev/null | sort -h | tail
 ```
 
-## 9. If Push Size Explodes Again
-- Confirm new large file actually became a pointer (inspect first line). If not, re-add after ensuring rule exists.
-- Avoid committing raw large binaries outside configured patterns.
-- Run `bash lfs/setup_lfs.sh` to re-normalize.
+To add another large extension in the future:
 
-## 10. (Optional) Full History Cleanup
-If future repository bloat becomes problematic, see:
+```bash
+git lfs track "*.ipynb"
+git add .gitattributes
+git commit -m "chore: track notebooks with LFS"
 ```
-lfs/history_cleanup.md
+
+## 7. Integrity and Drift Detection
+
+Checksum commands:
+
+```bash
+python3 lfs/checksums.py generate
+python3 lfs/checksums.py verify
+python3 lfs/checksums.py changed
 ```
-You decided *not* to rewrite history now. This doc contains filter-repo & BFG recipes should the decision change.
 
-## 11. Recovery & Safety
-- Pre-clean tag (if one created) allows comparing old vs new state.
-- LFS pointers are safe to merge; conflicts are rare unless editing pointer text.
-- If a pointer file becomes corrupted locally, checkout from git and re-run `git lfs pull`.
+Guidance:
 
-## 12. FAQ
-**Q: Why are pointer files tiny but checksum manifest lists big sizes?**  
-Checksums hash the actual binary content present locally after LFS smudge. If you generated manifest before pulling real content, you'd hash pointer text instead—always ensure `git lfs pull` first.
+- Run `git lfs pull` before trusting verification on a fresh clone.
+- Commit manifest updates only when data changes are intentional and part of the contribution.
 
-**Q: Can I exclude experimental huge runs?**  
-Yes—add them to `.gitignore` or store externally; do not track via Git if not needed for reproducibility.
+## 8. Size Guard for Non-LFS Files
 
-**Q: How to raise default size guard permanently?**  
-Edit `MAX_SIZE_MB` default inside `lfs/precommit_size_guard.sh` or export it in your shell profile.
+Install once:
+
+```bash
+bash lfs/install_precommit_hook.sh
+```
+
+Default non-LFS size threshold is 5 MB. Override for the current shell session if needed:
+
+```bash
+export MAX_SIZE_MB=15
+```
+
+## 9. Reproducibility and Portability Notes
+
+- Pickle files can be Python-version sensitive.
+- For long-term portability, consider exporting summary metadata alongside pickles (CSV, JSON, or HDF5 metadata tables).
+- Keep HDF5 schema expectations aligned with `docs/HDF5_SCHEMA_V1.md`.
+
+## 10. Shared Filesystem Workflow (TACC)
+
+For shared canonical storage and symlink-based access on STOCKYARD, follow:
+
+- `docs/WORKFLOW_STOCKYARD.md`
+
+## 11. Troubleshooting
+
+If push size unexpectedly grows:
+
+1. Confirm large files are pointers (`head -n 3` check).
+2. Re-run `bash lfs/setup_lfs.sh`.
+3. Ensure new large formats are tracked in `.gitattributes`.
+
+If a pointer appears corrupted locally:
+
+```bash
+git checkout -- data/path/to/file.pkl
+git lfs pull
+```
+
+## 12. Optional History Rewrite
+
+If historical repository bloat must be reduced, use:
+
+- `lfs/history_cleanup.md`
+
+History rewrites are disruptive and should be coordinated with all collaborators before execution.
 
 ---
-_Last updated: 2025-10-09_
+Last updated: 2026-04-03
