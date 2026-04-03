@@ -2,6 +2,7 @@
 
 Provides:
 - open_bank_readonly(path) -> (h5, omega, theta, gamma, bank, attrs)
+- safe_open_bank_readonly(path) -> (payload_or_none, error_message_or_none)
 - create_bank_writer(path, shape, dtype, chunking, dset_attrs)
 - create_mismatch_cube(path, td_pts, theta_arr, omega_arr, gamma_arr, mcz, td_arr, save_full_mismatch)
 
@@ -41,6 +42,16 @@ PARAM_UNITS: Dict[str, str] = {
     "mcz_detector_msun": "Msun",
     "z": "dimensionless",
 }
+
+
+BankReadonlyPayload = Tuple[
+    h5py.File,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    h5py.Dataset,
+    Dict[str, Any],
+]
 
 
 def _is_scalar_metadata_value(value: Any) -> bool:
@@ -338,7 +349,7 @@ def read_best_match_contour_data(input_path: str, value_dataset: str) -> Dict[st
 
 def open_bank_readonly(
     filepath: str,
-) -> Tuple[h5py.File, np.ndarray, np.ndarray, np.ndarray, h5py.Dataset, Dict[str, Any]]:
+) -> BankReadonlyPayload:
     """
     Open a bank HDF5 file for read-only access and return handles/arrays.
 
@@ -346,12 +357,31 @@ def open_bank_readonly(
     Caller is responsible for closing the returned h5_file.
     """
     h5 = h5py.File(filepath, "r")
-    omega = np.array(h5["omega"]).astype(float)
-    theta = np.array(h5["theta"]).astype(float)
-    gamma = np.array(h5["gamma"]).astype(float)
-    bank = h5["bank"]
-    attrs = dict(bank.attrs.items())
-    return h5, omega, theta, gamma, bank, attrs
+    try:
+        omega = np.array(h5["omega"]).astype(float)
+        theta = np.array(h5["theta"]).astype(float)
+        gamma = np.array(h5["gamma"]).astype(float)
+        bank = h5["bank"]
+        attrs = dict(bank.attrs.items())
+        return h5, omega, theta, gamma, bank, attrs
+    except Exception:
+        h5.close()
+        raise
+
+
+def safe_open_bank_readonly(
+    filepath: str,
+) -> Tuple[Optional[BankReadonlyPayload], Optional[str]]:
+    """Best-effort wrapper for opening a bank file read-only.
+
+    Returns:
+      (payload, None) on success
+      (None, error_message) on failure
+    """
+    try:
+        return open_bank_readonly(filepath), None
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
 
 
 @contextmanager

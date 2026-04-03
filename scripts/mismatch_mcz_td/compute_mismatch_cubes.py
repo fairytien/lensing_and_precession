@@ -42,7 +42,7 @@ from modules.match_utils import (
     mismatch_gamma_job,
 )
 from modules.bank_io import (
-    open_bank_readonly,
+    safe_open_bank_readonly,
     create_mismatch_cube,
     write_source_attrs,
     write_mcz_grid_attrs,
@@ -163,18 +163,18 @@ def main(
     processed_count = 0
     skipped_count = 0
 
+    def skip_mcz(mcz_src_msun: float, message: str, *fmt_args):
+        nonlocal skipped_count
+        logging.warning(
+            "Skipping mcz_src=%s Msun: " + message,
+            mcz_src_msun,
+            *fmt_args,
+        )
+        skipped_count += 1
+
     # Loop over mcz values
     for i in sel:
         mcz_src_msun = float(mcz_src_msun_arr[i])
-
-        def skip_current_mcz(message: str, *fmt_args):
-            nonlocal skipped_count
-            logging.warning(
-                "Skipping mcz_src=%s Msun: " + message,
-                mcz_src_msun,
-                *fmt_args,
-            )
-            skipped_count += 1
 
         lens_params = dict(lens_base)
         lens_params["mcz"] = mcz_src_msun * SOLMASS2SEC
@@ -204,25 +204,27 @@ def main(
             z=z_val,
             prefix=bank_prefix,
         )
-        if not os.path.isfile(bank_path):
-            skip_current_mcz("template bank not found: %s", bank_path)
-            continue
-
         # Open bank for slicing without loading to memory
-        try:
-            h5, omega_arr, theta_arr, gamma_arr, bank, _ = open_bank_readonly(bank_path)
-        except Exception as exc:
-            skip_current_mcz("failed to open template bank %s (%s)", bank_path, exc)
+        bank_payload, bank_open_error = safe_open_bank_readonly(bank_path)
+        if bank_payload is None:
+            skip_mcz(
+                mcz_src_msun,
+                "template bank unavailable: %s (%s)",
+                bank_path,
+                bank_open_error or "unknown error",
+            )
             continue
+        h5, omega_arr, theta_arr, gamma_arr, bank, _ = bank_payload
 
         mm_out_path = None
         with h5:
-            n_theta, n_omega, n_gamma, n_freq = bank.shape
+            n_theta, n_omega, n_gamma, _ = bank.shape
 
             if not (
                 n_theta == theta_pts and n_omega == omega_pts and n_gamma == gamma_pts
             ):
-                skip_current_mcz(
+                skip_mcz(
+                    mcz_src_msun,
                     "bank grid mismatch in %s (expected theta=%d omega=%d gamma=%d, got theta=%d omega=%d gamma=%d)",
                     bank_path,
                     theta_pts,
@@ -275,8 +277,11 @@ def main(
                     save_full_mismatch=save_full_mismatch,
                 )
             except Exception as exc:
-                skip_current_mcz(
-                    "failed to create mismatch cube file %s (%s)", mm_out_path, exc
+                skip_mcz(
+                    mcz_src_msun,
+                    "failed to create mismatch cube file %s (%s)",
+                    mm_out_path,
+                    exc,
                 )
                 continue
 
@@ -326,10 +331,11 @@ def main(
 
                     # Prepare jobs across (theta, omega) using indices only
                     total_jobs = int(n_theta) * int(n_omega)
-                    if n_workers is None:
-                        n_workers_eff = min(cpu_count(), total_jobs)
-                    else:
-                        n_workers_eff = int(n_workers)
+                    n_workers_eff = (
+                        int(n_workers)
+                        if n_workers is not None
+                        else min(cpu_count(), total_jobs)
+                    )
 
                     Zgrid = np.zeros((n_theta, n_omega), dtype=np.float32)
                     Ggrid = np.zeros_like(Zgrid)
@@ -384,7 +390,8 @@ def main(
                             mm_out_path,
                             exc,
                         )
-                skip_current_mcz(
+                skip_mcz(
+                    mcz_src_msun,
                     "mismatch evaluation failed for bank %s (%s)",
                     bank_path,
                     mcz_failed_exc,
