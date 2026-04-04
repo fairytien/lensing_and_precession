@@ -5,6 +5,8 @@ if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
 fi
 
 if command -v conda >/dev/null 2>&1; then
+  # Change the default 'fairytien_gw' to your conda environment name,
+  # or set the CONDA_ENV_NAME environment variable to override it.
   ENV_NAME="${CONDA_ENV_NAME:-fairytien_gw}"
   conda activate "$ENV_NAME" 2>/dev/null || {
     [ -f "$HOME/.bashrc" ] && source "$HOME/.bashrc" >/dev/null 2>&1
