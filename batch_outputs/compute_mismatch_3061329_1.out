@@ -1,0 +1,7 @@
+[INFO] Resolved bank input directory: ./data/template_banks_z1_Taman_faceon
+[INFO] Resolved mismatch output directory: ./data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon
+[INFO] Chunking mcz across 81 chunks: running indices [1:2)
+[INFO] [2/81] Processing mcz_src=5.5 Msun, z=1, mcz_det=11.0 Msun with td 20.0-70.0ms td51, omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[WARNING] Skipping mcz_src=5.5 Msun: template bank unavailable: ./data/template_banks_z1_Taman_faceon/rp_bank_z1_mcz5p5_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5 (OSError: Unable to synchronously open file (bad object header version number))
+[INFO] Mismatch cube computation completed: processed=0 skipped=1
+Total time to run the script: 0:0:0.02 (h:m:s)
