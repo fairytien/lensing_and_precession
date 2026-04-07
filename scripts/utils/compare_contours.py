@@ -477,10 +477,14 @@ def create_comparison_contours(
         else:
             print(f"{lab} epsilon range: NaN-only")
 
-    # Determine subplot grid: up to 3 columns per row
+    # Determine subplot grid.
+    # Use a true 2x2 layout for four panels to avoid empty columns.
     n = len(paths)
-    cols = min(3, n)
-    rows = int(np.ceil(n / 3.0))
+    if n == 4:
+        rows, cols = 2, 2
+    else:
+        cols = min(3, n)
+        rows = int(np.ceil(n / float(cols)))
     figsize = (5 * cols, 5 * rows)
 
     fig, axes = plt.subplots(rows, cols, figsize=figsize, constrained_layout=True)
