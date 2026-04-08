@@ -446,6 +446,7 @@ def plot_best_match_overlay_from_contour(
     lensed_color: str = "magenta",
     rp_color: str = "black",
     rp_linestyle: str = "-",
+    rp_label: str = "RP (best)",
 ) -> dict:
     """Plot lensed vs best-match RP overlay from one contour dictionary.
 
@@ -475,19 +476,31 @@ def plot_best_match_overlay_from_contour(
         f_arr, np.zeros_like(f_arr), c=baseline_color, ls="-", label="unlensed"
     )
     axes[0].plot(f_arr, frac_lensed, c=lensed_color, ls="-", label="lensed")
-    axes[0].plot(f_arr, frac_rp, c=rp_color, ls=rp_linestyle, label="RP (best)")
+    axes[0].plot(f_arr, frac_rp, c=rp_color, ls=rp_linestyle, label=rp_label)
 
     axes[1].plot(f_arr, phase_diff, c=rp_color, ls=rp_linestyle)
 
     epsilon_matrix = np.asarray(contour_data["epsilon_matrix"], dtype=float)
     best_epsilon = float(np.nanmin(epsilon_matrix))
 
+    mcz_msun = float(contour_data.get("mcz_msun", np.nan))
+    if not np.isfinite(mcz_msun):
+        mcz_msun = float(source_params.get("mcz", np.nan)) / SOLMASS2SEC
+
+    td_ms = float(contour_data.get("td_ms", np.nan))
+    if not np.isfinite(td_ms):
+        td_ms = float(lensed_inst.td() * 1e3)
+
+    I_val = float(contour_data.get("I", np.nan))
+    if not np.isfinite(I_val):
+        I_val = float(lensed_inst.I())
+
     return {
         "omega_tilde": float(template_params["omega_tilde"]),
         "theta_tilde": float(template_params["theta_tilde"]),
         "gamma_P": float(template_params["gamma_P"]),
         "epsilon": best_epsilon,
-        "mcz_msun": float(contour_data.get("mcz_msun", np.nan)),
-        "td_ms": float(contour_data.get("td_ms", np.nan)),
-        "I": float(contour_data.get("I", np.nan)),
+        "mcz_msun": mcz_msun,
+        "td_ms": td_ms,
+        "I": I_val,
     }
