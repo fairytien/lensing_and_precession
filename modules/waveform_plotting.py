@@ -444,15 +444,18 @@ def plot_best_match_overlay_from_contour(
     npoints: int = 10000,
     baseline_color: str = "darkorange",
     lensed_color: str = "magenta",
+    np_linestyle: str = "--",
+    np_label: str = "NP",
     rp_color: str = "black",
     rp_linestyle: str = "-",
     rp_label: str = "RP (best)",
 ) -> dict:
     """Plot lensed vs best-match RP overlay from one contour dictionary.
 
-    Left panel: fractional amplitude change relative to unlensed source waveform
-    for both lensed and RP waveforms.
-    Right panel: phase difference between lensed and RP waveforms.
+    Left panel: fractional amplitude change with template waveforms in the
+    numerator, relative to the lensed source waveform (source/template form).
+    Right panel: phase differences with templates on the left, i.e.
+    ``Phi_t - Phi_s``.
 
     Returns summary metadata dict containing best-match coordinates and epsilon.
     """
@@ -468,17 +471,19 @@ def plot_best_match_overlay_from_contour(
     lensed_strain = np.asarray(lensed_inst.strain(f_arr, frequencySeries=False))
     rp_strain = np.asarray(rp_inst.strain(f_arr, frequencySeries=False))
 
-    frac_lensed = _safe_relative_amplitude(lensed_strain, unlensed_source)
-    frac_rp = _safe_relative_amplitude(rp_strain, unlensed_source)
-    phase_diff = compute_phase(lensed_strain) - compute_phase(rp_strain)
+    frac_np = _safe_relative_amplitude(unlensed_source, lensed_strain)
+    frac_rp = _safe_relative_amplitude(rp_strain, lensed_strain)
 
-    axes[0].plot(
-        f_arr, np.zeros_like(f_arr), c=baseline_color, ls="-", label="unlensed"
-    )
-    axes[0].plot(f_arr, frac_lensed, c=lensed_color, ls="-", label="lensed")
+    phase_lensed = compute_phase(lensed_strain)
+    phase_np = compute_phase(unlensed_source) - phase_lensed
+    phase_rp = compute_phase(rp_strain) - phase_lensed
+
+    axes[0].plot(f_arr, np.zeros_like(f_arr), c=lensed_color, ls="-", label="lensed")
+    axes[0].plot(f_arr, frac_np, c=baseline_color, ls=np_linestyle, label=np_label)
     axes[0].plot(f_arr, frac_rp, c=rp_color, ls=rp_linestyle, label=rp_label)
 
-    axes[1].plot(f_arr, phase_diff, c=rp_color, ls=rp_linestyle)
+    axes[1].plot(f_arr, phase_np, c=baseline_color, ls=np_linestyle, label=np_label)
+    axes[1].plot(f_arr, phase_rp, c=rp_color, ls=rp_linestyle, label=rp_label)
 
     epsilon_matrix = np.asarray(contour_data["epsilon_matrix"], dtype=float)
     best_epsilon = float(np.nanmin(epsilon_matrix))

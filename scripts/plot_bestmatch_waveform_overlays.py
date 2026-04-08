@@ -21,7 +21,7 @@ DEFAULT_INPUTS = [
 ]
 
 NOTEBOOK_LINE_STYLES = ["-", "--", ":"]
-NOTEBOOK_LINE_COLORS = ["magenta", "blue", "blue"]
+NOTEBOOK_LINE_COLORS = ["black", "blue", "magenta"]
 
 
 def _apply_notebook_font_style() -> None:
@@ -67,49 +67,38 @@ def _format_token(value: float, decimals: int = 1) -> str:
 
 
 def _row_parameter_box_text(summary: dict) -> str:
-    lines = [
-        "System 2",
-        rf"$\mathcal{{M}}_{{\rm s}} = {_format_stat(summary['mcz_msun'])}\,M_\odot$",
-        rf"$\Delta t_d = {_format_stat(summary['td_ms'])}\,\mathrm{{ms}}$",
-        rf"$I = {_format_stat(summary['I'])}$",
-        rf"$\tilde{{\Omega}} = {_format_stat(summary['omega_tilde'])}$",
-        rf"$\tilde{{\theta}} = {_format_stat(summary['theta_tilde'])}$",
-        rf"$\gamma_P = {_format_stat(summary['gamma_P'])}$",
-        rf"$\epsilon_\min = {_format_stat(summary['epsilon'])}$",
-    ]
-    return "\n".join(lines)
+    return (
+        rf"$\mathcal{{M}}_{{\rm s}}={_format_stat(summary['mcz_msun'])}\,M_\odot$, "
+        rf"$\~\Omega={_format_stat(summary['omega_tilde'])}$, "
+        rf"$\~\theta={_format_stat(summary['theta_tilde'])}$, "
+        rf"$\gamma_P={_format_stat(summary['gamma_P'])}$, "
+        rf"$\epsilon_\min={_format_stat(summary['epsilon'], '.2g')}$"
+    )
 
 
-def _place_right_row_boxes(
+def _place_column_header_boxes(
     fig,
     axes: np.ndarray,
     summaries: list[dict],
     *,
-    box_pad: float = 0.012,
-    fontsize: int = 14,
+    y_pad: float = 0.004,
+    fontsize: int = 20,
 ) -> None:
-    """Place one metadata box per row to the right of the right-hand panel."""
+    """Place one unboxed metadata header above each system column."""
     fig.canvas.draw()
-    nrows = axes.shape[0]
-    for row in range(nrows):
-        right_pos = axes[row, 1].get_position()
-        x = min(right_pos.x1 + box_pad, 0.985)
-        y_center = 0.5 * (right_pos.y0 + right_pos.y1)
+    ncols = axes.shape[1]
+    for col in range(ncols):
+        top_pos = axes[0, col].get_position()
+        x_center = 0.5 * (top_pos.x0 + top_pos.x1)
+        y = min(top_pos.y1 + y_pad, 0.905)
         fig.text(
-            x,
-            y_center,
-            _row_parameter_box_text(summaries[row]),
-            ha="left",
-            va="center",
+            x_center,
+            y,
+            _row_parameter_box_text(summaries[col]),
+            ha="center",
+            va="bottom",
             fontsize=fontsize,
             fontfamily="DejaVu Sans",
-            linespacing=1.25,
-            bbox={
-                "facecolor": "white",
-                "edgecolor": "black",
-                "alpha": 0.85,
-                "pad": 4.0,
-            },
         )
 
 
@@ -131,87 +120,82 @@ def plot_combined(
             raise FileNotFoundError(f"Input pickle not found: {input_path}")
 
     datasets = [load_pickle(path) for path in input_paths]
-    nrows = len(datasets)
+    ncols = len(datasets)
 
     fig, axes = plt.subplots(
-        nrows=nrows,
-        ncols=2,
-        figsize=(18, 4.3 * nrows),
-        sharex=False,
+        nrows=2,
+        ncols=ncols,
+        figsize=(8.6 * ncols, 8.4),
+        sharex="col",
+        sharey="row",
     )
-    if nrows == 1:
-        axes = np.atleast_2d(axes)
+    if ncols == 1:
+        axes = np.asarray(axes).reshape(2, 1)
 
     fig.subplots_adjust(
-        left=0.08, right=0.80, bottom=0.10, top=0.86, wspace=0.22, hspace=0.42
+        left=0.085, right=0.985, bottom=0.095, top=0.865, wspace=0.07, hspace=0.10
     )
 
     summaries: list[dict] = []
-    for row, data in enumerate(datasets):
-        row_axes = axes[row]
+    for col, data in enumerate(datasets):
+        col_axes = axes[:, col]
         summary = plot_best_match_overlay_from_contour(
             data,
-            row_axes,
+            col_axes,
             f_min=f_min,
             npoints=npoints,
-            baseline_color="#000000",
+            baseline_color=NOTEBOOK_LINE_COLORS[1],
             lensed_color=NOTEBOOK_LINE_COLORS[0],
-            rp_color=NOTEBOOK_LINE_COLORS[1],
-            rp_linestyle=NOTEBOOK_LINE_STYLES[1],
+            np_label="NP",
+            rp_color=NOTEBOOK_LINE_COLORS[2],
+            rp_linestyle=NOTEBOOK_LINE_STYLES[0],
             rp_label="best RP",
         )
         summaries.append(summary)
 
-        customize_2x1_axes_ratio(row_axes)
+        customize_2x1_axes_ratio(col_axes)
 
-        for ax in row_axes:
+        for ax in col_axes:
             ax.set_xlim(left=f_min)
 
-        row_axes[0].set_xlabel("")
-        row_axes[1].set_xlabel("")
-        row_axes[0].set_ylabel("")
-        row_axes[1].set_ylabel("")
+        col_axes[0].set_xlabel("")
+        col_axes[0].set_ylabel("")
+        col_axes[1].set_ylabel("")
+        col_axes[0].tick_params(axis="x", labelbottom=False)
+
+        if col > 0:
+            col_axes[0].tick_params(axis="y", labelleft=False)
+            col_axes[1].tick_params(axis="y", labelleft=False)
+
+    for col in range(ncols):
+        axes[1, col].set_xlabel("f (Hz)", fontsize=24, labelpad=2)
+
+    axes[0, 0].set_ylabel(
+        r"$\left(B_{\rm t}/B_{\rm s}\right) - 1$", fontsize=24, labelpad=4
+    )
+    axes[1, 0].set_ylabel(
+        r"$\Phi_{\rm t} - \Phi_{\rm s}$ (rad)", fontsize=24, labelpad=4
+    )
+    axes[0, 0].yaxis.set_label_coords(-0.105, 0.5)
+    axes[1, 0].yaxis.set_label_coords(-0.105, 0.5)
 
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    for row in range(nrows):
-        legend = axes[row, 0].get_legend()
+    for col in range(ncols):
+        legend = axes[0, col].get_legend()
         if legend is not None:
             legend.remove()
-
-    fig.canvas.draw()
-    left_pos = axes[0, 0].get_position()
-    right_pos = axes[0, 1].get_position()
-    legend_x = 0.5 * (left_pos.x0 + right_pos.x1)
 
     fig.legend(
         handles,
         labels,
         loc="upper center",
-        bbox_to_anchor=(legend_x, 0.95),
+        bbox_to_anchor=(0.5, 0.995),
         ncol=3,
         frameon=True,
         fontsize=20,
     )
 
-    _place_right_row_boxes(fig, axes, summaries)
-
-    fig.text(
-        0.016,
-        0.5,
-        r"$\left(B/B_{\rm unlensed}\right) - 1$",
-        va="center",
-        rotation="vertical",
-        fontsize=24,
-    )
-    fig.text(
-        0.44,
-        0.5,
-        r"$\Phi_{\rm L} - \Phi_{\rm RP}$ (rad)",
-        va="center",
-        rotation="vertical",
-        fontsize=24,
-    )
-    fig.text(0.50, 0.04, "f (Hz)", ha="center", va="center", fontsize=24)
+    _place_column_header_boxes(fig, axes, summaries)
 
     mcz_labels = [
         infer_mcz_label(data, os.path.basename(path))
@@ -221,7 +205,7 @@ def plot_combined(
     out_path = os.path.join(
         output_dir, f"{output_prefix}_mcz{mcz_token}_combined_fracamp.pdf"
     )
-    fig.savefig(out_path, bbox_inches="tight", pad_inches=0.03, dpi=dpi)
+    fig.savefig(out_path, bbox_inches="tight", pad_inches=0.01, dpi=dpi)
     plt.close(fig)
 
     print(f"Saved: {out_path}")
@@ -252,12 +236,12 @@ def main():
     )
     parser.add_argument(
         "--output_dir",
-        default="figures/waveforms/paper",
+        default="figures/waveforms",
         help="Directory for output PDF files.",
     )
     parser.add_argument(
         "--output_prefix",
-        default="bestmatch_waveform_overlays",
+        default="sys2_bestmatch_waveform_overlays",
         help="Prefix for output filename stems.",
     )
     parser.add_argument("--f_min", type=float, default=20.0)
