@@ -17,9 +17,6 @@ source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 
 ORIENT_PRESET=Taman_random
-MCZ_MIN=5
-MCZ_MAX=45
-MCZ_PTS=81
 
 python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --I "${FLUX_RATIO}" \

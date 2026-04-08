@@ -1,0 +1,5 @@
+[INFO] Resolved bank output directory: ./data/template_banks_z1_Taman_faceon
+[INFO] Chunking mcz across 7 chunks: running indices [3:4)
+[INFO] [4/7] Building bank for mcz=7.0 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
+[INFO] Saved: ./data/template_banks_z1_Taman_faceon/rp_bank_z1_mcz7_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5
+Total time to run the script: 0:3:14.42 (h:m:s)
