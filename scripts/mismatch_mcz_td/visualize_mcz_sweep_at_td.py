@@ -278,19 +278,35 @@ def save_html_slider_over_mcz(
 
 
 def _discover_cube_files(input_dir: str, orientation_tag: Optional[str]) -> List[str]:
-    """Find valid mismatch cube files under input_dir, optionally filtering by orientation tag."""
+    """Find valid mismatch cube files under input_dir.
+
+    Supports both:
+    - input_dir as a folder that directly contains cube .h5 files
+    - input_dir as a run directory that contains a mismatch_cubes/ subfolder
+    """
     if not os.path.isdir(input_dir):
         return []
+
+    candidate_dirs = [input_dir]
+    nested = os.path.join(input_dir, "mismatch_cubes")
+    if os.path.isdir(nested):
+        candidate_dirs.insert(0, nested)
+
     files = []
-    for name in os.listdir(input_dir):
-        if not name.endswith(".h5"):
-            continue
-        if orientation_tag and not name.endswith(f"_{orientation_tag}.h5"):
-            continue
-        path = os.path.join(input_dir, name)
-        if parse_mcz_from_mismatch_cube_path(path) is None:
-            continue
-        files.append(path)
+    seen = set()
+    for cube_dir in candidate_dirs:
+        for name in os.listdir(cube_dir):
+            if not name.endswith(".h5"):
+                continue
+            if orientation_tag and not name.endswith(f"_{orientation_tag}.h5"):
+                continue
+            path = os.path.join(cube_dir, name)
+            if path in seen:
+                continue
+            if parse_mcz_from_mismatch_cube_path(path) is None:
+                continue
+            files.append(path)
+            seen.add(path)
     return sorted(files)
 
 
@@ -356,7 +372,10 @@ def main():
     p.add_argument(
         "--input_dir",
         default=os.path.join(repo_root, "data/mismatch/mismatch_cubes"),
-        help="Directory containing per-mcz mismatch cube HDF5 files",
+        help=(
+            "Directory containing per-mcz mismatch cube HDF5 files, or a run "
+            "directory that contains mismatch_cubes/"
+        ),
     )
     p.add_argument(
         "--orientation_tag",
@@ -397,7 +416,10 @@ def main():
     files = _discover_cube_files(args.input_dir, args.orientation_tag)
     if not files:
         raise FileNotFoundError(
-            f"No mismatch cube files found in {args.input_dir} (tag={args.orientation_tag})"
+            "No mismatch cube files found in "
+            f"{args.input_dir} (tag={args.orientation_tag}). "
+            "Expected cube .h5 files directly under input_dir or under "
+            "input_dir/mismatch_cubes/."
         )
 
     # Load axes consistency and collect per-mcz slices at fixed td
