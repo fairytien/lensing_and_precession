@@ -1,0 +1,315 @@
+"""Generate the finalized paper-style 2x2 contour comparison figure.
+
+This script reproduces the latest figure style used in this project:
+- 2x2 shared-axis layout
+- global/shared color scale across all panels
+- in-panel label boxes: Non-Precessing, System 1/2/3
+- 1/2/3 cycle overlays on all panels
+- peaks (magenta) and troughs (white) overlays on panel 1 only
+- overlay curves scaled from z_from to z_to (defaults: 1e-8 -> 1)
+- colorbar aligned to right-column axis bounds (excluding bottom xlabel height)
+- colorbar tick labels formatted to fixed decimals (default: 2)
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from typing import List
+
+import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
+import numpy as np
+from matplotlib.lines import Line2D
+
+
+# Ensure repository root is importable when running this file directly.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+from modules.cosmology import source_mass_redshift_scale
+from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
+from scripts.utils.plot_cycles_and_extrema_mcz import (
+    find_mcz_peaks,
+    find_mcz_troughs,
+    plot_cycle_lines,
+)
+
+
+DEFAULT_PATHS = [
+    "data/super_contours/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
+    "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5",
+    "data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5",
+    "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5",
+]
+
+DEFAULT_PANEL_LABELS = [
+    "Non-Precessing",
+    "System 1",
+    "System 2",
+    "System 3",
+]
+
+DEFAULT_OUTPUT = (
+    "figures/utils/"
+    "compare_LensingvsNPz1_LensingvsRPface-onz1_"
+    "LensingvsRPedge-onz1_LensingvsRPrandomz1_same_scale.pdf"
+)
+
+
+def _validate_paths(paths: List[str]) -> List[str]:
+    if len(paths) != 4:
+        raise ValueError(f"Expected exactly 4 paths, got {len(paths)}")
+    missing = [p for p in paths if not os.path.exists(p)]
+    if missing:
+        raise FileNotFoundError(f"Missing input files: {missing}")
+    return paths
+
+
+def create_figure(
+    paths: List[str],
+    panel_labels: List[str],
+    output_path: str,
+    decimals: int,
+    levels_count: int,
+    dpi: int,
+    eta: float,
+    f_min: float,
+    z_from: float,
+    z_to: float,
+    cbar_n_ticks: int,
+    cmap: str,
+) -> None:
+    if len(panel_labels) != 4:
+        raise ValueError("Expected exactly 4 panel labels")
+
+    loaded = [load_generic_dataset(p) for p in paths]
+    xs = [t[0] for t in loaded]
+    ys = [t[1] for t in loaded]
+    eps = [t[2] for t in loaded]
+    xlabels = [t[3] for t in loaded]
+    ylabels = [t[4] for t in loaded]
+    data_types = [t[5] for t in loaded]
+
+    if len(set(data_types)) != 1 or data_types[0] != "td_mcz":
+        raise ValueError(
+            "All inputs must be td_mcz datasets (best_match/super_contour td-mcz grids)."
+        )
+
+    eps_masked, global_min, global_max = compute_color_scale(eps, "auto")
+    overlay_mcz_scale = source_mass_redshift_scale(z_from, z_to)
+
+    plt.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.size": 12,
+            "axes.labelsize": 14,
+            "xtick.labelsize": 11,
+            "ytick.labelsize": 11,
+        }
+    )
+
+    fig, axes = plt.subplots(2, 2, figsize=(10.0, 8.8), sharex=True, sharey=True)
+    axes = axes.reshape(-1)
+    levels = np.linspace(global_min, global_max, levels_count)
+
+    for i, ax in enumerate(axes):
+        cf = ax.contourf(xs[i], ys[i], eps_masked[i], levels=levels, cmap=cmap)
+
+        td_arr_ms = xs[i][0, :]
+        td_arr = td_arr_ms / 1e3
+        mcz_min = float(np.nanmin(ys[i]))
+        mcz_max = float(np.nanmax(ys[i]))
+
+        # 1/2/3 cycle overlays on all panels.
+        plot_cycle_lines(
+            td_arr,
+            td_arr_ms,
+            eta=eta,
+            f_min=f_min,
+            mcz_scale=overlay_mcz_scale,
+            ax=ax,
+        )
+
+        # Peaks/troughs only on panel 1 (Non-Precessing).
+        if i == 0:
+            mcz_min_unscaled = mcz_min / overlay_mcz_scale
+            mcz_max_unscaled = mcz_max / overlay_mcz_scale
+
+            td_peak, mcz_peak = find_mcz_peaks(
+                td_arr,
+                eta=eta,
+                mcz_min=mcz_min_unscaled,
+                mcz_max=mcz_max_unscaled,
+            )
+            if td_peak.size > 0:
+                ax.scatter(
+                    td_peak * 1e3,
+                    mcz_peak * overlay_mcz_scale,
+                    c="magenta",
+                    marker=".",
+                    s=7,
+                    alpha=0.9,
+                    zorder=6,
+                )
+
+            td_trough, mcz_trough = find_mcz_troughs(
+                td_arr,
+                eta=eta,
+                mcz_min=mcz_min_unscaled,
+                mcz_max=mcz_max_unscaled,
+            )
+            if td_trough.size > 0:
+                ax.scatter(
+                    td_trough * 1e3,
+                    mcz_trough * overlay_mcz_scale,
+                    c="white",
+                    marker=".",
+                    s=7,
+                    alpha=0.9,
+                    zorder=6,
+                )
+
+        row, col = divmod(i, 2)
+        ax.set_xlabel(xlabels[i] if row == 1 else "")
+        ax.set_ylabel(ylabels[i] if col == 0 else "")
+
+        # In-panel label boxes (final style, non-bold text).
+        ax.text(
+            0.03,
+            0.97,
+            panel_labels[i],
+            transform=ax.transAxes,
+            ha="left",
+            va="top",
+            color="black",
+            fontsize=11,
+            fontweight="normal",
+            bbox={"facecolor": "white", "edgecolor": "black", "alpha": 0.75, "pad": 3.0},
+            zorder=10,
+        )
+
+        if hasattr(ax, "set_box_aspect"):
+            ax.set_box_aspect(1)
+        ax.tick_params(direction="in", top=True, right=True)
+
+    # Leave fixed margin for manual colorbar and bottom legend.
+    fig.subplots_adjust(
+        left=0.09,
+        right=0.84,
+        top=0.90,
+        bottom=0.12,
+        wspace=0.08,
+        hspace=0.08,
+    )
+
+    # Colorbar aligned to right-column axes bounds (excludes xlabel extent).
+    fig.canvas.draw()
+    pos_top_right = axes[1].get_position()
+    pos_bottom_right = axes[3].get_position()
+
+    x_right = max(pos_top_right.x1, pos_bottom_right.x1)
+    y0 = pos_bottom_right.y0
+    y1 = pos_top_right.y1
+
+    cax = fig.add_axes([x_right + 0.018, y0, 0.024, y1 - y0])
+    cbar = fig.colorbar(cf, cax=cax)
+    cbar.set_label(
+        r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_L,\tilde{h}_P)$"
+    )
+    cbar.locator = mticker.MaxNLocator(nbins=max(2, cbar_n_ticks), steps=[1, 2, 2.5, 5, 10])
+    cbar.formatter = mticker.FormatStrFormatter(f"%.{decimals}f")
+    cbar.update_ticks()
+
+    overlay_handles = [
+        Line2D([0], [0], color="black", lw=2, ls="-", label="1 cycle"),
+        Line2D([0], [0], color="black", lw=2, ls="--", label="2 cycles"),
+        Line2D([0], [0], color="black", lw=2, ls=":", label="3 cycles"),
+        Line2D(
+            [0],
+            [0],
+            linestyle="None",
+            marker="o",
+            markersize=6,
+            markerfacecolor="magenta",
+            markeredgecolor="magenta",
+            label="peaks",
+        ),
+        Line2D(
+            [0],
+            [0],
+            linestyle="None",
+            marker="o",
+            markersize=6,
+            markerfacecolor="white",
+            markeredgecolor="black",
+            label="troughs",
+        ),
+    ]
+    overlay_legend = fig.legend(
+        handles=overlay_handles,
+        loc="lower center",
+        bbox_to_anchor=(0.5, 0.012),
+        ncol=5,
+        frameon=True,
+        fontsize=11,
+    )
+    overlay_legend.get_frame().set_alpha(0.35)
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+    print(f"Saved figure: {output_path}")
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate the finalized paper-style 2x2 contour comparison figure."
+    )
+    parser.add_argument(
+        "--paths",
+        nargs=4,
+        default=DEFAULT_PATHS,
+        help="Exactly 4 input paths in panel order.",
+    )
+    parser.add_argument(
+        "--panel-labels",
+        nargs=4,
+        default=DEFAULT_PANEL_LABELS,
+        help="Exactly 4 in-panel box labels.",
+    )
+    parser.add_argument("--output", type=str, default=DEFAULT_OUTPUT)
+    parser.add_argument("--decimals", type=int, default=2)
+    parser.add_argument("--levels", type=int, default=160)
+    parser.add_argument("--dpi", type=int, default=400)
+    parser.add_argument("--eta", type=float, default=0.25)
+    parser.add_argument("--f_min", type=float, default=20.0)
+    parser.add_argument("--overlay-z-from", type=float, default=1e-8)
+    parser.add_argument("--overlay-z-to", type=float, default=1.0)
+    parser.add_argument("--cbar-n-ticks", type=int, default=12)
+    parser.add_argument("--cmap", type=str, default="jet")
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = _parse_args()
+    paths = _validate_paths(args.paths)
+    create_figure(
+        paths=paths,
+        panel_labels=args.panel_labels,
+        output_path=args.output,
+        decimals=args.decimals,
+        levels_count=args.levels,
+        dpi=args.dpi,
+        eta=args.eta,
+        f_min=args.f_min,
+        z_from=args.overlay_z_from,
+        z_to=args.overlay_z_to,
+        cbar_n_ticks=args.cbar_n_ticks,
+        cmap=args.cmap,
+    )
+
+
+if __name__ == "__main__":
+    main()
