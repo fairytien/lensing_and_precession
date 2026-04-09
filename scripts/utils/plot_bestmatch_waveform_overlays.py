@@ -90,7 +90,7 @@ def _place_column_header_boxes(
     for col in range(ncols):
         top_pos = axes[0, col].get_position()
         x_center = 0.5 * (top_pos.x0 + top_pos.x1)
-        y = min(top_pos.y1 + y_pad, 0.905)
+        y = top_pos.y1 + y_pad
         fig.text(
             x_center,
             y,
@@ -189,7 +189,7 @@ def plot_combined(
         handles,
         labels,
         loc="upper center",
-        bbox_to_anchor=(0.5, 0.995),
+        bbox_to_anchor=(0.5, 1.01),
         ncol=3,
         frameon=True,
         fontsize=20,
