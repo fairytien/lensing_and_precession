@@ -149,11 +149,14 @@ def _add_vertical_axis_labels(
     left_label_x: float = 0.06,
     reference_row: int = 0,
     fontsize: int = 24,
+    phase_label_x_shift: float = 0.0,
 ) -> None:
     left_axis_x = axes[reference_row, 0].get_position().x0
     right_axis_x = axes[reference_row, 1].get_position().x0
     label_gap = left_axis_x - left_label_x
-    phase_label_x = float(np.clip(right_axis_x - label_gap, 0.0, 1.0))
+    phase_label_x = float(
+        np.clip(right_axis_x - label_gap + phase_label_x_shift, 0.0, 1.0)
+    )
 
     fig.text(
         left_label_x,
@@ -342,6 +345,7 @@ def plot_lensing_figure(
         amp_label,
         phase_label,
         reference_row=0,
+        phase_label_x_shift=-0.007,
     )
 
     if share_frequency_range and f_cut_common is not None:
@@ -523,6 +527,7 @@ def plot_precessing_figure(
         amp_label,
         phase_label,
         reference_row=1,
+        phase_label_x_shift=0.015,
     )
 
     if share_frequency_range and f_cut_common is not None:
