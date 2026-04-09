@@ -13,7 +13,6 @@ from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision
 from modules.plot_utils_v3 import (
     angle_to_pi_string,
-    customize_2x1_axes_ratio,
     customize_2x2_axes,
     customize_2x2_axes_ratio,
     customize_3x2_axes_abs,
@@ -91,6 +90,102 @@ def _plot_baseline(
     )
 
 
+def _apply_optional_redshift(params: dict, z: Optional[float]) -> dict:
+    if z is None:
+        return params
+    return apply_z(params, z)
+
+
+def _build_lensing_params_from_td(
+    lens_params_base: dict,
+    td: float,
+    y: float,
+    z: Optional[float],
+) -> dict:
+    lens_params = lens_params_base.copy()
+    MLz = get_MLz_from_td(td, y)
+    lens_params["MLz"] = MLz * SOLMASS2SEC
+    return _apply_optional_redshift(lens_params, z)
+
+
+def _build_lensing_params_from_I(
+    lens_params_base: dict,
+    I: float,
+    td: float,
+    z: Optional[float],
+) -> dict:
+    lens_params = lens_params_base.copy()
+    y = get_y_from_I(I)
+    MLz = get_MLz_from_td(td, y)
+    lens_params["y"] = y
+    lens_params["MLz"] = MLz * SOLMASS2SEC
+    return _apply_optional_redshift(lens_params, z)
+
+
+def _build_precessing_instances(
+    RP_params_base: dict,
+    NP_params_base: dict,
+    vary_key: str,
+    val: float,
+    fixed_items: dict,
+    z: Optional[float],
+):
+    RP_params = RP_params_base.copy()
+    for k, v in fixed_items.items():
+        RP_params[k] = v
+    RP_params[vary_key] = val
+
+    RP_params = _apply_optional_redshift(RP_params, z)
+    NP_params = _apply_optional_redshift(NP_params_base.copy(), z)
+    return Precessing(RP_params), Precessing(NP_params)
+
+
+def _add_vertical_axis_labels(
+    fig,
+    axes,
+    amp_label: str,
+    phase_label: str,
+    *,
+    left_label_x: float = 0.06,
+    reference_row: int = 0,
+    fontsize: int = 24,
+) -> None:
+    left_axis_x = axes[reference_row, 0].get_position().x0
+    right_axis_x = axes[reference_row, 1].get_position().x0
+    label_gap = left_axis_x - left_label_x
+    phase_label_x = float(np.clip(right_axis_x - label_gap, 0.0, 1.0))
+
+    fig.text(
+        left_label_x,
+        0.5,
+        amp_label,
+        va="center",
+        rotation="vertical",
+        fontsize=fontsize,
+    )
+    fig.text(
+        phase_label_x,
+        0.5,
+        phase_label,
+        va="center",
+        rotation="vertical",
+        fontsize=fontsize,
+    )
+
+
+def _build_save_path_with_mcz(
+    save_path: str,
+    z: Optional[float],
+    mcz_sec: float,
+) -> str:
+    mcz_msun = float(mcz_sec) / SOLMASS2SEC
+    root, ext = os.path.splitext(save_path)
+    return (
+        f"{root}{_format_min_precision(z, prefix='_z')}"
+        f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}{ext}"
+    )
+
+
 def plot_lensing_figure(
     lens_params_base,
     td_arr,
@@ -104,6 +199,7 @@ def plot_lensing_figure(
     baseline_color="darkorange",
     f_min=20,
     npoints=10000,
+    share_frequency_range: bool = True,
     z: Optional[float] = None,
     save_path: Optional[str] = None,
     bbox_inches="tight",
@@ -112,24 +208,53 @@ def plot_lensing_figure(
     """Plot 2x2 lensing panels varying (top) time delay via MLz and (bottom) I via y.
 
     amplitude_mode: "abs" for |h| vs NP, "ratio" for (|h_L|/|h_NP|)-1
+    share_frequency_range: if True, all panels use a common f range [f_min, f_cut_common]
+        for cleaner paper-ready comparison across subplots.
     save_path: optional file path to save the figure; format inferred by extension.
     Returns (fig, axes).
     """
     _validate_amplitude_mode(amplitude_mode)
     if npoints < 2:
         raise ValueError("npoints must be >= 2")
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 12))
-    fig.subplots_adjust(wspace=0.25)
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 12), sharex=True)
+    fig.subplots_adjust(wspace=0.25, hspace=0.12)
+
+    f_cut_common = None
+    if share_frequency_range:
+        f_cut_candidates = []
+
+        for td in np.atleast_1d(td_arr):
+            lens_params = _build_lensing_params_from_td(
+                lens_params_base,
+                td,
+                def_y,
+                z,
+            )
+            f_cut_candidates.append(float(LensingGeo(lens_params).f_cut()))
+
+        for I in np.atleast_1d(I_arr):
+            lens_params = _build_lensing_params_from_I(
+                lens_params_base,
+                I,
+                def_td,
+                z,
+            )
+            f_cut_candidates.append(float(LensingGeo(lens_params).f_cut()))
+
+        f_cut_common = float(np.min(f_cut_candidates))
+        if f_cut_common <= f_min:
+            raise ValueError("Common f_cut must be greater than f_min")
 
     # --- Top row: vary time delay (via MLz) at fixed impact y ---
     for i, td in enumerate(np.atleast_1d(td_arr)):
-        lens_params = lens_params_base.copy()
-        MLz = get_MLz_from_td(td, def_y)
-        lens_params["MLz"] = MLz * SOLMASS2SEC
-        if z is not None:
-            lens_params = apply_z(lens_params, z)
+        lens_params = _build_lensing_params_from_td(
+            lens_params_base,
+            td,
+            def_y,
+            z,
+        )
         lens_inst = LensingGeo(lens_params)
-        f_cut = lens_inst.f_cut()
+        f_cut = f_cut_common if share_frequency_range else lens_inst.f_cut()
         f_arr = make_frequency_array(f_min, f_cut, npoints=npoints)
         unlensed_strain = lens_inst.hI(f_arr)
         lensed_strain = lens_inst.strain(f_arr)
@@ -163,15 +288,14 @@ def plot_lensing_figure(
 
     # --- Bottom row: vary I (via y) at fixed time delay def_td ---
     for i, I in enumerate(np.atleast_1d(I_arr)):
-        lens_params = lens_params_base.copy()
-        y = get_y_from_I(I)
-        MLz = get_MLz_from_td(def_td, y)
-        lens_params["y"] = y
-        lens_params["MLz"] = MLz * SOLMASS2SEC
-        if z is not None:
-            lens_params = apply_z(lens_params, z)
+        lens_params = _build_lensing_params_from_I(
+            lens_params_base,
+            I,
+            def_td,
+            z,
+        )
         lens_inst = LensingGeo(lens_params)
-        f_cut = lens_inst.f_cut()
+        f_cut = f_cut_common if share_frequency_range else lens_inst.f_cut()
         f_arr = make_frequency_array(f_min, f_cut, npoints=npoints)
         unlensed_strain = lens_inst.hI(f_arr)
         lensed_strain = lens_inst.strain(f_arr)
@@ -205,45 +329,30 @@ def plot_lensing_figure(
 
     # Labels and styling
     if amplitude_mode == "abs":
-        fig.text(0.06, 0.5, r"$|\~{h}|$", va="center", rotation="vertical", fontsize=24)
-        fig.text(
-            0.49,
-            0.5,
-            r"$\Phi_L - \Phi_{NP}$ (rad)",
-            va="center",
-            rotation="vertical",
-            fontsize=24,
-        )
+        amp_label = r"$|\~{h}|$"
         customize_2x2_axes(axes)
     else:
-        fig.text(
-            0.06,
-            0.5,
-            r"$\left( B_L/B_{NP} \right) - 1$",
-            va="center",
-            rotation="vertical",
-            fontsize=24,
-        )
-        fig.text(
-            0.49,
-            0.5,
-            r"$\Phi_L - \Phi_{NP}$ (rad)",
-            va="center",
-            rotation="vertical",
-            fontsize=24,
-        )
+        amp_label = r"$\left(B_{\mathrm{L}}/B_{\mathrm{NP}}\right) - 1$"
         customize_2x2_axes_ratio(axes)
+
+    phase_label = r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{NP}}$ (rad)"
+    _add_vertical_axis_labels(
+        fig,
+        axes,
+        amp_label,
+        phase_label,
+        reference_row=0,
+    )
+
+    if share_frequency_range and f_cut_common is not None:
+        for ax in axes.ravel():
+            ax.set_xlim(f_min, f_cut_common)
 
     if z is not None:
         print(f"Applied redshift z={z} (mcz treated as source-frame)")
 
     if save_path:
-        mcz_msun = float(lens_params_base["mcz"]) / SOLMASS2SEC
-        root, ext = os.path.splitext(save_path)
-        out_path = (
-            f"{root}{_format_min_precision(z, prefix='_z')}"
-            f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}{ext}"
-        )
+        out_path = _build_save_path_with_mcz(save_path, z, lens_params_base["mcz"])
         fig.savefig(
             str(out_path),
             bbox_inches=bbox_inches,
@@ -267,6 +376,7 @@ def plot_precessing_figure(
     baseline_color="darkorange",
     f_min=20,
     delta_f=0.05,
+    share_frequency_range: bool = True,
     z: Optional[float] = None,
     save_path: Optional[str] = None,
     bbox_inches="tight",
@@ -277,32 +387,71 @@ def plot_precessing_figure(
     - Row 1: vary theta_tilde (fixed omega)
     - Row 2: vary gamma_P (fixed theta and omega)
     amplitude_mode: "abs" or "ratio".
+    share_frequency_range: if True, all panels use a common f range [f_min, f_cut_common]
+        for cleaner paper-ready comparison across subplots.
     save_path: optional file path to save the figure; format inferred by extension.
     Returns (fig, axes).
     """
     _validate_amplitude_mode(amplitude_mode)
     if delta_f <= 0:
         raise ValueError("delta_f must be > 0")
-    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18, 18))
-    fig.subplots_adjust(wspace=0.25)
+    fig, axes = plt.subplots(nrows=3, ncols=2, figsize=(18, 18), sharex=True)
+    fig.subplots_adjust(wspace=0.25, hspace=0.12)
+
+    f_cut_common = None
+    if share_frequency_range:
+        f_cut_candidates = []
+
+        def _collect_fcuts(vary_key, values, fixed_items):
+            for val in np.atleast_1d(values):
+                rp_inst, np_inst = _build_precessing_instances(
+                    RP_params_1,
+                    NP_params_1,
+                    vary_key,
+                    val,
+                    fixed_items,
+                    z,
+                )
+                f_cut_candidates.append(float(min(rp_inst.f_cut(), np_inst.f_cut())))
+
+        _collect_fcuts(
+            "omega_tilde",
+            omega_vals,
+            {"theta_tilde": fixed_theta},
+        )
+        _collect_fcuts(
+            "theta_tilde",
+            theta_vals,
+            {"omega_tilde": fixed_omega},
+        )
+        _collect_fcuts(
+            "gamma_P",
+            gamma_vals,
+            {"theta_tilde": fixed_theta, "omega_tilde": fixed_omega},
+        )
+
+        f_cut_common = float(np.min(f_cut_candidates))
+        if f_cut_common <= f_min:
+            raise ValueError("Common f_cut must be greater than f_min")
 
     # Helper to run a sweep
     def sweep(row, vary_key, values, fixed_items, label_tex):
         for i, val in enumerate(values):
-            RP_params = RP_params_1.copy()
-            NP_params = NP_params_1.copy()
-            # apply fixed
-            for k, v in fixed_items.items():
-                RP_params[k] = v
-            RP_params[vary_key] = val
-            if z is not None:
-                RP_params = apply_z(RP_params, z)
-                NP_params = apply_z(NP_params, z)
-            RP_inst = Precessing(RP_params)
-            f_cut = RP_inst.f_cut()
+            RP_inst, NP_inst = _build_precessing_instances(
+                RP_params_1,
+                NP_params_1,
+                vary_key,
+                val,
+                fixed_items,
+                z,
+            )
+            f_cut = (
+                f_cut_common
+                if share_frequency_range
+                else min(RP_inst.f_cut(), NP_inst.f_cut())
+            )
             f_arr = make_frequency_array(f_min, f_cut, delta_f=delta_f)
             RP_strain = RP_inst.strain(f_arr)
-            NP_inst = Precessing(NP_params)
             NP_strain = NP_inst.strain(f_arr)
             phase_diff = compute_phase(RP_strain) - compute_phase(NP_strain)
             yvals = _amplitude_yvals(RP_strain, NP_strain, amplitude_mode)
@@ -361,45 +510,30 @@ def plot_precessing_figure(
 
     # Labels and styling
     if amplitude_mode == "abs":
-        fig.text(0.06, 0.5, r"$|\~{h}|$", va="center", rotation="vertical", fontsize=24)
-        fig.text(
-            0.49,
-            0.5,
-            r"$\Phi_{RP} - \Phi_{NP}$ (rad)",
-            va="center",
-            rotation="vertical",
-            fontsize=24,
-        )
+        amp_label = r"$|\~{h}|$"
         customize_3x2_axes_abs(axes)
     else:
-        fig.text(
-            0.06,
-            0.5,
-            r"$\left( B_{RP}/B_{NP} \right) - 1$",
-            va="center",
-            rotation="vertical",
-            fontsize=24,
-        )
-        fig.text(
-            0.49,
-            0.5,
-            r"$\Phi_{RP} - \Phi_{NP}$ (rad)",
-            va="center",
-            rotation="vertical",
-            fontsize=24,
-        )
+        amp_label = r"$\left(B_{\mathrm{RP}}/B_{\mathrm{NP}}\right) - 1$"
         customize_3x2_axes_ratio(axes)
+
+    phase_label = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}$ (rad)"
+    _add_vertical_axis_labels(
+        fig,
+        axes,
+        amp_label,
+        phase_label,
+        reference_row=1,
+    )
+
+    if share_frequency_range and f_cut_common is not None:
+        for ax in axes.ravel():
+            ax.set_xlim(f_min, f_cut_common)
 
     if z is not None:
         print(f"Applied redshift z={z} (mcz treated as source-frame)")
 
     if save_path:
-        mcz_msun = float(RP_params_1["mcz"]) / SOLMASS2SEC
-        root, ext = os.path.splitext(save_path)
-        out_path = (
-            f"{root}{_format_min_precision(z, prefix='_z')}"
-            f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}{ext}"
-        )
+        out_path = _build_save_path_with_mcz(save_path, z, RP_params_1["mcz"])
         fig.savefig(
             str(out_path),
             bbox_inches=bbox_inches,

@@ -517,7 +517,7 @@ def customize_2x1_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
     axes[0].legend(fontsize=20)
 
     axes[1].set_xlabel("f (Hz)", fontsize=24)
-    axes[1].set_ylabel(r"$\Phi_{\rm L} - \Phi_{\rm RP}$ (rad)", fontsize=24)
+    axes[1].set_ylabel(r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{RP}}$ (rad)", fontsize=24)
     axes[1].tick_params(axis="both", which="major", labelsize=18)
     axes[1].grid()
 
