@@ -187,7 +187,12 @@ def create_figure(
             color="black",
             fontsize=11,
             fontweight="normal",
-            bbox={"facecolor": "white", "edgecolor": "black", "alpha": 0.75, "pad": 3.0},
+            bbox={
+                "facecolor": "white",
+                "edgecolor": "black",
+                "alpha": 0.75,
+                "pad": 3.0,
+            },
             zorder=10,
         )
 
@@ -201,7 +206,7 @@ def create_figure(
         right=0.84,
         top=0.90,
         bottom=0.12,
-        wspace=0.08,
+        wspace=0.01,
         hspace=0.08,
     )
 
@@ -219,7 +224,9 @@ def create_figure(
     cbar.set_label(
         r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_L,\tilde{h}_P)$"
     )
-    cbar.locator = mticker.MaxNLocator(nbins=max(2, cbar_n_ticks), steps=[1, 2, 2.5, 5, 10])
+    cbar.locator = mticker.MaxNLocator(
+        nbins=max(2, cbar_n_ticks), steps=[1, 2, 2.5, 5, 10]
+    )
     cbar.formatter = mticker.FormatStrFormatter(f"%.{decimals}f")
     cbar.update_ticks()
 
