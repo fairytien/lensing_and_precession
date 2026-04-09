@@ -55,17 +55,6 @@ def _format_stat(value: float, fmt: str = ".3g") -> str:
     return format(value, fmt)
 
 
-def _format_token(value: float, decimals: int = 1) -> str:
-    if value is None:
-        return "unknown"
-    value = float(value)
-    if not np.isfinite(value):
-        return "unknown"
-    token = f"{value:.{decimals}f}".rstrip("0").rstrip(".")
-    token = token.replace("-", "m").replace(".", "p")
-    return token if token else "0"
-
-
 def _row_parameter_box_text(summary: dict) -> str:
     return (
         rf"$\mathcal{{M}}_{{\rm s}}={_format_stat(summary['mcz_msun'])}\,M_\odot$, "
@@ -110,7 +99,7 @@ def plot_combined(
     dpi: int,
     output_prefix: str,
 ) -> str:
-    if len(input_paths) < 1:
+    if not input_paths:
         raise ValueError("At least one input pickle is required.")
 
     _apply_notebook_font_style()
@@ -164,11 +153,11 @@ def plot_combined(
         col_axes[0].tick_params(axis="x", labelbottom=False)
 
         if col > 0:
-            col_axes[0].tick_params(axis="y", labelleft=False)
-            col_axes[1].tick_params(axis="y", labelleft=False)
+            for ax in col_axes:
+                ax.tick_params(axis="y", labelleft=False)
 
-    for col in range(ncols):
-        axes[1, col].set_xlabel("f (Hz)", fontsize=24, labelpad=2)
+    for ax in axes[1, :]:
+        ax.set_xlabel("f (Hz)", fontsize=24, labelpad=2)
 
     axes[0, 0].set_ylabel(
         r"$\left(B_{\rm t}/B_{\rm s}\right) - 1$", fontsize=24, labelpad=4
@@ -180,8 +169,8 @@ def plot_combined(
     axes[1, 0].yaxis.set_label_coords(-0.105, 0.5)
 
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    for col in range(ncols):
-        legend = axes[0, col].get_legend()
+    for ax in axes[0, :]:
+        legend = ax.get_legend()
         if legend is not None:
             legend.remove()
 
