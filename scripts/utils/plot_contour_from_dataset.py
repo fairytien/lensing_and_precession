@@ -38,25 +38,8 @@ COLORBAR_LABEL = (
 )
 
 
-def _find_data_root(path: str) -> Optional[str]:
-    cur = os.path.abspath(path)
-    while True:
-        if os.path.basename(cur) == "data":
-            return cur
-        parent = os.path.dirname(cur)
-        if parent == cur:
-            return None
-        cur = parent
-
-
 def derive_fig_path_from_input(input_path: str, tag: Optional[str] = None) -> str:
-    data_dir = os.path.dirname(input_path)
-    data_root = _find_data_root(data_dir)
-    if data_root is not None:
-        figures_dir = os.path.join(data_root, "figures", "utils")
-    else:
-        root_dir = os.path.dirname(data_dir)
-        figures_dir = os.path.join(root_dir, "figures", "utils")
+    figures_dir = os.path.join(PROJECT_ROOT, "figures", "indiv_contours")
     os.makedirs(figures_dir, exist_ok=True)
 
     filename = os.path.basename(input_path)
