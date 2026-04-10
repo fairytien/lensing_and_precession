@@ -58,6 +58,14 @@ DEFAULT_OUTPUT = (
     "LensingvsRPedge-onz1_LensingvsRPrandomz1_same_scale.pdf"
 )
 
+# Physics-style math labels: variables italic, identifiers/units upright roman.
+X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
+Y_AXIS_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$"
+COLORBAR_LABEL = (
+    r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
+    r"\epsilon\left(\tilde{h}_{\mathrm{L}},\,\tilde{h}_{\mathrm{P}}\right)$"
+)
+
 
 def _validate_paths(paths: List[str]) -> List[str]:
     if len(paths) != 4:
@@ -89,8 +97,6 @@ def create_figure(
     xs = [t[0] for t in loaded]
     ys = [t[1] for t in loaded]
     eps = [t[2] for t in loaded]
-    xlabels = [t[3] for t in loaded]
-    ylabels = [t[4] for t in loaded]
     data_types = [t[5] for t in loaded]
 
     if len(set(data_types)) != 1 or data_types[0] != "td_mcz":
@@ -108,6 +114,8 @@ def create_figure(
             "axes.labelsize": 14,
             "xtick.labelsize": 11,
             "ytick.labelsize": 11,
+            "mathtext.fontset": "cm",
+            "mathtext.default": "it",
         }
     )
 
@@ -173,8 +181,8 @@ def create_figure(
                 )
 
         row, col = divmod(i, 2)
-        ax.set_xlabel(xlabels[i] if row == 1 else "")
-        ax.set_ylabel(ylabels[i] if col == 0 else "")
+        ax.set_xlabel(X_AXIS_LABEL if row == 1 else "")
+        ax.set_ylabel(Y_AXIS_LABEL if col == 0 else "")
 
         # In-panel label boxes (final style, non-bold text).
         ax.text(
@@ -221,9 +229,7 @@ def create_figure(
 
     cax = fig.add_axes([x_right + 0.018, y0, 0.024, y1 - y0])
     cbar = fig.colorbar(cf, cax=cax)
-    cbar.set_label(
-        r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_L,\tilde{h}_P)$"
-    )
+    cbar.set_label(COLORBAR_LABEL)
     cbar.locator = mticker.MaxNLocator(
         nbins=max(2, cbar_n_ticks), steps=[1, 2, 2.5, 5, 10]
     )
