@@ -530,6 +530,7 @@ class Precessing:
         f = np.asarray(f)
         integrand = self._integrand_delta_phi_vec(f)
         integral = cumulative_trapezoid(integrand, f, initial=0.0)
+        # cumulative_trapezoid creates weird numerical artifacts in the waveforms so it is not reliable; use odeint or solve_ivp with LSODA for more reliable, physically consistent waveforms
         return integral
 
     def Psi(self, f):
