@@ -225,8 +225,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 ### Plotting and comparison
 
-- `plot_from_pickle.py`
-- `plot_from_hdf5.py`
+- `plot_contour_from_dataset.py` (supports both pickle and hdf5 contour inputs)
 - `plot_cycles_and_extrema_mcz.py`
 - `compare_contours.py`
 - `rename_legacy_filenames.py`
