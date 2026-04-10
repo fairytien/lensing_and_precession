@@ -30,6 +30,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.cosmology import source_mass_redshift_scale
+from modules.plot_utils_v3 import apply_physics_paper_style
 from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
 from scripts.utils.plot_cycles_and_extrema_mcz import (
     find_mcz_peaks,
@@ -60,10 +61,10 @@ DEFAULT_OUTPUT = (
 
 # Physics-style math labels: variables italic, identifiers/units upright roman.
 X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-Y_AXIS_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$"
+Y_AXIS_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
 COLORBAR_LABEL = (
     r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
-    r"\epsilon\left(\tilde{h}_{\mathrm{L}},\,\tilde{h}_{\mathrm{P}}\right)$"
+    r"\epsilon\left(\tilde{\mathit{h}}_{\mathrm{L}},\,\tilde{\mathit{h}}_{\mathrm{P}}\right)$"
 )
 
 
@@ -107,17 +108,7 @@ def create_figure(
     eps_masked, global_min, global_max = compute_color_scale(eps, "auto")
     overlay_mcz_scale = source_mass_redshift_scale(z_from, z_to)
 
-    plt.rcParams.update(
-        {
-            "font.family": "serif",
-            "font.size": 12,
-            "axes.labelsize": 14,
-            "xtick.labelsize": 11,
-            "ytick.labelsize": 11,
-            "mathtext.fontset": "cm",
-            "mathtext.default": "it",
-        }
-    )
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
 
     fig, axes = plt.subplots(2, 2, figsize=(10.0, 8.8), sharex=True, sharey=True)
     axes = axes.reshape(-1)

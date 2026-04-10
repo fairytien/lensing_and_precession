@@ -31,6 +31,9 @@ from modules.default_params_v3 import (
 )
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 
 ORIENTATION_TAG = "Taman_edgeon"

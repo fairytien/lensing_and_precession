@@ -13,6 +13,9 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from modules import cosmology
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 
 def _format_float(value: float, decimals: int = 3) -> str:
@@ -101,7 +104,7 @@ def main():
     ax_zoom.set_ylim(bottom=0)
     ax_zoom.set_xlabel("Redshift $z$")
     ax_zoom.set_ylabel("Luminosity Distance $D_L$ [Gpc]")
-    ax_zoom.set_title(f"Zoom: $z \leq {z_zoom_max:g}$", pad=10)
+    ax_zoom.set_title(rf"Zoom: $z \leq {z_zoom_max:g}$", pad=10)
     ax_zoom.xaxis.set_minor_locator(AutoMinorLocator(2))
     ax_zoom.yaxis.set_minor_locator(AutoMinorLocator(2))
     ax_zoom.grid(which="major", alpha=0.35, linestyle="-")

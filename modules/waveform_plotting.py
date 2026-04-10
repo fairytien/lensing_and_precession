@@ -12,6 +12,7 @@ from modules.functions_v3 import get_MLz_from_td, get_y_from_I
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision
 from modules.plot_utils_v3 import (
+    apply_physics_paper_style,
     angle_to_pi_string,
     customize_2x2_axes,
     customize_2x2_axes_ratio,
@@ -216,6 +217,7 @@ def plot_lensing_figure(
     save_path: optional file path to save the figure; format inferred by extension.
     Returns (fig, axes).
     """
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
     _validate_amplitude_mode(amplitude_mode)
     if npoints < 2:
         raise ValueError("npoints must be >= 2")
@@ -279,14 +281,14 @@ def plot_lensing_figure(
             yvals,
             ls=line_styles[i % len(line_styles)],
             color=line_colors[i % len(line_colors)],
-            label=rf"$\Delta t_d$ = {Delta_td*1000:.2g} ms",
+            label=rf"$\Delta t_{{\mathrm{{d}}}} = {Delta_td*1000:.2g}\,\mathrm{{ms}}$",
         )
         axes[0, 1].plot(
             f_arr,
             phase_diff,
             ls=line_styles[i % len(line_styles)],
             color=line_colors[i % len(line_colors)],
-            label=rf"$\Delta t_d$ = {Delta_td*1000:.2g} ms",
+            label=rf"$\Delta t_{{\mathrm{{d}}}} = {Delta_td*1000:.2g}\,\mathrm{{ms}}$",
         )
 
     # --- Bottom row: vary I (via y) at fixed time delay def_td ---
@@ -320,25 +322,27 @@ def plot_lensing_figure(
             yvals,
             ls=line_styles[i % len(line_styles)],
             color=line_colors[i % len(line_colors)],
-            label=rf"$I$ = {I_val:.2g}",
+            label=rf"$I = {I_val:.2g}$",
         )
         axes[1, 1].plot(
             f_arr,
             phase_diff,
             ls=line_styles[i % len(line_styles)],
             color=line_colors[i % len(line_colors)],
-            label=rf"$I$ = {I_val:.2g}",
+            label=rf"$I = {I_val:.2g}$",
         )
 
     # Labels and styling
     if amplitude_mode == "abs":
-        amp_label = r"$|\~{h}|$"
+        amp_label = r"$\left|\tilde{\mathit{h}}\right|$"
         customize_2x2_axes(axes)
     else:
-        amp_label = r"$\left(B_{\mathrm{L}}/B_{\mathrm{NP}}\right) - 1$"
+        amp_label = (
+            r"$\left(\mathit{B}_{\mathrm{L}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"
+        )
         customize_2x2_axes_ratio(axes)
 
-    phase_label = r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{NP}}$ (rad)"
+    phase_label = r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
     _add_vertical_axis_labels(
         fig,
         axes,
@@ -396,6 +400,7 @@ def plot_precessing_figure(
     save_path: optional file path to save the figure; format inferred by extension.
     Returns (fig, axes).
     """
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
     _validate_amplitude_mode(amplitude_mode)
     if delta_f <= 0:
         raise ValueError("delta_f must be > 0")
@@ -471,7 +476,7 @@ def plot_precessing_figure(
                 )
             if vary_key == "gamma_P":
                 gamma_tex = angle_to_pi_string(val, denom_thres=24)
-                label_str = r"$\gamma_P$ = " + gamma_tex
+                label_str = r"$\gamma_{\mathrm{P}}$ = " + gamma_tex
             else:
                 label_str = f"{label_tex} = {val}"
             axes[row, 0].plot(
@@ -509,18 +514,20 @@ def plot_precessing_figure(
         "gamma_P",
         np.atleast_1d(gamma_vals),
         {"theta_tilde": fixed_theta, "omega_tilde": fixed_omega},
-        r"$\gamma_P$",
+        r"$\gamma_{\mathrm{P}}$",
     )
 
     # Labels and styling
     if amplitude_mode == "abs":
-        amp_label = r"$|\~{h}|$"
+        amp_label = r"$\left|\tilde{\mathit{h}}\right|$"
         customize_3x2_axes_abs(axes)
     else:
-        amp_label = r"$\left(B_{\mathrm{RP}}/B_{\mathrm{NP}}\right) - 1$"
+        amp_label = (
+            r"$\left(\mathit{B}_{\mathrm{RP}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"
+        )
         customize_3x2_axes_ratio(axes)
 
-    phase_label = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}$ (rad)"
+    phase_label = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
     _add_vertical_axis_labels(
         fig,
         axes,
@@ -598,6 +605,7 @@ def plot_best_match_overlay_from_contour(
 
     Returns summary metadata dict containing best-match coordinates and epsilon.
     """
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
     source_params = contour_data["source_params"].copy()
     template_params = get_best_match_template_params(contour_data)
 

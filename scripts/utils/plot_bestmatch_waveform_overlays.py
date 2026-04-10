@@ -11,7 +11,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from modules.plot_utils_v3 import customize_2x1_axes_ratio, set_default_plot_style
+from modules.plot_utils_v3 import customize_2x1_axes_ratio
 from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
 
@@ -22,13 +22,6 @@ DEFAULT_INPUTS = [
 
 NOTEBOOK_LINE_STYLES = ["-", "--", ":"]
 NOTEBOOK_LINE_COLORS = ["black", "blue", "magenta"]
-
-
-def _apply_notebook_font_style() -> None:
-    """Match the typography used by notebook waveform figures."""
-    set_default_plot_style()
-    plt.rcParams["font.family"] = ["DejaVu Sans"]
-    plt.rcParams["mathtext.fontset"] = "dejavusans"
 
 
 def load_pickle(path: str) -> dict:
@@ -57,11 +50,11 @@ def _format_stat(value: float, fmt: str = ".3g") -> str:
 
 def _row_parameter_box_text(summary: dict) -> str:
     return (
-        rf"$\mathcal{{M}}_{{\rm s}}={_format_stat(summary['mcz_msun'])}\,M_\odot$, "
-        rf"$\~\Omega={_format_stat(summary['omega_tilde'])}$, "
-        rf"$\~\theta={_format_stat(summary['theta_tilde'])}$, "
-        rf"$\gamma_P={_format_stat(summary['gamma_P'])}$, "
-        rf"$\epsilon_\min={_format_stat(summary['epsilon'], '.2g')}$"
+        rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={_format_stat(summary['mcz_msun'])}\,\mathrm{{M}}_\odot$, "
+        rf"$\tilde{{\Omega}}={_format_stat(summary['omega_tilde'])}$, "
+        rf"$\tilde{{\theta}}={_format_stat(summary['theta_tilde'])}$, "
+        rf"$\gamma_{{\mathrm{{P}}}}={_format_stat(summary['gamma_P'])}$, "
+        rf"$\epsilon_{{\mathrm{{min}}}}={_format_stat(summary['epsilon'], '.2g')}$"
     )
 
 
@@ -87,7 +80,6 @@ def _place_column_header_boxes(
             ha="center",
             va="bottom",
             fontsize=fontsize,
-            fontfamily="DejaVu Sans",
         )
 
 
@@ -101,8 +93,6 @@ def plot_combined(
 ) -> str:
     if not input_paths:
         raise ValueError("At least one input pickle is required.")
-
-    _apply_notebook_font_style()
 
     for input_path in input_paths:
         if not os.path.exists(input_path):
@@ -157,13 +147,17 @@ def plot_combined(
                 ax.tick_params(axis="y", labelleft=False)
 
     for ax in axes[1, :]:
-        ax.set_xlabel("f (Hz)", fontsize=24, labelpad=2)
+        ax.set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24, labelpad=2)
 
     axes[0, 0].set_ylabel(
-        r"$\left(B_{\rm t}/B_{\rm s}\right) - 1$", fontsize=24, labelpad=4
+        r"$\left(\mathit{B}_{\mathrm{t}}/\mathit{B}_{\mathrm{s}}\right) - 1$",
+        fontsize=24,
+        labelpad=4,
     )
     axes[1, 0].set_ylabel(
-        r"$\Phi_{\rm t} - \Phi_{\rm s}$ (rad)", fontsize=24, labelpad=4
+        r"$\Phi_{\mathrm{t}} - \Phi_{\mathrm{s}}\,[\mathrm{rad}]$",
+        fontsize=24,
+        labelpad=4,
     )
     axes[0, 0].yaxis.set_label_coords(-0.105, 0.5)
     axes[1, 0].yaxis.set_label_coords(-0.105, 0.5)

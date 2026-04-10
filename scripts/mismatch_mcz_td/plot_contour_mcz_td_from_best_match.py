@@ -10,6 +10,9 @@ import argparse
 
 import numpy as np
 import matplotlib.pyplot as plt
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 from modules.filenames import (
     contour_mcz_td_filename,

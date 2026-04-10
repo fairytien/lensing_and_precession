@@ -2,6 +2,7 @@ import os
 import re
 import argparse
 import pickle
+import sys
 from typing import Optional
 
 import numpy as np
@@ -11,6 +12,17 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+
+# Ensure project root is importable when script is launched directly.
+PROJECT_ROOT = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
+
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 
 def derive_fig_path_from_pickle(pickle_path: str, tag: Optional[str] = None) -> str:
@@ -129,12 +141,6 @@ def main() -> None:
     cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
     plt.xlabel(r"$\tilde{\Omega}$")
     plt.ylabel(r"$\tilde{\theta}$")
-
-    # Set aspect ratio to be rectangular based on the number of omega vs theta points
-    omega_range = X.max() - X.min()
-    theta_range = Y.max() - Y.min()
-    aspect_ratio = (omega_range / X.shape[1]) / (theta_range / X.shape[0])
-    plt.gca().set_aspect(aspect_ratio)
 
     plt.tight_layout()
     plt.savefig(fig_path, dpi=200)

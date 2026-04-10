@@ -37,6 +37,34 @@ def set_default_plot_style():
     plt.rcParams["figure.titlesize"] = 24
 
 
+def apply_physics_paper_style(
+    base_font: int = 12,
+    label_font: int = 14,
+    tick_font: int = 11,
+    legend_font: int = 11,
+) -> None:
+    """Apply a consistent style suited for physics-paper figures."""
+    plt.rcParams.update(
+        {
+            "font.family": "serif",
+            "font.size": base_font,
+            "axes.labelsize": label_font,
+            "xtick.labelsize": tick_font,
+            "ytick.labelsize": tick_font,
+            "legend.fontsize": legend_font,
+            "mathtext.fontset": "cm",
+            "mathtext.default": "it",
+            "axes.unicode_minus": False,
+            "axes.formatter.use_mathtext": True,
+            "axes.linewidth": 1.0,
+            "xtick.direction": "in",
+            "ytick.direction": "in",
+            "xtick.top": True,
+            "ytick.right": True,
+        }
+    )
+
+
 def angle_to_pi_string(
     angle: float, denom_thres: int = 50, wrap_math: bool = True
 ) -> str:

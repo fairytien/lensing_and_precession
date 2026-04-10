@@ -795,6 +795,9 @@ def main(
     # Plot mcz (y) vs td (x) contour of minimal mismatch
     if not no_plot:
         import matplotlib.pyplot as plt
+        from modules.plot_utils_v3 import apply_physics_paper_style
+
+        apply_physics_paper_style()
 
         TD, MCZ = np.meshgrid(td_arr_ms, mcz_arr)
         plt.figure(figsize=(8, 6))

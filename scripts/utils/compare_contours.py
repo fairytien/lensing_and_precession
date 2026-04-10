@@ -9,6 +9,10 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
+
 # Import overlay functions from plot_cycles_and_extrema_mcz.py
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
 

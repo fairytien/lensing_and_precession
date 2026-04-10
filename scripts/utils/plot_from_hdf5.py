@@ -19,6 +19,9 @@ sys.path.insert(
 )
 
 from modules.filenames import contour_mcz_td_filename
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 
 def main(

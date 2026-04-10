@@ -22,6 +22,9 @@ from modules.filenames import (
 )
 import matplotlib.pyplot as plt
 from matplotlib import animation
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 
 def _infer_orientation_tag_from_filename(path: str) -> str:

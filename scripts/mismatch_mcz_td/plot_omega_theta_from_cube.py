@@ -27,6 +27,9 @@ from typing import Optional, Tuple, List
 import numpy as np
 import h5py
 import matplotlib.pyplot as plt
+from modules.plot_utils_v3 import apply_physics_paper_style
+
+apply_physics_paper_style()
 
 from modules.filenames import find_mismatch_cube_files
 
