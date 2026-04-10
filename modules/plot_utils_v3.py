@@ -461,11 +461,11 @@ def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
     axes[1, 0].legend(
         bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
     )
-    axes[1, 0].set_xlabel("f (Hz)", fontsize=24)
+    axes[1, 0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
     axes[1, 0].tick_params(axis="both", which="major", labelsize=18)
     axes[1, 0].grid()
     axes[1, 0].set_yscale("log")
-    axes[1, 1].set_xlabel("f (Hz)", fontsize=24)
+    axes[1, 1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
     axes[1, 1].tick_params(axis="both", which="major", labelsize=18)
     axes[1, 1].grid()
 
@@ -493,10 +493,10 @@ def customize_2x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
     axes[1, 0].legend(
         bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
     )
-    axes[1, 0].set_xlabel("f (Hz)", fontsize=24)
+    axes[1, 0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
     axes[1, 0].tick_params(axis="both", which="major", labelsize=18)
     axes[1, 0].grid()
-    axes[1, 1].set_xlabel("f (Hz)", fontsize=24)
+    axes[1, 1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
     axes[1, 1].tick_params(axis="both", which="major", labelsize=18)
     axes[1, 1].grid()
 
@@ -517,8 +517,8 @@ def customize_3x2_axes_abs(axes: matplotlib.axes._axes.Axes) -> None:
         axes[row, 1].tick_params(axis="both", which="major", labelsize=18)
         axes[row, 1].grid()
 
-    axes[2, 0].set_xlabel("f (Hz)", fontsize=24)
-    axes[2, 1].set_xlabel("f (Hz)", fontsize=24)
+    axes[2, 0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
+    axes[2, 1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
 
 
 def customize_3x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
@@ -532,8 +532,8 @@ def customize_3x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
         axes[row, 1].tick_params(axis="both", which="major", labelsize=18)
         axes[row, 1].grid()
 
-    axes[2, 0].set_xlabel("f (Hz)", fontsize=24)
-    axes[2, 1].set_xlabel("f (Hz)", fontsize=24)
+    axes[2, 0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
+    axes[2, 1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
 
 
 def customize_2x1_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
