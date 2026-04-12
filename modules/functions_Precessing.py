@@ -10,7 +10,25 @@ import numpy as np
 error_handler = np.seterr(invalid="raise")
 from scipy.integrate import odeint
 from pycbc.types import FrequencySeries
-from modules.default_params_v2 import *
+from modules.default_params_v2 import (
+    NP_params_0,
+    NP_params_1,
+    RP_params_0,
+    RP_params_1,
+    error_handler,
+    giga_parsec,
+    lens_params_0,
+    lens_params_1,
+    loc_params,
+    np,
+    omega_theta_tilde_pairs,
+    sky_locs_J_E,
+    sky_locs_J_S,
+    sky_locs_S_E,
+    sky_locs_S_S,
+    solar_mass,
+    year,
+)
 from scipy.integrate import cumulative_trapezoid
 
 NEAR_ZERO_THRESHOLD = 1e-8
@@ -261,6 +279,7 @@ def P_strain(f, delta_f=0.25, frequencySeries=True, **kwargs):
 # Section 3: Vectorized Bank  #
 ###############################
 
+
 def precessing_strain_bank(
     base_params: dict,
     omega_tilde_vals: np.ndarray,
@@ -370,10 +389,9 @@ def precessing_strain_bank(
         else:
             cos_i_JN = np.cos(theta_J - theta_S)
     else:
-        cos_i_JN = (
-            np.sin(theta_J) * np.sin(theta_S) * np.cos(phi_J - phi_S)
-            + np.cos(theta_J) * np.cos(theta_S)
-        )
+        cos_i_JN = np.sin(theta_J) * np.sin(theta_S) * np.cos(phi_J - phi_S) + np.cos(
+            theta_J
+        ) * np.cos(theta_S)
     sin_i_JN = np.sqrt(1 - cos_i_JN**2)
     if np.abs(sin_i_JN) < NEAR_ZERO_THRESHOLD:
         cos_o_XH = 1.0
@@ -391,7 +409,7 @@ def precessing_strain_bank(
         + (np.cos(theta_S) ** 2 * (np.sin(2 * phi_S)) ** 2)
     )
     sin_alpha = np.cos(theta_S) * np.sin(2 * phi_S) / C_amp
-    cos_alpha = ((1 + np.cos(theta_S) ** 2) * np.cos(2 * phi_S) / (2 * C_amp))
+    cos_alpha = (1 + np.cos(theta_S) ** 2) * np.cos(2 * phi_S) / (2 * C_amp)
 
     # Shape param grid with singleton frequency axis for broadcasting
     # param_grid_shape = (n_om, n_th, n_gp, 1)
@@ -423,13 +441,11 @@ def precessing_strain_bank(
 
     # tan_psi components
     num_psi = (
-        sin_theta_LJ
-        * (cos_phi_LJ * sin_o_XH + sin_phi_LJ * cos_i_JN * cos_o_XH)
+        sin_theta_LJ * (cos_phi_LJ * sin_o_XH + sin_phi_LJ * cos_i_JN * cos_o_XH)
         - cos_theta_LJ * sin_i_JN * cos_o_XH
     )
     den_psi = (
-        sin_theta_LJ
-        * (cos_phi_LJ * cos_o_XH - sin_phi_LJ * cos_i_JN * sin_o_XH)
+        sin_theta_LJ * (cos_phi_LJ * cos_o_XH - sin_phi_LJ * cos_i_JN * sin_o_XH)
         + cos_theta_LJ * sin_i_JN * sin_o_XH
     )
     # Handle special aligned case (phi_S == phi_J)
@@ -443,8 +459,12 @@ def precessing_strain_bank(
 
     tan_psi_sq = tan_psi**2
     # 2*Psi + alpha trig components
-    sin_2pa = (2 * cos_alpha * tan_psi + sin_alpha * (1 - tan_psi_sq)) / (1 + tan_psi_sq)
-    cos_2pa = (cos_alpha * (1 - tan_psi_sq) - 2 * sin_alpha * tan_psi) / (1 + tan_psi_sq)
+    sin_2pa = (2 * cos_alpha * tan_psi + sin_alpha * (1 - tan_psi_sq)) / (
+        1 + tan_psi_sq
+    )
+    cos_2pa = (cos_alpha * (1 - tan_psi_sq) - 2 * sin_alpha * tan_psi) / (
+        1 + tan_psi_sq
+    )
 
     # Amplitude factor (per waveform & frequency)
     amp = (
@@ -488,11 +508,7 @@ def precessing_strain_bank(
         - phi_c
         - np.pi / 4
         + ((3 / 4) * (8 * np.pi * mcz * f_grid) ** (-5 / 3))
-        * (
-            1
-            + (20 / 9) * (743 / 336 + (11 / 4) * eta) * x
-            - 16 * np.pi * x ** (3 / 2)
-        )
+        * (1 + (20 / 9) * (743 / 336 + (11 / 4) * eta) * x - 16 * np.pi * x ** (3 / 2))
     )
 
     strain = amp * np.exp(1j * (Psi - phi_p - 2 * delta_phi))
@@ -500,10 +516,7 @@ def precessing_strain_bank(
     if chunk_limit is not None:
         # Generator mode
         flat_indices = [
-            (i, j, k)
-            for i in range(n_om)
-            for j in range(n_th)
-            for k in range(n_gp)
+            (i, j, k) for i in range(n_om) for j in range(n_th) for k in range(n_gp)
         ]
         total = len(flat_indices)
 
@@ -523,9 +536,7 @@ def precessing_strain_bank(
         for i in range(n_om):
             for j in range(n_th):
                 for k in range(n_gp):
-                    out[(i, j, k)] = FrequencySeries(
-                        strain[i, j, k, :], delta_f
-                    )
+                    out[(i, j, k)] = FrequencySeries(strain[i, j, k, :], delta_f)
         return out
 
     return strain  # shape (n_omega, n_theta, n_gamma, n_f)

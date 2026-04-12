@@ -8,8 +8,43 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.Classes_v2 import *
-from modules.default_params_v2 import *
+from modules.Classes_v2 import (
+    FMIN,
+    FrequencySeries,
+    GIGAPC2SEC,
+    Lensing,
+    LensingGeo,
+    NEAR_ZERO_THRESHOLD,
+    NumpyVersion,
+    Optional,
+    Precessing,
+    SOLMASS2SEC,
+    alen,
+    error_handler,
+    mp,
+    np,
+    odeint,
+    sc,
+)
+from modules.default_params_v2 import (
+    NP_params_0,
+    NP_params_1,
+    RP_params_0,
+    RP_params_1,
+    error_handler,
+    giga_parsec,
+    lens_params_0,
+    lens_params_1,
+    loc_params,
+    np,
+    omega_theta_tilde_pairs,
+    sky_locs_J_E,
+    sky_locs_J_S,
+    sky_locs_S_E,
+    sky_locs_S_S,
+    solar_mass,
+    year,
+)
 
 # import modules
 import numpy as np

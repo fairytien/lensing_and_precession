@@ -8,8 +8,24 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.Classes_v3 import *
-from modules.default_params_v3 import *
+# Production defaults are pinned to Classes_v2 for numerical stability.
+from modules.Classes_v2 import LensingGeo, Precessing
+from modules.default_params_v3 import (
+    GIGAPC2SEC,
+    NP_params_0,
+    NP_params_1,
+    RP_params_0,
+    RP_params_1,
+    SOLMASS2SEC,
+    YEAR2SEC,
+    error_handler,
+    lens_params_0,
+    lens_params_1,
+    loc_params,
+    np,
+    omega_theta_tilde_pairs,
+    orient_params,
+)
 
 # import modules
 import numpy as np

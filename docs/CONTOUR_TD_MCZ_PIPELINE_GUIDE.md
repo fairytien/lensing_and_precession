@@ -11,6 +11,13 @@ This document describes the three-stage modular pipeline for computing mismatch 
 3. **Aggregate cubes into best-match file** (`python -m scripts.mismatch_mcz_td.aggregate_best_match`)
 4. **Plot mismatch contour** (`python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match`)
 
+## Class Version Policy (Production)
+
+- The `(td, mcz)` production pipeline is pinned to `modules/Classes_v2.py` for waveform physics (`LensingGeo` and `Precessing`).
+- This policy is intended to carry forward to future production pipelines in this repository.
+- `Classes_v3.py`, `Classes_v4.py`, and `Classes_v5.py` are retained for diagnostics and testing only, and are not treated as numerically reliable for production results.
+- Do not mix outputs produced with non-`Classes_v2` class implementations into production contour datasets.
+
 ## Default Production Configuration
 
 The production batch scripts are configured for the following default run:
