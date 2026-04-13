@@ -13,7 +13,7 @@ sys.path.insert(
 )
 
 # Reuse utilities and defaults (explicit imports only)
-from modules.functions_v3 import (
+from modules.functions import (
     set_orientation,
     get_fcut_from_mcz,
     Sn,
@@ -23,7 +23,7 @@ from modules.functions_v3 import (
     timer_decorator,
     get_y_from_I,
 )
-from modules.default_params_v3 import (
+from modules.default_params import (
     SOLMASS2SEC,
     lens_params_1,
     NP_params_1,
@@ -31,7 +31,7 @@ from modules.default_params_v3 import (
 )
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
-from modules.plot_utils_v3 import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
 

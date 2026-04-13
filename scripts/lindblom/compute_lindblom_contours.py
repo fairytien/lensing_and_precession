@@ -28,7 +28,7 @@ from typing import Tuple, Optional
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.legacy.Classes_v3 import Precessing
-from modules.functions_v3 import (
+from modules.functions import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
@@ -36,7 +36,7 @@ from modules.functions_v3 import (
     get_fcut_from_mcz,
     timer_decorator,
 )
-from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
+from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.filenames import mismatch_cube_filename, bank_filename
 from modules.bank_io import open_bank_readonly

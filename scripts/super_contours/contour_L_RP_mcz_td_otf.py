@@ -11,9 +11,9 @@ sys.path.insert(
 )
 
 # Reuse utilities and defaults
-from modules.functions_v3 import *
-from modules.default_params_v3 import *
-from modules.Classes_v2 import Precessing as P2
+from modules.functions import *
+from modules.default_params import *
+from modules.Classes import Precessing as P2
 from pycbc.types import FrequencySeries
 
 
@@ -795,7 +795,7 @@ def main(
     # Plot mcz (y) vs td (x) contour of minimal mismatch
     if not no_plot:
         import matplotlib.pyplot as plt
-        from modules.plot_utils_v3 import apply_physics_paper_style
+        from modules.plot_utils import apply_physics_paper_style
 
         apply_physics_paper_style()
 

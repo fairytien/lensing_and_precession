@@ -1,6 +1,6 @@
 # Contour (td, mcz) Pipeline Guide
 
-This document describes the three-stage modular pipeline for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the (time delay, chirp mass) parameter space.
+This document describes the four-stage modular pipeline for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the (time delay, chirp mass) parameter space.
 
 ## Pipeline Overview
 
@@ -13,7 +13,10 @@ This document describes the three-stage modular pipeline for computing mismatch 
 
 ## Class Version Policy (Production)
 
-- The `(td, mcz)` production pipeline is pinned to `modules/Classes_v2.py` for waveform physics (`LensingGeo` and `Precessing`).
+- Production scripts should use canonical imports: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
+- Canonical modules are the source of truth for production code.
+- Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
+- The `(td, mcz)` production pipeline remains pinned to the canonical `modules.Classes` implementation (originated from `Classes_v2`) for waveform physics (`LensingGeo` and `Precessing`).
 - This policy is intended to carry forward to future production pipelines in this repository.
 - Legacy/testing class implementations (`Classes_v3.py`, `Classes_v4.py`, `Classes_v5.py`) are retained under `modules/legacy/` only and are not treated as numerically reliable for production results.
 - Do not mix outputs produced with non-`Classes_v2` class implementations into production contour datasets.

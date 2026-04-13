@@ -5,9 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from modules.cosmology import source_mass_redshift_scale
-from modules.functions_v3 import mcz_for_n_lens_cycles
+from modules.functions import mcz_for_n_lens_cycles
 from modules.filenames import contour_mcz_td_filename
-from modules.plot_utils_v3 import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
 

@@ -30,7 +30,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.cosmology import source_mass_redshift_scale
-from modules.plot_utils_v3 import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style
 from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
 from scripts.utils.plot_cycles_and_extrema_mcz import (
     find_mcz_peaks,

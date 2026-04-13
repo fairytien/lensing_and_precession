@@ -18,7 +18,7 @@ from modules.filenames import (
     get_mismatch_cube_resolution,
     mismatch_cube_filename,
 )
-from modules.functions_v3 import timer_decorator
+from modules.functions import timer_decorator
 
 
 @timer_decorator

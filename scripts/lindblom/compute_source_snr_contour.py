@@ -14,7 +14,7 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.functions_v3 import (
+from modules.functions import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
@@ -22,9 +22,9 @@ from modules.functions_v3 import (
     get_fcut_from_mcz,
     timer_decorator,
 )
-from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
+from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation
-from modules.functions_v3 import set_orientation
+from modules.functions import set_orientation
 from modules.filenames import best_match_mcz_td_filename
 
 import logging

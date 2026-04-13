@@ -13,7 +13,7 @@ import h5py
 import numpy as np
 
 from modules.cosmology import source_mass_redshift_scale, z_to_DL
-from modules.default_params_v3 import GIGAPC2SEC
+from modules.default_params import GIGAPC2SEC
 from modules.filenames import best_match_mcz_td_filename
 
 

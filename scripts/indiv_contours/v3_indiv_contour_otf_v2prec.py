@@ -10,7 +10,7 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.functions_v3 import (
+from modules.functions import (
     get_gw,
     Sn,
     optimize_mismatch_gammaP,
@@ -19,12 +19,12 @@ from modules.functions_v3 import (
     pickle_data,
     timer_decorator,
 )
-from modules.default_params_v3 import (
+from modules.default_params import (
     lens_params_1,
     RP_params_1,
     SOLMASS2SEC,
 )
-from modules.Classes_v2 import Precessing as P2
+from modules.Classes import Precessing as P2
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:

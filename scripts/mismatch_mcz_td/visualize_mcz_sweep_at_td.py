@@ -22,7 +22,7 @@ from modules.filenames import (
 )
 import matplotlib.pyplot as plt
 from matplotlib import animation
-from modules.plot_utils_v3 import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
 

@@ -141,7 +141,7 @@ def mismatch_from_strains(
     """Compute mismatch between two strains with optional bounded optimization."""
 
     if sn_func is None:
-        from modules.functions_v3 import Sn as sn_func
+        from modules.functions import Sn as sn_func
 
     if not isinstance(t_strain, FrequencySeries):
         t_strain = FrequencySeries(t_strain, delta_f)
@@ -206,7 +206,7 @@ def mismatch_from_params(
         or lens_Class is None
         or prec_Class is None
     ):
-        from modules.functions_v3 import (
+        from modules.functions import (
             get_gw as _get_gw,
             Sn as _Sn,
             LensingGeo,
@@ -276,7 +276,7 @@ def optimize_mismatch_mcz(
         or lens_Class is None
         or prec_Class is None
     ):
-        from modules.functions_v3 import (
+        from modules.functions import (
             set_to_params as _set_to_params,
             get_gw as _get_gw,
             Sn as _Sn,
@@ -377,7 +377,7 @@ def optimize_mismatch_gammaP(
         or lens_Class is None
         or prec_Class is None
     ):
-        from modules.functions_v3 import (
+        from modules.functions import (
             set_to_params as _set_to_params,
             get_gw as _get_gw,
             Sn as _Sn,
@@ -578,7 +578,7 @@ def find_optimized_coalescence_params(
         or lens_Class is None
         or prec_Class is None
     ):
-        from modules.functions_v3 import (
+        from modules.functions import (
             set_to_params as _set_to_params,
             get_fcut_from_mcz as _get_fcut_from_mcz,
             Sn as _Sn,
@@ -729,7 +729,7 @@ def build_psd_for_mcz(
     Build frequency grid and PSD for a given mcz using provided helpers.
     Returns (s_farr, psd, f_cut).
     """
-    from modules.functions_v3 import get_fcut_from_mcz, Sn
+    from modules.functions import get_fcut_from_mcz, Sn
 
     f_cut = get_fcut_from_mcz(mcz_msun)
     s_farr = np.arange(f_min, f_cut, delta_f)

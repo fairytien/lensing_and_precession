@@ -8,7 +8,7 @@ Provides helpers to:
 from typing import Optional, Dict, Tuple
 import logging
 
-from modules.functions_v3 import set_orientation
+from modules.functions import set_orientation
 
 
 def orientation_tag(

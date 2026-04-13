@@ -43,7 +43,10 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 
 - Run Python modules from repository root with `python -m ...` to avoid path issues.
 - Keep naming and discovery canonical via helpers in `modules/filenames.py`.
-- Production pipeline defaults are pinned to `modules/Classes_v2.py` waveform classes; treat `Classes_v3+` as testing-only (not numerically reliable for production outputs).
+- Main-pipeline scripts should import canonical modules: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
+- Canonical modules are the source of truth for production code.
+- Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
+- Production waveform physics remains pinned to the canonical `modules.Classes` implementation (originated from `Classes_v2`); treat `Classes_v3+` as testing-only (not numerically reliable for production outputs).
 - Legacy/versioned module implementations are now kept under `modules/legacy/`.
 - Legacy scripts under `scripts/` should import legacy helpers from `modules.legacy.*`.
 - If historical files use legacy names, migrate them once with:

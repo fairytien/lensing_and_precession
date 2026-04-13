@@ -12,11 +12,11 @@ import numpy as np
 from modules.template_bank import build_and_save_bank
 from modules.filenames import template_bank_run_dir
 from modules.orientation import resolve_orientation, allowed_orient_presets
-from modules.default_params_v3 import RP_params_1
-from modules.functions_v3 import timer_decorator
+from modules.default_params import RP_params_1
+from modules.functions import timer_decorator
 
 # set_orientation is used internally by resolve_orientation; no direct import needed here
-from modules.default_params_v3 import orient_params
+from modules.default_params import orient_params
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
 from modules.cli_utils import (

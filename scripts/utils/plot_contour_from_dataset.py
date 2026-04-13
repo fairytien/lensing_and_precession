@@ -23,8 +23,8 @@ PROJECT_ROOT = os.path.dirname(
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from modules.plot_utils_v3 import apply_physics_paper_style
-from modules.default_params_v3 import SOLMASS2SEC
+from modules.plot_utils import apply_physics_paper_style
+from modules.default_params import SOLMASS2SEC
 
 apply_physics_paper_style()
 

@@ -14,7 +14,7 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.functions_v3 import (
+from modules.functions import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
@@ -22,7 +22,7 @@ from modules.functions_v3 import (
     get_fcut_from_mcz,
     timer_decorator,
 )
-from modules.default_params_v3 import SOLMASS2SEC, lens_params_1, orient_params
+from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation
 from pycbc.types import FrequencySeries
 
@@ -210,8 +210,8 @@ def main(
 
     # Set up source (lensed) parameters
     y = get_y_from_I(I)
-    from modules.functions_v3 import set_orientation
-    from modules.default_params_v3 import NP_params_1
+    from modules.functions import set_orientation
+    from modules.default_params import NP_params_1
 
     lens_base = set_orientation(orient_dict, lens_params_1)[0]
     lens_base["y"] = float(y)

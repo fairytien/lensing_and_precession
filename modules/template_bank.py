@@ -21,9 +21,9 @@ try:
 except Exception:
     pass
 
-from modules.functions_v3 import get_gw
-from modules.default_params_v3 import SOLMASS2SEC
-from modules.Classes_v2 import Precessing as P2
+from modules.functions import get_gw
+from modules.default_params import SOLMASS2SEC
+from modules.Classes import Precessing as P2
 from modules.cosmology import apply_z
 from modules.filenames import bank_filename
 from modules.chunking import choose_bank_chunks

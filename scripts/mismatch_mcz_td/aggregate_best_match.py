@@ -20,7 +20,7 @@ from modules.filenames import (
     find_mismatch_cube_files,
     get_mismatch_cube_resolution,
 )
-from modules.functions_v3 import timer_decorator
+from modules.functions import timer_decorator
 from modules.bank_io import (
     read_source_attrs,
     read_mcz_grid_attrs,

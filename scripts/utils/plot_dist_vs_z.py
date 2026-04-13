@@ -13,7 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from modules import cosmology
-from modules.plot_utils_v3 import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
 

@@ -9,11 +9,23 @@ We investigate various parameters governing regular precession, including the pr
 
 Employing match-filtering analysis and various `PyCBC` packages, we quantify the mismatch and apply the Lindblom criterion to establish discernibility conditions for waveforms. Our study explores the parameter space to understand waveform distinguishability between regular precession and lensing, offering insights into the signal-to-noise requirement for GW detectors to effectively discern these waveforms.
 
-## Getting started
-This project requires the installation of [`lalsuite`](https://pypi.org/project/lalsuite/) and [`PyCBC`](https://pycbc.org):
+## Getting Started
+```bash
+conda create -n gw python=3.10 -y
+conda activate gw
+python -m pip install --upgrade pip
+python -m pip install numpy scipy matplotlib h5py astropy lalsuite pycbc
 ```
-python -m pip install lalsuite PyCBC
-```
+
+Core Python libraries used by the main pipeline:
+
+- `numpy`
+- `scipy`
+- `matplotlib`
+- `h5py`
+- `astropy`
+- `lalsuite`
+- `pycbc`
 
 ## Pipeline Workflow
 
@@ -68,6 +80,26 @@ Detailed usage documentation is centralized under `docs/`.
 - `docs/WORKFLOW_DATA_LFS.md`: Data organization, Git LFS workflow, checksums, and size guard.
 - `docs/WORKFLOW_STOCKYARD.md`: Shared STOCKYARD workflow and symlink patterns on TACC.
 - `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata schema conventions.
+
+## Main Pipeline Naming Strategy
+
+Main-pipeline scripts now use stable, versionless import targets:
+
+- `modules.Classes`
+- `modules.default_params`
+- `modules.functions`
+- `modules.plot_utils`
+
+These canonical modules are now the source of truth for production code.
+Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export from canonical modules.
+
+Legacy/versioned implementations are kept under `modules/legacy/` and should be imported explicitly as `modules.legacy.*` when needed.
+
+## GitHub Landing Page Note
+
+Keep `README.md` at the repository root if you want this introduction to appear by default on the main GitHub repository page.
+
+If detailed docs are moved under `docs/`, keep a root `README.md` (full or short) that links to those pages.
 
 ## Authors
 * Tien Nguyen
