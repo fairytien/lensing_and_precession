@@ -46,6 +46,9 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 - Main-pipeline scripts should import canonical modules: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
 - Canonical modules are the source of truth for production code.
 - Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
+- The old monolithic `functions_v3` implementation is split; source-of-truth function logic now lives in `modules.waveform`, `modules.numerics`, `modules.geometry`, and `modules.snr`.
+- Matching/mismatch logic has one source of truth in `modules.match_utils`.
+- `modules.functions` is a compatibility facade over these modules, and `modules.functions_v3` is a legacy wrapper.
 - Production waveform physics remains pinned to the canonical `modules.Classes` implementation (originated from `Classes_v2`); treat `Classes_v3+` as testing-only (not numerically reliable for production outputs).
 - Legacy/versioned module implementations are now kept under `modules/legacy/`.
 - Legacy scripts under `scripts/` should import legacy helpers from `modules.legacy.*`.

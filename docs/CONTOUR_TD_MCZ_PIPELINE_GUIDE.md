@@ -16,6 +16,8 @@ This document describes the four-stage modular pipeline for computing mismatch m
 - Production scripts should use canonical imports: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
 - Canonical modules are the source of truth for production code.
 - Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
+- Function helpers are now split into specialized source modules (`modules.waveform`, `modules.numerics`, `modules.geometry`, `modules.snr`).
+- Matching/mismatch logic has one source of truth in `modules.match_utils`, with `modules.functions` as facade and `modules.functions_v3` as legacy wrapper.
 - The `(td, mcz)` production pipeline remains pinned to the canonical `modules.Classes` implementation (originated from `Classes_v2`) for waveform physics (`LensingGeo` and `Precessing`).
 - This policy is intended to carry forward to future production pipelines in this repository.
 - Legacy/testing class implementations (`Classes_v3.py`, `Classes_v4.py`, `Classes_v5.py`) are retained under `modules/legacy/` only and are not treated as numerically reliable for production results.

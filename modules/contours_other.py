@@ -4,7 +4,7 @@
 
 
 # import py scripts
-from modules.functions_v3 import *
+from modules.functions import *
 
 # import libraries
 import matplotlib.pyplot as plt

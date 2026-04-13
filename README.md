@@ -93,6 +93,17 @@ Main-pipeline scripts now use stable, versionless import targets:
 These canonical modules are now the source of truth for production code.
 Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export from canonical modules.
 
+`modules.functions` is now a facade over specialized source modules:
+
+- `modules.waveform`
+- `modules.numerics`
+- `modules.geometry`
+- `modules.snr`
+
+Matching and mismatch optimization now use `modules.match_utils` as the single source of truth.
+
+`modules.functions_v3` remains a compatibility wrapper to preserve legacy imports.
+
 Legacy/versioned implementations are kept under `modules/legacy/` and should be imported explicitly as `modules.legacy.*` when needed.
 
 ## GitHub Landing Page Note
