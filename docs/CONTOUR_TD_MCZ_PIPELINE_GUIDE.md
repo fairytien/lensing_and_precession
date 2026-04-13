@@ -15,7 +15,7 @@ This document describes the three-stage modular pipeline for computing mismatch 
 
 - The `(td, mcz)` production pipeline is pinned to `modules/Classes_v2.py` for waveform physics (`LensingGeo` and `Precessing`).
 - This policy is intended to carry forward to future production pipelines in this repository.
-- `Classes_v3.py`, `Classes_v4.py`, and `Classes_v5.py` are retained for diagnostics and testing only, and are not treated as numerically reliable for production results.
+- Legacy/testing class implementations (`Classes_v3.py`, `Classes_v4.py`, `Classes_v5.py`) are retained under `modules/legacy/` only and are not treated as numerically reliable for production results.
 - Do not mix outputs produced with non-`Classes_v2` class implementations into production contour datasets.
 
 ## Default Production Configuration

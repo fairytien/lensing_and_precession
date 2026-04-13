@@ -4,7 +4,7 @@
 
 
 # import py scripts
-from modules.functions_v2 import *
+from modules.legacy.functions_v2 import *
 
 # import libraries
 from multiprocessing import Pool, cpu_count

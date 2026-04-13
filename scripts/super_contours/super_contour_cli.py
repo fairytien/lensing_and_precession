@@ -3,7 +3,7 @@ import sys, os
 sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
-from modules.contours_v2 import *
+from modules.legacy.contours_v2 import *
 
 import argparse
 
@@ -126,7 +126,7 @@ def _parse_args():
     parser.add_argument(
         "--lores",
         action="store_true",
-        help="Use low-resolution implementation (modules.contours_v2_lores).",
+        help="Use low-resolution implementation (modules.legacy.contours_v2_lores).",
     )
 
     return parser.parse_args()
@@ -182,11 +182,11 @@ def main():
     print("Finished assigning parameters")
 
     if args.lores:
-        from modules.contours_v2_lores import (
+        from modules.legacy.contours_v2_lores import (
             create_super_contour as create_super_contour_impl,
         )
     else:
-        from modules.contours_v2 import (
+        from modules.legacy.contours_v2 import (
             create_super_contour as create_super_contour_impl,
         )
 

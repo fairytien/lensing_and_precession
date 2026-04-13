@@ -4,7 +4,7 @@
 
 
 # import py scripts
-from modules.contours_v2 import *
+from modules.legacy.contours_v2 import *
 
 # import libraries
 from scipy.optimize import minimize

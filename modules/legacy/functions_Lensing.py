@@ -9,7 +9,7 @@ import numpy as np
 
 error_handler = np.seterr(invalid="raise")
 from pycbc.types import FrequencySeries
-from modules.default_params_v2 import (
+from modules.legacy.default_params_v2 import (
     NP_params_0,
     NP_params_1,
     RP_params_0,

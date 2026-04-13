@@ -10,8 +10,8 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.functions_Lensing import L_f_cut, L_strain
-from modules.functions_Precessing import P_f_cut, P_strain
+from modules.legacy.functions_Lensing import L_f_cut, L_strain
+from modules.legacy.functions_Precessing import P_f_cut, P_strain
 
 # import modules
 import numpy as np

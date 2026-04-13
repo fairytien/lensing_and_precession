@@ -24,7 +24,7 @@ from modules.default_params_v3 import (
     RP_params_1,
     SOLMASS2SEC,
 )
-from modules.Classes_v4 import Precessing as P4
+from modules.legacy.Classes_v4 import Precessing as P4
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:

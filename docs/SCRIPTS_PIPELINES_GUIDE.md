@@ -44,6 +44,8 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 - Run Python modules from repository root with `python -m ...` to avoid path issues.
 - Keep naming and discovery canonical via helpers in `modules/filenames.py`.
 - Production pipeline defaults are pinned to `modules/Classes_v2.py` waveform classes; treat `Classes_v3+` as testing-only (not numerically reliable for production outputs).
+- Legacy/versioned module implementations are now kept under `modules/legacy/`.
+- Legacy scripts under `scripts/` should import legacy helpers from `modules.legacy.*`.
 - If historical files use legacy names, migrate them once with:
 
 ```bash

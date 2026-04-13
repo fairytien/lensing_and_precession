@@ -27,7 +27,7 @@ from typing import Tuple, Optional
 # Ensure project root is on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from modules.Classes_v3 import Precessing
+from modules.legacy.Classes_v3 import Precessing
 from modules.functions_v3 import (
     get_gw,
     get_y_from_I,

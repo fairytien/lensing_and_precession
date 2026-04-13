@@ -7,7 +7,7 @@
 # !{sys.executable} -m pip install pycbc ligo-common --no-cache-dir
 
 # import py scripts
-from modules.Classes_v0 import (
+from modules.legacy.Classes_v0 import (
     FrequencySeries,
     Lensing,
     LensingGeo,
@@ -18,7 +18,7 @@ from modules.Classes_v0 import (
     odeint,
     sc,
 )
-from modules.default_params_v0 import (
+from modules.legacy.default_params_v0 import (
     NP_params_0,
     RP_params_0,
     error_handler,

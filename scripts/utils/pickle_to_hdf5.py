@@ -2,7 +2,7 @@ import sys, os, pickle, h5py, numpy as np
 from pycbc.types import FrequencySeries
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-# from modules.functions_v2 import timer_decorator
+# from modules.legacy.functions_v2 import timer_decorator
 
 
 # @timer_decorator

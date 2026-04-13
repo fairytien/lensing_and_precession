@@ -257,7 +257,7 @@ python diagnostic_scripts/compare_polarization_guard.py --theta-tilde 15 --freq 
 
 ### Code Files:
 - `lensing_and_precession/modules/Classes_v2.py`: Main implementation (uses `odeint`)
-- `lensing_and_precession/modules/Classes_v3.py`: Vectorized version (uses `cumulative_trapezoid`)
+- `lensing_and_precession/modules/legacy/Classes_v3.py`: Vectorized version (uses `cumulative_trapezoid`)
 
 ### Key Constants:
 - `NEAR_ZERO_THRESHOLD = 1e-10` (v2) or `1e-8` (v3): Face-on detection tolerance
