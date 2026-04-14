@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from modules.legacy.Classes_v3 import LensingGeo, Precessing
+from legacy.modules.Classes_v3 import LensingGeo, Precessing
 from modules.default_params import SOLMASS2SEC
 from modules.functions import get_MLz_from_td, get_y_from_I
 from modules.cosmology import apply_z

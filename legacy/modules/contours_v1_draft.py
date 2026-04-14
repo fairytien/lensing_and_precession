@@ -4,7 +4,7 @@
 
 
 # import py scripts
-from modules.legacy.contours_v1 import *
+from legacy.modules.contours_v1 import *
 
 
 #######################

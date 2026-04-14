@@ -3,7 +3,7 @@ import sys, os
 sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
-from modules.legacy.contours_v3 import *
+from legacy.modules.contours_v3 import *
 
 
 @timer_decorator

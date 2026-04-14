@@ -3,7 +3,7 @@ import sys, os
 sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
-from modules.legacy.contours_v2 import *
+from legacy.modules.contours_v2 import *
 
 
 @timer_decorator
@@ -19,17 +19,13 @@ def main():
     )
     mcz = 20
     lens_params["mcz"] = RP_params["mcz"] = mcz * solar_mass
-    # RP_params["omega_tilde"] = 3.0
-    # limits = get_lens_limits_for_RP_L(RP_params, lower=0.5)
-    # td_min, td_max = limits["td_min"], limits["td_max"]
-    td_arr = np.linspace(0.02, 0.07, 100)  # To be in geometric optics regime
-
+    I_arr = np.linspace(0.1, 0.9, 100)
     print("Finished assigning parameters")
 
-    results = create_contours_td(RP_params, lens_params, 0.5, td_arr)
+    results = create_contours_I(RP_params, lens_params, 0.03, I_arr)
 
     filepath = pickle_data(
-        results, "data/contour_mcz_td", "TACC_contours_mcz" + str(mcz) + "_td"
+        results, "data/contour_mcz_td", "TACC_contours_mcz" + str(mcz) + "_I"
     )
 
 

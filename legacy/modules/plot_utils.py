@@ -4,8 +4,8 @@
 
 
 # import py scripts
-from modules.legacy.functions_v2 import *
-from modules.legacy.contours_v2 import *
+from legacy.modules.functions_v2 import *
+from legacy.modules.contours_v2 import *
 
 # import libraries
 import matplotlib
