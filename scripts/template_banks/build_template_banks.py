@@ -27,6 +27,7 @@ from modules.cli_utils import (
     add_redshift_arg,
     add_chunking_args,
     set_argument_choices,
+    resolve_grid_array,
 )
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -41,7 +42,8 @@ def main(
     orient_preset: Optional[str],
     mcz_min: float,
     mcz_max: float,
-    mcz_pts: int,
+    mcz_pts: Optional[int],
+    mcz_step: Optional[float],
     omega_min: float,
     omega_max: float,
     omega_pts: int,
@@ -76,7 +78,10 @@ def main(
     os.makedirs(bank_dir, exist_ok=True)
     logging.info(f"Resolved bank output directory: {bank_dir}")
 
-    mcz_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
+    mcz_msun_arr = resolve_grid_array(
+        mcz_min, mcz_max, pts=mcz_pts, step=mcz_step, label="mcz"
+    )
+    mcz_pts_eff = len(mcz_msun_arr)
 
     # Resolve chunking from CLI or SLURM env vars
     env_idx = get_env_int("SLURM_ARRAY_TASK_ID")
@@ -91,13 +96,13 @@ def main(
         and mcz_chunk_count is not None
         and mcz_chunk_count > 1
     ):
-        start, end = chunk_bounds(mcz_pts, mcz_chunk_count, mcz_chunk_index)
+        start, end = chunk_bounds(mcz_pts_eff, mcz_chunk_count, mcz_chunk_index)
         sel = range(start, end)
         logging.info(
             f"Chunking mcz across {mcz_chunk_count} chunks: running indices [{start}:{end})"
         )
     else:
-        sel = range(mcz_pts)
+        sel = range(mcz_pts_eff)
 
     for i in sel:
         mcz_msun = float(mcz_msun_arr[i])
@@ -178,7 +183,8 @@ if __name__ == "__main__":
         orient_preset=args.orient_preset,
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
-        mcz_pts=args.mcz_pts,
+        mcz_pts=getattr(args, "mcz_pts", None),
+        mcz_step=args.mcz_step,
         omega_min=args.omega_min,
         omega_max=args.omega_max,
         omega_pts=args.omega_pts,

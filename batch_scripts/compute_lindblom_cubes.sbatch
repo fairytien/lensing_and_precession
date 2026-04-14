@@ -25,16 +25,23 @@ import numpy as np
 idx = int(os.environ.get("SLURM_ARRAY_TASK_ID", "0"))
 mcz_min = float(os.environ["MCZ_MIN"])
 mcz_max = float(os.environ["MCZ_MAX"])
-mcz_pts = int(os.environ["MCZ_PTS"])
+mcz_step_env = os.environ.get("MCZ_STEP", "").strip()
 
-if idx < 0 or idx >= mcz_pts:
+if mcz_step_env:
+    mcz_step = float(mcz_step_env)
+    n = int(np.floor((mcz_max - mcz_min) / mcz_step + 1e-10)) + 1
+    mcz_grid = mcz_min + mcz_step * np.arange(n)
+else:
+    mcz_pts = int(os.environ["MCZ_PTS"])
+    mcz_grid = np.linspace(mcz_min, mcz_max, mcz_pts, dtype=float)
+
+if idx < 0 or idx >= len(mcz_grid):
     print(
-        f"Error: SLURM_ARRAY_TASK_ID={idx} is outside configured mcz grid size {mcz_pts}",
+        f"Error: SLURM_ARRAY_TASK_ID={idx} is outside configured mcz grid size {len(mcz_grid)}",
         file=sys.stderr,
     )
     raise SystemExit(2)
 
-mcz_grid = np.linspace(mcz_min, mcz_max, mcz_pts, dtype=float)
 print(f"{mcz_grid[idx]:g}")
 PY
 ) || exit 2

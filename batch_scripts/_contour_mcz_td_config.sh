@@ -7,10 +7,12 @@ export Z="${Z:-1}"
 export MCZ_MIN="${MCZ_MIN:-5}"
 export MCZ_MAX="${MCZ_MAX:-45}"
 export MCZ_PTS="${MCZ_PTS:-81}"
+export MCZ_STEP="${MCZ_STEP:-}"  # If set, overrides MCZ_PTS (arange-style)
 
 export TD_MIN_MS="${TD_MIN_MS:-20}"
 export TD_MAX_MS="${TD_MAX_MS:-70}"
 export TD_PTS="${TD_PTS:-51}"
+export TD_STEP_MS="${TD_STEP_MS:-}"  # If set, overrides TD_PTS (arange-style)
 
 export OMEGA_MIN="${OMEGA_MIN:-0}"
 export OMEGA_MAX="${OMEGA_MAX:-6}"

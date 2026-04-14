@@ -27,3 +27,26 @@ export OMP_NUM_THREADS=1
 export MKL_NUM_THREADS=1
 export OPENBLAS_NUM_THREADS=1
 export NUMEXPR_NUM_THREADS=1
+
+# ---------------------------------------------------------------------------
+# Shell helpers for building mcz / td grid CLI args (step vs pts).
+# Usage: build_mcz_grid_args / build_td_grid_args append to a variable.
+# ---------------------------------------------------------------------------
+build_mcz_grid_args() {
+  # Outputs: --mcz_min ... --mcz_max ... [--mcz_pts ... | --mcz_step ...]
+  echo "--mcz_min ${MCZ_MIN} --mcz_max ${MCZ_MAX}"
+  if [ -n "${MCZ_STEP:-}" ]; then
+    echo "--mcz_step ${MCZ_STEP}"
+  else
+    echo "--mcz_pts ${MCZ_PTS}"
+  fi
+}
+
+build_td_grid_args() {
+  echo "--td_min_ms ${TD_MIN_MS} --td_max_ms ${TD_MAX_MS}"
+  if [ -n "${TD_STEP_MS:-}" ]; then
+    echo "--td_step_ms ${TD_STEP_MS}"
+  else
+    echo "--td_pts ${TD_PTS}"
+  fi
+}

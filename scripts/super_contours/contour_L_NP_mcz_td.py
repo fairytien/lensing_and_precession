@@ -32,6 +32,7 @@ from modules.default_params import (
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
+from modules.cli_utils import resolve_grid_array
 
 apply_physics_paper_style()
 
@@ -191,10 +192,12 @@ def main(
     I: float = 0.5,
     mcz_min: float = 10.0,
     mcz_max: float = 90.0,
-    mcz_points: int = 81,
+    mcz_points: Optional[int] = 81,
+    mcz_step: Optional[float] = None,
     td_min_ms: float = 20.0,
     td_max_ms: float = 70.0,
-    td_points: int = 51,
+    td_points: Optional[int] = 51,
+    td_step_ms: Optional[float] = None,
     f_min: float = 20.0,
     delta_f: float = 0.25,
     no_plot: bool = False,
@@ -206,8 +209,6 @@ def main(
 ):
     if I <= 0:
         raise ValueError("I must be > 0")
-    if mcz_points < 2 or td_points < 2:
-        raise ValueError("mcz_points and td_points must both be >= 2")
     if mcz_min >= mcz_max:
         raise ValueError("mcz_min must be smaller than mcz_max")
     if td_min_ms >= td_max_ms:
@@ -227,8 +228,12 @@ def main(
     fig_dir, data_dir = _ensure_dirs(base_dir)
 
     # Arrays (units: mcz in Msun; td in seconds, but plot in ms)
-    mcz_arr = np.linspace(mcz_min, mcz_max, mcz_points)
-    td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_points)
+    mcz_arr = resolve_grid_array(
+        mcz_min, mcz_max, pts=mcz_points, step=mcz_step, label="mcz"
+    )
+    td_arr_ms = resolve_grid_array(
+        td_min_ms, td_max_ms, pts=td_points, step=td_step_ms, label="td_ms"
+    )
     td_arr = td_arr_ms / 1e3
 
     # Get y parameter
@@ -365,9 +370,21 @@ if __name__ == "__main__":
     parser.add_argument("--mcz_min", type=float, default=10.0)
     parser.add_argument("--mcz_max", type=float, default=90.0)
     parser.add_argument("--mcz_points", type=int, default=81)
+    parser.add_argument(
+        "--mcz_step",
+        type=float,
+        default=None,
+        help="Step size for mcz grid (arange-style). Mutually exclusive with --mcz_points.",
+    )
     parser.add_argument("--td_min_ms", type=float, default=20.0)
     parser.add_argument("--td_max_ms", type=float, default=70.0)
     parser.add_argument("--td_points", type=int, default=51)
+    parser.add_argument(
+        "--td_step_ms",
+        type=float,
+        default=None,
+        help="Step size for td grid in ms (arange-style). Mutually exclusive with --td_points.",
+    )
     parser.add_argument(
         "--redshift",
         "-z",
@@ -407,9 +424,11 @@ if __name__ == "__main__":
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         mcz_points=args.mcz_points,
+        mcz_step=args.mcz_step,
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
         td_points=args.td_points,
+        td_step_ms=args.td_step_ms,
         f_min=args.f_min,
         delta_f=args.delta_f,
         z=args.redshift,

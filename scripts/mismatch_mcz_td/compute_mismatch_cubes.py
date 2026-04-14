@@ -64,6 +64,7 @@ from modules.cli_utils import (
     add_redshift_arg,
     add_chunking_args,
     set_argument_choices,
+    resolve_grid_array,
 )
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -79,10 +80,12 @@ def main(
     orient_preset: Optional[str],
     mcz_min: float,
     mcz_max: float,
-    mcz_pts: int,
+    mcz_pts: Optional[int],
+    mcz_step: Optional[float],
     td_min_ms: float,
     td_max_ms: float,
-    td_pts: int,
+    td_pts: Optional[int],
+    td_step_ms: Optional[float],
     omega_min: float,
     omega_max: float,
     omega_pts: int,
@@ -134,9 +137,15 @@ def main(
     logging.info(f"Resolved mismatch output directory: {run_dir}")
 
     # Axes arrays
-    mcz_src_msun_arr = np.linspace(mcz_min, mcz_max, mcz_pts)
-    td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_pts)
+    mcz_src_msun_arr = resolve_grid_array(
+        mcz_min, mcz_max, pts=mcz_pts, step=mcz_step, label="mcz"
+    )
+    td_arr_ms = resolve_grid_array(
+        td_min_ms, td_max_ms, pts=td_pts, step=td_step_ms, label="td_ms"
+    )
     td_arr = td_arr_ms / 1e3
+    mcz_pts_eff = len(mcz_src_msun_arr)
+    td_pts_eff = len(td_arr_ms)
 
     # Resolve chunking from CLI or SLURM env vars
     env_idx = get_env_int("SLURM_ARRAY_TASK_ID")
@@ -150,13 +159,13 @@ def main(
         and mcz_chunk_count is not None
         and mcz_chunk_count > 1
     ):
-        start, end = chunk_bounds(mcz_pts, mcz_chunk_count, mcz_chunk_index)
+        start, end = chunk_bounds(mcz_pts_eff, mcz_chunk_count, mcz_chunk_index)
         sel = range(start, end)
         logging.info(
             f"Chunking mcz across {mcz_chunk_count} chunks: running indices [{start}:{end})"
         )
     else:
-        sel = range(mcz_pts)
+        sel = range(mcz_pts_eff)
 
     y = float(get_y_from_I(I))
     z_str = "None" if z_val is None else f"{z_val:g}"
@@ -186,7 +195,7 @@ def main(
         lens_params["mcz_source_msun"] = mcz_src_msun
         lens_params["mcz_detector_msun"] = mcz_det_msun
         logging.info(
-            f"[{i+1}/{len(mcz_src_msun_arr)}] Processing mcz_src={mcz_src_msun} Msun, z={z_str}, mcz_det={mcz_det_msun} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
+            f"[{i+1}/{len(mcz_src_msun_arr)}] Processing mcz_src={mcz_src_msun} Msun, z={z_str}, mcz_det={mcz_det_msun} Msun with td {td_min_ms}-{td_max_ms}ms td{td_pts_eff}, omega {omega_min}-{omega_max} o{omega_pts}, theta {theta_min}-{theta_max} t{theta_pts}, gamma g{gamma_pts}"
         )
 
         # Bank path (must have been created already)
@@ -254,7 +263,7 @@ def main(
                 I=I,
                 td_min_ms=td_min_ms,
                 td_max_ms=td_max_ms,
-                td_pts=td_pts,
+                td_pts=td_pts_eff,
                 omega_min=omega_min,
                 omega_max=omega_max,
                 omega_pts=omega_pts,
@@ -268,7 +277,7 @@ def main(
             try:
                 mmh5, dsets = create_mismatch_cube(
                     filepath=mm_out_path,
-                    td_pts=td_pts,
+                    td_pts=td_pts_eff,
                     theta_arr=theta_arr,
                     omega_arr=omega_arr,
                     gamma_arr=gamma_arr,
@@ -312,7 +321,7 @@ def main(
                 )
                 # Store the intended mcz grid so aggregation can detect missing rows
                 # from the actual compute configuration (not inferred from filenames).
-                write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts)
+                write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts_eff)
                 write_scalar_attr_with_unit(mmh5, "z", z_val, none_as_nan=True)
                 mmh5.create_dataset("MLz", data=mlz_arr)
                 write_dataset_units(mmh5, {"MLz": "s"})
@@ -475,10 +484,12 @@ if __name__ == "__main__":
         orient_preset=args.orient_preset,
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
-        mcz_pts=args.mcz_pts,
+        mcz_pts=getattr(args, "mcz_pts", None),
+        mcz_step=args.mcz_step,
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
-        td_pts=args.td_pts,
+        td_pts=getattr(args, "td_pts", None),
+        td_step_ms=args.td_step_ms,
         omega_min=args.omega_min,
         omega_max=args.omega_max,
         omega_pts=args.omega_pts,

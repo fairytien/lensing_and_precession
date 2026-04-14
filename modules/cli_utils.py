@@ -3,6 +3,41 @@
 from argparse import ArgumentParser
 from typing import Iterable, Optional
 
+import numpy as np
+
+
+def resolve_grid_array(
+    min_val: float,
+    max_val: float,
+    pts: Optional[int] = None,
+    step: Optional[float] = None,
+    label: Optional[str] = None,
+) -> np.ndarray:
+    """Return a 1-D grid from either a point-count (linspace) or step (arange-style).
+
+    Exactly one of *pts* or *step* must be provided.
+    When *step* is used the array starts at *min_val* and advances by *step*,
+    stopping at or before *max_val* (numpy-arange semantics).  The generated
+    array is logged so the caller can verify.
+    """
+    if step is not None and pts is not None:
+        # step takes priority (pts is likely a default); warn if both were explicit
+        pts = None
+    if step is not None:
+        n = int(np.floor((max_val - min_val) / step + 1e-10)) + 1
+        arr = min_val + step * np.arange(n)
+        if label:
+            print(
+                f"[step-mode] {label}: min={min_val}, max={max_val}, step={step} "
+                f"-> {len(arr)} pts: {arr}"
+            )
+        return arr
+    if pts is not None:
+        return np.linspace(min_val, max_val, pts)
+    raise ValueError(
+        f"{'(' + label + ') ' if label else ''}Must specify either pts or step."
+    )
+
 
 def add_orientation_args(parser: ArgumentParser) -> ArgumentParser:
     """Attach the common orientation arguments used by pipeline scripts."""
@@ -46,6 +81,12 @@ def add_mcz_grid_args(
     parser.add_argument("--mcz_max", type=float, default=default_max, required=required)
     if default_pts is not None:
         parser.add_argument("--mcz_pts", type=int, default=default_pts)
+    parser.add_argument(
+        "--mcz_step",
+        type=float,
+        default=None,
+        help="Step size for mcz grid (arange-style). Mutually exclusive with --mcz_pts.",
+    )
     return parser
 
 
@@ -65,6 +106,12 @@ def add_td_grid_args(
     )
     if default_pts is not None:
         parser.add_argument("--td_pts", type=int, default=default_pts)
+    parser.add_argument(
+        "--td_step_ms",
+        type=float,
+        default=None,
+        help="Step size for td grid in ms (arange-style). Mutually exclusive with --td_pts.",
+    )
     return parser
 
 

@@ -22,7 +22,7 @@ source "$SCRIPT_DIR/_contour_mcz_td_config.sh"
 python -m scripts.template_banks.build_template_banks \
   --orient_preset "${ORIENT_PRESET}" \
   --z "${Z}" \
-  --mcz_min "${MCZ_MIN}" --mcz_max "${MCZ_MAX}" --mcz_pts "${MCZ_PTS}" \
+  $(build_mcz_grid_args) \
   --omega_min "${OMEGA_MIN}" --omega_max "${OMEGA_MAX}" --omega_pts "${OMEGA_PTS}" \
   --theta_min "${THETA_MIN}" --theta_max "${THETA_MAX}" --theta_pts "${THETA_PTS}" \
   --gamma_pts "${GAMMA_PTS}" \

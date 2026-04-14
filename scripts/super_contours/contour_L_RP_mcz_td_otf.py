@@ -14,6 +14,7 @@ sys.path.insert(
 from modules.functions import *
 from modules.default_params import *
 from modules.Classes import Precessing as P2
+from modules.cli_utils import resolve_grid_array
 from pycbc.types import FrequencySeries
 
 
@@ -599,10 +600,12 @@ def main(
     phi_S: Optional[float] = None,
     mcz_min: float = 10.0,
     mcz_max: float = 90.0,
-    mcz_points: int = 81,
+    mcz_points: Optional[int] = 81,
+    mcz_step: Optional[float] = None,
     td_min_ms: float = 20.0,
     td_max_ms: float = 60.0,
-    td_points: int = 41,
+    td_points: Optional[int] = 41,
+    td_step_ms: Optional[float] = None,
     omega_min: float = 0.0,
     omega_max: float = 5.0,
     omega_points: int = 31,
@@ -625,8 +628,12 @@ def main(
     fig_dir, data_dir = _ensure_dirs(base_dir)
 
     # Arrays (units: mcz in Msun; td in seconds, but plot/save in ms)
-    mcz_arr = np.linspace(mcz_min, mcz_max, mcz_points)
-    td_arr_ms = np.linspace(td_min_ms, td_max_ms, td_points)
+    mcz_arr = resolve_grid_array(
+        mcz_min, mcz_max, pts=mcz_points, step=mcz_step, label="mcz"
+    )
+    td_arr_ms = resolve_grid_array(
+        td_min_ms, td_max_ms, pts=td_points, step=td_step_ms, label="td_ms"
+    )
     td_arr = td_arr_ms / 1e3
 
     # Allocate output matrices: rows=mcz, cols=td
@@ -854,9 +861,21 @@ if __name__ == "__main__":
     parser.add_argument("--mcz_min", type=float, default=10.0)
     parser.add_argument("--mcz_max", type=float, default=90.0)
     parser.add_argument("--mcz_points", type=int, default=81)
+    parser.add_argument(
+        "--mcz_step",
+        type=float,
+        default=None,
+        help="Step size for mcz grid (arange-style). Mutually exclusive with --mcz_points.",
+    )
     parser.add_argument("--td_min_ms", type=float, default=20.0)
     parser.add_argument("--td_max_ms", type=float, default=60.0)
     parser.add_argument("--td_points", type=int, default=41)
+    parser.add_argument(
+        "--td_step_ms",
+        type=float,
+        default=None,
+        help="Step size for td grid in ms (arange-style). Mutually exclusive with --td_points.",
+    )
     parser.add_argument("--omega_min", type=float, default=0.0)
     parser.add_argument("--omega_max", type=float, default=6.0)
     parser.add_argument("--omega_points", type=int, default=61)
@@ -942,9 +961,11 @@ if __name__ == "__main__":
         mcz_min=args.mcz_min,
         mcz_max=args.mcz_max,
         mcz_points=args.mcz_points,
+        mcz_step=args.mcz_step,
         td_min_ms=args.td_min_ms,
         td_max_ms=args.td_max_ms,
         td_points=args.td_points,
+        td_step_ms=args.td_step_ms,
         omega_min=args.omega_min,
         omega_max=args.omega_max,
         omega_points=args.omega_points,

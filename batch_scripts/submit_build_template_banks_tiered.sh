@@ -51,9 +51,17 @@ from pathlib import Path
 
 mcz_min = float(os.environ["MCZ_MIN"])
 mcz_max = float(os.environ["MCZ_MAX"])
-mcz_pts = int(os.environ["MCZ_PTS"])
-if mcz_pts <= 0:
-    raise SystemExit("MCZ_PTS must be > 0")
+mcz_step_env = os.environ.get("MCZ_STEP", "").strip()
+
+if mcz_step_env:
+    mcz_step = float(mcz_step_env)
+    n = int(np.floor((mcz_max - mcz_min) / mcz_step + 1e-10)) + 1
+    mcz_arr = mcz_min + mcz_step * np.arange(n)
+else:
+    mcz_pts = int(os.environ["MCZ_PTS"])
+    if mcz_pts <= 0:
+        raise SystemExit("MCZ_PTS must be > 0")
+    mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts, dtype=float)
 
 summary_path = Path(os.environ["JOB_SUMMARY"])
 tier1_upper = float(os.environ["TIER1_UPPER_MCZ"])
@@ -65,8 +73,6 @@ safety_factor = float(os.environ["SAFETY_FACTOR"])
 safety_pad_sec = float(os.environ["SAFETY_PAD_SEC"])
 min_wall = os.environ["MIN_WALLTIME"]
 max_wall = os.environ["MAX_WALLTIME"]
-
-mcz_arr = np.linspace(mcz_min, mcz_max, mcz_pts, dtype=float)
 
 
 def parse_hms_to_sec(value: str) -> float:
