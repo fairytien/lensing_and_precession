@@ -35,7 +35,7 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 | Build reusable banks for batch runs | `scripts/template_banks/build_template_banks.py` |
 | Run the production mismatch contour pipeline | `scripts/mismatch_mcz_td/compute_mismatch_cubes.py` -> `aggregate_best_match.py` -> `plot_contour_mcz_td_from_best_match.py` |
 | Produce Lindblom distinguishability contours | `scripts/lindblom/compute_lindblom_contours.py` and `scripts/lindblom/complete_lindblom_pipeline.sh` |
-| Sweep across `mcz`, `td`, or `I` quickly | `scripts/contour_mcz_td/contours_mcz.py`, `contours_td.py`, `contours_I.py` |
+| Sweep across `mcz`, `td`, or `I` quickly | `legacy/scripts/contour_mcz_td/contours_mcz.py`, `contours_td.py`, `contours_I.py` (legacy) |
 | Generate a one-off contour for debugging | `scripts/contour_omega_theta/v4_indiv_contour_otf.py` |
 | Convert or inspect stored outputs | scripts in `scripts/utils/` |
 
@@ -50,8 +50,8 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 - Matching/mismatch logic has one source of truth in `modules.match_utils`.
 - `modules.functions` is a compatibility facade over these modules, and `modules.functions_v3` is a legacy wrapper.
 - Production waveform physics remains pinned to the canonical `modules.Classes` implementation (originated from `Classes_v2`); treat `Classes_v3+` as testing-only (not numerically reliable for production outputs).
-- Legacy/versioned module implementations are now kept under `modules/legacy/`.
-- Legacy scripts under `scripts/` should import legacy helpers from `modules.legacy.*`.
+- Legacy/versioned module implementations are now kept under `legacy/modules/`.
+- Legacy scripts under `legacy/scripts/` should import legacy helpers from `legacy.modules.*`.
 - If historical files use legacy names, migrate them once with:
 
 ```bash
@@ -90,73 +90,31 @@ python -m scripts.template_banks.build_template_banks \
 
 ### Core stage scripts
 
-- `compute_mismatch_cubes.py`
-- `aggregate_best_match.py`
-- `plot_contour_mcz_td_from_best_match.py`
+- `compute_mismatch_cubes.py` — Stage 1: compute per-mcz mismatch cubes
+- `aggregate_best_match.py` — Stage 2: aggregate across mcz into best-match file
+- `plot_contour_mcz_td_from_best_match.py` — Stage 3: plot contour from best-match
 
-### Visualization and inspection helpers
+### Visualization helpers
 
-- `visualize_mismatch_cube.py`
-- `visualize_mcz_sweep_at_td.py`
-- `plot_omega_theta_from_cube.py`
-
-Quick helper usage examples:
+- `visualize_mismatch_cube.py` — animate mismatch across td slices
+- `visualize_mcz_sweep_at_td.py` — animate mismatch across mcz at fixed td
+- `plot_omega_theta_from_cube.py` — plot omega-theta slices
 
 ```bash
 python -m scripts.mismatch_mcz_td.visualize_mismatch_cube \
   --input_path ./data/mismatch/mismatch_cubes/<cube>.h5 \
-  --output_dir ./figures/mismatch_cubes \
-  --gif
+  --output_dir ./figures/mismatch_cubes --gif
 
 python -m scripts.mismatch_mcz_td.visualize_mcz_sweep_at_td \
   --input_dir ./data/mismatch/mismatch_cubes \
-  --output_dir ./figures/mismatch_cubes_mcz_sweep \
-  --td_ms 40 \
-  --gif
+  --output_dir ./figures/mismatch_cubes_mcz_sweep --td_ms 40 --gif
 ```
 
 ### Maintenance helpers
 
 - `convert_best_match_redshift.py`
 
-Legacy filename migration now lives in `scripts/utils/rename_legacy_filenames.py`.
-
-### Recommended stage order
-
-1. Build banks (template bank stage).
-2. Compute mismatch cubes.
-3. Aggregate best-match results.
-4. Plot contours.
-
-### Typical usage
-
-```bash
-python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
-  --I 0.5 \
-  --orient_preset Taman_edgeon \
-  --mcz_min 10 --mcz_max 90 --mcz_pts 81 \
-  --td_min_ms 20 --td_max_ms 70 --td_pts 51 \
-  --omega_min 0 --omega_max 6 --omega_pts 61 \
-  --theta_min 0 --theta_max 15 --theta_pts 151 \
-  --gamma_pts 51 \
-  --z 1 \
-  --bank_dir ./data/template_banks \
-  --run_dir ./data/mismatch
-
-python -m scripts.mismatch_mcz_td.aggregate_best_match \
-  --run_dir ./data/mismatch \
-  --I 0.5 \
-  --td_min_ms 20 --td_max_ms 70 \
-  --mcz_min 10 --mcz_max 90 \
-  --orientation_tag Taman_edgeon \
-  --z 1
-
-python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_path ./data/mismatch_I0p5_z1_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
-  --output_dir ./figures/mismatch
-```
-
-For stage-specific argument details and HDF5 schema notes, see `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`.
+> **For detailed stage examples, HDF5 schema, and batch configuration:** see [CONTOUR_TD_MCZ_PIPELINE_GUIDE.md](CONTOUR_TD_MCZ_PIPELINE_GUIDE.md).
 
 ## Lindblom Pipeline (`scripts/lindblom/`)
 
@@ -191,33 +149,30 @@ bash scripts/lindblom/complete_lindblom_pipeline.sh
 
 ## Contours over (mcz, td) (`scripts/contour_mcz_td/`)
 
-### Main scripts
+### Active scripts
+
+- `contour_L_NP_mcz_td.py` — main active script
+
+### Legacy scripts (`legacy/scripts/contour_mcz_td/`)
 
 - `super_contour_cli.py`
 - `super_contour_L_NP.py`
-- `contour_L_NP_mcz_td.py`
 - `contour_L_RP_mcz_td_otf.py`
-
-### Sweep scripts
-
-- `contours_mcz.py`
-- `contours_td.py`
-- `contours_I.py`
-
-### Versioned bank-based scripts
-
-- `v3_super_contour_from_bank.py`
-- `v3_contours_mcz_from_bank.py`
+- `contours_mcz.py`, `contours_td.py`, `contours_I.py` — parameter sweep scripts
+- `v3_super_contour_from_bank.py`, `v3_contours_mcz_from_bank.py` — bank-based scripts
 
 Use this folder when you want broad parameter sweeps rather than strict stage-by-stage production runs.
 
 ## Contours over (omega, theta) (`scripts/contour_omega_theta/`)
 
-### Main scripts
+### Active scripts
 
-- `v4_indiv_contour_otf.py` (latest OTF path)
+- `v4_indiv_contour_otf.py` — latest OTF path (uses `Classes_v4` for solve_ivp)
 - `v3_indiv_contour_otf.py`
 - `v3_indiv_contour_otf_v2prec.py`
+
+### Legacy scripts (`legacy/scripts/contour_omega_theta/`)
+
 - `v2_indiv_contour_otf.py`
 - `v3_indiv_contour_from_bank.py`
 - `indiv_contour.py`
@@ -256,8 +211,11 @@ Production cluster jobs live in `batch_scripts/`.
 
 Shared contour config defaults are centralized in `batch_scripts/_contour_mcz_td_config.sh`.
 
+Deprecated batch scripts (for older workflows) are in `legacy/batch_scripts/`.
+
 ## Recommended Collaboration Practices
 
 - Keep new script entry points under an existing workflow folder whenever possible.
 - Prefer adding examples in this guide and workflow docs under `docs/` instead of creating new nested README files.
 - When adding new outputs, document filename/discovery behavior in `modules/filenames.py`-adjacent docs to prevent naming drift.
+- For data layout, LFS, and STOCKYARD workflow see `docs/DATA_LFS.md` and `docs/STOCKYARD.md`.

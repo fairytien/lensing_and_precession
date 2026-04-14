@@ -58,11 +58,11 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
   --orientation_tag Taman_edgeon \
-  --z 1e-8
+  --z 1
 
 # 4. Plot the final contour
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --input_path ./data/mismatch_I0p5_z1_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
   --output_dir ./figures/mismatch
 ```
 
@@ -77,8 +77,8 @@ Detailed usage documentation is centralized under `docs/`.
 
 - `docs/SCRIPTS_PIPELINES_GUIDE.md`: Script inventory and task-based usage across all `scripts/` workflows.
 - `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`: Stage-by-stage `(td, mcz)` mismatch pipeline details.
-- `docs/WORKFLOW_DATA_LFS.md`: Data organization, Git LFS workflow, checksums, and size guard.
-- `docs/WORKFLOW_STOCKYARD.md`: Shared STOCKYARD workflow and symlink patterns on TACC.
+- `docs/DATA_LFS.md`: Data organization, Git LFS workflow, checksums, size guard, and optional history cleanup.
+- `docs/STOCKYARD.md`: Shared STOCKYARD workflow and symlink patterns on TACC.
 - `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata schema conventions.
 
 ## Main Pipeline Naming Strategy
