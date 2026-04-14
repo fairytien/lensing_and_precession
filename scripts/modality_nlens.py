@@ -1014,7 +1014,7 @@ def main():
     )
     parser.add_argument(
         "--outdir",
-        default="figures/unimodal_nlens_hypothesis",
+        default="figures/modality_nlens",
         help="Output directory for figures",
     )
     parser.add_argument(
