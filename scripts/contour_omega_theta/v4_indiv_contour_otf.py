@@ -24,6 +24,8 @@ from modules.default_params import (
     RP_params_1,
     SOLMASS2SEC,
 )
+
+# Classes_v4.Precessing provides solve_ivp-only phase_delta_phi with configurable methods
 from legacy.modules.Classes_v4 import Precessing as P4
 
 

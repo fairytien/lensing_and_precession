@@ -2,11 +2,9 @@
 # Section 1: Import Modules #
 #############################
 
+from typing import Union
 
-# import py scripts
-from legacy.modules.contours_v2 import *
-
-# import libraries
+import numpy as np
 from scipy.optimize import minimize
 from scipy.interpolate import RegularGridInterpolator
 import matplotlib.pyplot as plt

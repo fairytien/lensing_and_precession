@@ -25,9 +25,11 @@ from multiprocessing import Pool, cpu_count
 from typing import Tuple, Optional
 
 # Ensure project root is on path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
-from legacy.modules.Classes_v3 import Precessing
+from modules.Classes import Precessing
 from modules.functions import (
     get_gw,
     get_y_from_I,
