@@ -10,7 +10,7 @@ unavailable or incompatible with the installed NumPy version.
 from typing import Union
 import numpy as np
 
-from .default_params_v3 import SOLMASS2SEC, GIGAPC2SEC
+from .default_params import SOLMASS2SEC, GIGAPC2SEC
 
 ZMIN = 1e-8
 ZMAX = 20.0
