@@ -4,7 +4,7 @@ This script reproduces the latest figure style used in this project:
 - 2x2 shared-axis layout
 - global/shared color scale across all panels
 - in-panel label boxes: Non-Precessing, System 1/2/3
-- 1/2/3 cycle overlays on all panels
+- N_lensed=1/2/3 overlays on all panels
 - peaks (magenta) and troughs (white) overlays on panel 1 only
 - overlay curves scaled from z_from to z_to (defaults: 1e-8 -> 1)
 - colorbar aligned to right-column axis bounds (excluding bottom xlabel height)
@@ -122,7 +122,7 @@ def create_figure(
         mcz_min = float(np.nanmin(ys[i]))
         mcz_max = float(np.nanmax(ys[i]))
 
-        # 1/2/3 cycle overlays on all panels.
+        # N_lensed=1/2/3 overlays on all panels.
         plot_cycle_lines(
             td_arr,
             td_arr_ms,
@@ -228,9 +228,11 @@ def create_figure(
     cbar.update_ticks()
 
     overlay_handles = [
-        Line2D([0], [0], color="black", lw=2, ls="-", label="1 cycle"),
-        Line2D([0], [0], color="black", lw=2, ls="--", label="2 cycles"),
-        Line2D([0], [0], color="black", lw=2, ls=":", label="3 cycles"),
+        Line2D([0], [0], color="black", lw=2, ls="-", label=r"$N_{\mathrm{lensed}}=1$"),
+        Line2D(
+            [0], [0], color="black", lw=2, ls="--", label=r"$N_{\mathrm{lensed}}=2$"
+        ),
+        Line2D([0], [0], color="black", lw=2, ls=":", label=r"$N_{\mathrm{lensed}}=3$"),
         Line2D(
             [0],
             [0],
@@ -239,7 +241,7 @@ def create_figure(
             markersize=6,
             markerfacecolor="magenta",
             markeredgecolor="magenta",
-            label="peaks",
+            label="peak",
         ),
         Line2D(
             [0],
@@ -249,7 +251,7 @@ def create_figure(
             markersize=6,
             markerfacecolor="white",
             markeredgecolor="black",
-            label="troughs",
+            label="trough",
         ),
     ]
     overlay_legend = fig.legend(
