@@ -22,7 +22,7 @@ Usage example:
 import os
 import sys
 import argparse
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple
 
 import numpy as np
 import h5py
@@ -32,41 +32,6 @@ from modules.plot_utils import apply_physics_paper_style
 apply_physics_paper_style()
 
 from modules.filenames import find_mismatch_cube_files
-
-
-def _find_mismatch_cube(
-    mcz_msun: float,
-    orientation_tag: str,
-    input_dirs: List[str],
-) -> Optional[str]:
-    """Search common input directories for the per-mcz mismatch cube file.
-
-        Looks under:
-            {input_dir}/mismatch_cubes/*.h5
-        and filters through canonical parsing rules.
-    Returns the first matching path if found, else None.
-    """
-    for input_dir in input_dirs:
-        matches = find_mismatch_cube_files(
-            results_dir=input_dir,
-            td_min_ms=None,
-            td_max_ms=None,
-            orientation_tag=orientation_tag,
-            mcz_msun=float(mcz_msun),
-        )
-        if matches:
-            return matches[0]
-    return None
-
-
-def _nearest_index(arr: np.ndarray, value: float) -> int:
-    arr = np.asarray(arr, dtype=float)
-    return int(np.argmin(np.abs(arr - value)))
-
-
-def _ensure_dir(path: str) -> None:
-    if path:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
 
 
 def plot_contour_slice(
@@ -90,7 +55,7 @@ def plot_contour_slice(
 
     # Convert td to ms for selection and labeling
     td_ms_arr = td * 1e3
-    j = _nearest_index(td_ms_arr, td_ms)
+    j = int(np.argmin(np.abs(td_ms_arr - td_ms)))
     td_sel_ms = float(td_ms_arr[j])
     Z = Zcube[j, :, :]  # (theta, omega)
 
@@ -110,7 +75,7 @@ def plot_contour_slice(
     ax.grid(True, alpha=0.2)
 
     if out_path:
-        _ensure_dir(out_path)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
         fig.savefig(out_path, dpi=dpi, bbox_inches="tight")
     if show:
         plt.show()
@@ -176,7 +141,17 @@ def main():
                 os.path.join("data", "mismatch"),
             ]
         )
-        cube_path = _find_mismatch_cube(mcz_msun, args.orientation_tag, input_dirs)
+        for input_dir in input_dirs:
+            matches = find_mismatch_cube_files(
+                results_dir=input_dir,
+                td_min_ms=None,
+                td_max_ms=None,
+                orientation_tag=args.orientation_tag,
+                mcz_msun=mcz_msun,
+            )
+            if matches:
+                cube_path = matches[0]
+                break
 
     if cube_path is None or not os.path.isfile(cube_path):
         print("ERROR: Could not find per-mcz mismatch cube for plotting.")
