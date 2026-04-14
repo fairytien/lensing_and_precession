@@ -113,7 +113,7 @@ def _parse_args():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="data/super_contours",
+        default="data/contour_mcz_td",
         help="Output directory for pickle.",
     )
     parser.add_argument(

@@ -16,8 +16,8 @@ from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
 
 DEFAULT_INPUTS = [
-    "data/indiv_contours/v3_indiv_contour_mcz10_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_10-01-50.pkl",
-    "data/indiv_contours/v3_indiv_contour_mcz20_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_10-04-00.pkl",
+    "data/contour_omega_theta/v3_indiv_contour_mcz10_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_10-01-50.pkl",
+    "data/contour_omega_theta/v3_indiv_contour_mcz20_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_10-04-00.pkl",
 ]
 
 NOTEBOOK_LINE_STYLES = ["-", "--", ":"]

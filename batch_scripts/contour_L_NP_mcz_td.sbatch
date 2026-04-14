@@ -27,7 +27,7 @@ MCZ_POINTS=${MCZ_POINTS:-${MCZ_PTS}}
 TD_POINTS=${TD_POINTS:-${TD_PTS}}
 
 # Run the contour script with all available CPUs
-python -m scripts.super_contours.contour_L_NP_mcz_td \
+python -m scripts.contour_mcz_td.contour_L_NP_mcz_td \
   --I "${FLUX_RATIO}" \
   --mcz_min "${MCZ_MIN}" \
   --mcz_max "${MCZ_MAX}" \

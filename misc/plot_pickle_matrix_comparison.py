@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 FILE_A = "data/v3_indiv_contour_mcz20_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z0.28_2026-03-03_06-04-50.pkl"
 FILE_B = "data/v3_indiv_contour_mcz20_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_2026-03-03_06-06-17.pkl"
-OUT_DIR = "figures/indiv_contours"
+OUT_DIR = "figures/contour_omega_theta"
 OUT_FILE = "pickle_matrix_comparison_mcz20_td30ms_2026-03-03.png"
 
 

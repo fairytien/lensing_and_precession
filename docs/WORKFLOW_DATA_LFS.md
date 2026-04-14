@@ -12,10 +12,10 @@ Generated analysis artifacts are organized under `data/`.
 
 - `data/TACC/`
   - Outputs produced on TACC, commonly with `TACC_` in the filename.
-- `data/super_contours/`
+- `data/contour_mcz_td/`
   - Super contour and multi-system aggregate outputs.
-- `data/indiv_contours/`
-  - Individual target/system contour outputs (`indiv_contour`, `indiv_mismatch`, and versioned variants).
+- `data/contour_omega_theta/`
+  - Individual omega-theta contour outputs (`contour_omega_theta`, `indiv_mismatch`, and versioned variants).
 - `data/contours/`
   - Reserved placeholder directory for future derived contour products.
 
@@ -95,8 +95,8 @@ git add lfs/checksums/manifest.sha256
 `lfs/organize_data.py` uses first-match priority:
 
 1. `TACC_`
-2. `indiv_contour` or `indiv_mismatch`
-3. `super_contour`
+2. `indiv_contour` or `indiv_mismatch` → `data/contour_omega_theta/`
+3. `super_contour` → `data/contour_mcz_td/`
 4. `mismatch_contour` or `mismatch_contours`
 5. plural `contours`
 6. `mismatch_` dictionary-style outputs

@@ -28,7 +28,7 @@ def main():
         lens_params["mcz"] = RP_params["mcz"] = mcz * solar_mass
         results[mcz] = create_mismatch_contour_parallel(RP_params, lens_params)
 
-    filepath = pickle_data(results, "data/super_contours", "sys2_contours_mcz")
+    filepath = pickle_data(results, "data/contour_mcz_td", "sys2_contours_mcz")
 
 
 if __name__ == "__main__":

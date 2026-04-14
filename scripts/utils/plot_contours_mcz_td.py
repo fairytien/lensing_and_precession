@@ -40,7 +40,7 @@ from scripts.utils.plot_cycles_and_extrema_mcz import (
 
 
 DEFAULT_PATHS = [
-    "data/super_contours/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
+    "data/contour_mcz_td/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
     "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5",
     "data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5",
     "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5",
@@ -102,7 +102,7 @@ def create_figure(
 
     if len(set(data_types)) != 1 or data_types[0] != "td_mcz":
         raise ValueError(
-            "All inputs must be td_mcz datasets (best_match/super_contour td-mcz grids)."
+            "All inputs must be td_mcz datasets (best_match/contour_mcz_td td-mcz grids)."
         )
 
     eps_masked, global_min, global_max = compute_color_scale(eps, "auto")

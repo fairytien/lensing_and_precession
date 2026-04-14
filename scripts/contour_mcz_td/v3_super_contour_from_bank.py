@@ -37,7 +37,7 @@ def main():
     home_dir = os.environ.get("HOME", ".")
     filepath = pickle_data(
         results,
-        os.path.join(home_dir, "lensing_and_precession/data/super_contours"),
+        os.path.join(home_dir, "lensing_and_precession/data/contour_mcz_td"),
         "v3_sys2_super_contour_mcz" + str(mcz_msun),
     )
 

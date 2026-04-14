@@ -25,7 +25,7 @@ def main():
     results = create_contours_I(RP_params, lens_params, 0.03, I_arr)
 
     filepath = pickle_data(
-        results, "data/super_contours", "TACC_contours_mcz" + str(mcz) + "_I"
+        results, "data/contour_mcz_td", "TACC_contours_mcz" + str(mcz) + "_I"
     )
 
 

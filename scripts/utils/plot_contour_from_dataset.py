@@ -39,7 +39,7 @@ COLORBAR_LABEL = (
 
 
 def derive_fig_path_from_input(input_path: str, tag: Optional[str] = None) -> str:
-    figures_dir = os.path.join(PROJECT_ROOT, "figures", "indiv_contours")
+    figures_dir = os.path.join(PROJECT_ROOT, "figures", "contour_omega_theta")
     os.makedirs(figures_dir, exist_ok=True)
 
     filename = os.path.basename(input_path)

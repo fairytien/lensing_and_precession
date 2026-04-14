@@ -19,8 +19,8 @@ from pycbc.types import FrequencySeries
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
-    fig_dir = os.path.join(base_dir, "figures", "super_contours")
-    data_dir = os.path.join(base_dir, "data", "super_contours")
+    fig_dir = os.path.join(base_dir, "figures", "contour_mcz_td")
+    data_dir = os.path.join(base_dir, "data", "contour_mcz_td")
     os.makedirs(fig_dir, exist_ok=True)
     os.makedirs(data_dir, exist_ok=True)
     return fig_dir, data_dir

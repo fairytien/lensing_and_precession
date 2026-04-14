@@ -23,8 +23,8 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 | `scripts/template_banks/` | Build and manage precessing template banks. |
 | `scripts/mismatch_mcz_td/` | Compute mismatch cubes, aggregate best match, and plot `(td, mcz)` contours. |
 | `scripts/lindblom/` | Run Lindblom criterion and related SNR contour workflows. |
-| `scripts/super_contours/` | Multi-dimensional contour sweeps and super contour generation. |
-| `scripts/indiv_contours/` | Single-case and on-the-fly contour runs. |
+| `scripts/contour_mcz_td/` | Contour sweeps over (mcz, td) parameter space. |
+| `scripts/contour_omega_theta/` | Single-case contour runs over (omega, theta) parameter space. |
 | `scripts/utils/` | Conversion, inspection, timing, and plotting helpers. |
 | `scripts/plot_bestmatch_waveform_overlays.py` | Overlay source and best-match template waveforms from best-match outputs. |
 
@@ -35,8 +35,8 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 | Build reusable banks for batch runs | `scripts/template_banks/build_template_banks.py` |
 | Run the production mismatch contour pipeline | `scripts/mismatch_mcz_td/compute_mismatch_cubes.py` -> `aggregate_best_match.py` -> `plot_contour_mcz_td_from_best_match.py` |
 | Produce Lindblom distinguishability contours | `scripts/lindblom/compute_lindblom_contours.py` and `scripts/lindblom/complete_lindblom_pipeline.sh` |
-| Sweep across `mcz`, `td`, or `I` quickly | `scripts/super_contours/contours_mcz.py`, `contours_td.py`, `contours_I.py` |
-| Generate a one-off contour for debugging | `scripts/indiv_contours/v4_indiv_contour_otf.py` |
+| Sweep across `mcz`, `td`, or `I` quickly | `scripts/contour_mcz_td/contours_mcz.py`, `contours_td.py`, `contours_I.py` |
+| Generate a one-off contour for debugging | `scripts/contour_omega_theta/v4_indiv_contour_otf.py` |
 | Convert or inspect stored outputs | scripts in `scripts/utils/` |
 
 ## Common Runtime Notes
@@ -189,7 +189,7 @@ bash scripts/lindblom/check_lindblom_progress.sh
 bash scripts/lindblom/complete_lindblom_pipeline.sh
 ```
 
-## Super Contours (`scripts/super_contours/`)
+## Contours over (mcz, td) (`scripts/contour_mcz_td/`)
 
 ### Main scripts
 
@@ -211,7 +211,7 @@ bash scripts/lindblom/complete_lindblom_pipeline.sh
 
 Use this folder when you want broad parameter sweeps rather than strict stage-by-stage production runs.
 
-## Individual and OTF Contours (`scripts/indiv_contours/`)
+## Contours over (omega, theta) (`scripts/contour_omega_theta/`)
 
 ### Main scripts
 

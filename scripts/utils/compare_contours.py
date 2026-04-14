@@ -30,7 +30,7 @@ def load_generic_dataset(path):
     - Pickle with keys: 'omega_matrix', 'theta_matrix', 'epsilon_matrix'
     - Pickle with keys: 'td_arr' (s), 'mcz_arr' (Msun), 'epsilon_matrix' (mcz x td)
     - HDF5 best_match: datasets 'mcz', 'td', 'epsilon_min'
-    - HDF5 super_contour: datasets 'mcz_arr', 'td_arr', 'epsilon_matrix'
+    - HDF5 contour_mcz_td: datasets 'mcz_arr', 'td_arr', 'epsilon_matrix'
     - HDF5 mismatch_cube: datasets 'td', 'theta', 'omega', 'epsilon_min_grid' (uses first td slice)
 
     Returns
@@ -83,7 +83,7 @@ def load_generic_dataset(path):
                     r"$\mathcal{M}_s\ [M_\odot]$",
                     "td_mcz",
                 )
-            # Case 2: super_contour file
+            # Case 2: contour_mcz_td file
             elif all(k in h5 for k in ("mcz_arr", "td_arr", "epsilon_matrix")):
                 mcz = np.asarray(h5["mcz_arr"], dtype=float)
                 td = np.asarray(h5["td_arr"], dtype=float)
@@ -127,7 +127,7 @@ def load_generic_dataset(path):
                 )
         raise ValueError(
             "Unsupported HDF5 structure: expecting best_match (mcz, td, epsilon_min) "
-            "or super_contour (mcz_arr, td_arr, epsilon_matrix) "
+            "or contour_mcz_td (mcz_arr, td_arr, epsilon_matrix) "
             "or mismatch_cube (td, theta, omega, epsilon_min_grid)"
         )
     else:
@@ -820,7 +820,7 @@ if __name__ == "__main__":
 
 """Example CLI Usage:
 python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/utils/compare_contours.py
---paths /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
+--paths /work/10000/fairytien33/ls6/lensing_and_precession/data/contour_mcz_td/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
 --labels "Lensed Sources vs Non-Precessing Templates" "Lensed Sources vs Regularly Precessing Templates" 
 --cbar_round_ticks 
 --cbar_resize_factor 0.85
@@ -830,7 +830,7 @@ python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/utils/compare_
 
 
 python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/utils/compare_contours.py 
---paths /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
+--paths /work/10000/fairytien33/ls6/lensing_and_precession/data/contour_mcz_td/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 
 --labels 'Lensed Sources vs Non-Precessing Templates' 'Lensed Sources vs Regularly Precessing Templates' 
 --cbar_round_ticks 
 --cbar_resize_factor 0.85 
@@ -841,6 +841,6 @@ python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/utils/compare_
 
 
 python /work/10000/fairytien33/ls6/lensing_and_precession/scripts/utils/compare_contours.py
---ratio_of /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 /work/10000/fairytien33/ls6/lensing_and_precession/data/super_contours/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl
+--ratio_of /work/10000/fairytien33/ls6/lensing_and_precession/data/contours_td_mcz/best_match/best_match_td20-70ms_mcz10-90Msun_Taman_edgeon.h5 /work/10000/fairytien33/ls6/lensing_and_precession/data/contour_mcz_td/mismatch_contour_L_NP_mcz_td_I0.5_2025-08-18_12-57-22.pkl
 --overlay-cycles
 """

@@ -1009,7 +1009,7 @@ def main():
     )
     parser.add_argument(
         "--indiv_dir",
-        default="data/indiv_contours",
+        default="data/contour_omega_theta",
         help="Directory with v3_indiv_contour_*.pkl files",
     )
     parser.add_argument(

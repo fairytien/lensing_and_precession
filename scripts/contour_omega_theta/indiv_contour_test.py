@@ -26,7 +26,7 @@ def main():
     results = create_mismatch_contour_parallel(RP_params, lens_params)
 
     filepath = pickle_data(
-        results, "data/indiv_contours", "null_indiv_contour_mcz" + str(mcz)
+        results, "data/contour_omega_theta", "null_indiv_contour_mcz" + str(mcz)
     )
 
 

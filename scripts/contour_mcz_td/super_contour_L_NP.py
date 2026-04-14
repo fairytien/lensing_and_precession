@@ -26,7 +26,7 @@ def main():
 
     filepath = pickle_data(
         results,
-        "data/super_contours",
+        "data/contour_mcz_td",
         "sys2_super_contour_L_NP_mcz" + str(mcz),
     )
 

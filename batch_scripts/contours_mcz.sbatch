@@ -13,4 +13,4 @@ cd $SLURM_SUBMIT_DIR
 conda init
 conda activate fairytien_gw
 
-srun python -m scripts.super_contours.contours_mcz
+srun python -m scripts.contour_mcz_td.contours_mcz

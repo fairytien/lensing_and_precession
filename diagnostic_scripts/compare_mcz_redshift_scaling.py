@@ -12,14 +12,14 @@ from matplotlib.lines import Line2D
 
 
 DEFAULT_Z0_PATH = (
-    "data/super_contours/"
+    "data/contour_mcz_td/"
     "contour_L_NP_I0.5_z1e-06_mcz10-90Msun_td20-70ms_min_mismatch_Taman_edgeon.h5"
 )
 DEFAULT_Z1_PATH = (
-    "data/super_contours/"
+    "data/contour_mcz_td/"
     "contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5"
 )
-DEFAULT_OUTDIR = "figures/super_contours"
+DEFAULT_OUTDIR = "figures/contour_mcz_td"
 DEFAULT_BASENAME = "mcz_redshift_scaling_edgeon"
 DEFAULT_LEVELS = [1e-3, 3e-3, 1e-2, 3e-2]
 

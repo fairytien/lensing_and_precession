@@ -7,11 +7,11 @@ Usage:
 
 Logic priority (first rule that matches a filename wins):
   1. TACC_ -> data/TACC/
-  2. indiv_contour -> data/indiv_contours/
-  3. super_contour -> data/super_contours/
-  4. mismatch_contour / mismatch_contours -> data/super_contours/
-  5. (remaining) filenames containing 'contours' (plural) -> data/super_contours/
-  6. mismatch_ dictionaries (mismatch_*_dict) -> data/super_contours/
+  2. indiv_contour -> data/contour_omega_theta/
+  3. super_contour -> data/contour_mcz_td/
+  4. mismatch_contour / mismatch_contours -> data/contour_mcz_td/
+  5. (remaining) filenames containing 'contours' (plural) -> data/contour_mcz_td/
+  6. mismatch_ dictionaries (mismatch_*_dict) -> data/contour_mcz_td/
 
 Safeguards:
   * Skips files already in a categorized directory.
@@ -29,8 +29,8 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 TARGETS = {
     "TACC": DATA_DIR / "TACC",
-    "super": DATA_DIR / "super_contours",
-    "indiv": DATA_DIR / "indiv_contours",
+    "super": DATA_DIR / "contour_mcz_td",
+    "indiv": DATA_DIR / "contour_omega_theta",
 }
 
 PRIORITY_RULES = [
