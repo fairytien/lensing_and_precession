@@ -39,8 +39,17 @@ def resolve_grid_array(
     )
 
 
-def add_orientation_args(parser: ArgumentParser) -> ArgumentParser:
-    """Attach the common orientation arguments used by pipeline scripts."""
+def add_orientation_args(
+    parser: ArgumentParser,
+    orient_choices: Optional[Iterable[str]] = None,
+) -> ArgumentParser:
+    """Attach the common orientation arguments used by pipeline scripts.
+
+    Parameters
+    ----------
+    orient_choices : iterable of str, optional
+        If provided, restricts --orient_preset to these choices.
+    """
     parser.add_argument("--theta_J", type=float, default=None)
     parser.add_argument("--phi_J", type=float, default=None)
     parser.add_argument("--theta_S", type=float, default=None)
@@ -49,24 +58,13 @@ def add_orientation_args(parser: ArgumentParser) -> ArgumentParser:
         "--orient_preset",
         type=str,
         default=None,
+        choices=sorted(orient_choices) if orient_choices else None,
         help=(
             "Optional orientation preset to use for both params and tag."
             "If not provided, angles (theta_J, phi_J, theta_S, phi_S) form the tag."
         ),
     )
     return parser
-
-
-def set_argument_choices(
-    parser: ArgumentParser,
-    dest: str,
-    choices: Iterable[str],
-) -> None:
-    """Update an existing argparse action with dynamic choices."""
-    for action in parser._actions:
-        if getattr(action, "dest", None) == dest:
-            action.choices = sorted(choices)
-            return
 
 
 def add_mcz_grid_args(

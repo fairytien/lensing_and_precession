@@ -28,7 +28,7 @@ This document describes the four-stage modular pipeline for computing mismatch m
 The production batch scripts are configured for the following default run:
 
 - Flux ratio: `I = 0.5`
-- Redshift: `z = 1e-8`
+- Redshift: `z = 1`
 - Orientation preset: `Taman_edgeon`
 - Chirp mass grid: `mcz = 10..90 Msun` with `81` points
 - Time delay grid: `td = 20..70 ms` with `51` points
@@ -52,11 +52,11 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
   --orientation_tag Taman_edgeon \
-  --z 1e-8
+  --z 1
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --input_path ./data/mismatch_I0p5_z1_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
   --output_dir ./figures/mismatch
 ```
 
@@ -107,7 +107,7 @@ python -m scripts.template_banks.build_template_banks \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
-  --z 1e-8 \
+  --z 1 \
   --bank_dir ./data/template_banks
 ```
 
@@ -127,7 +127,7 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
-  --z 1e-8 \
+  --z 1 \
   --n_workers 8 \
   --use_opt_match \
   --bank_dir ./data/template_banks \
@@ -158,7 +158,7 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
   --orientation_tag Taman_edgeon \
-  --z 1e-8
+  --z 1
 ```
 
 ## Stage 3: Plot Contour
@@ -171,7 +171,7 @@ This stage now requires an exact best-match `--input_path`; all run tokens are i
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --input_path ./data/mismatch_I0p5_z1_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
   --output_dir ./figures/mismatch
 
 ```
@@ -193,7 +193,7 @@ Important exported variables used by Stage 0/1 and Lindblom batch jobs:
 - `GAMMA_PTS` (default `51`, interpreted as `[0, 2pi)`)
 - `BANK_DIR` (default `./data/template_banks`)
 - `RUN_DIR` (default `./data/mismatch`)
-- `Z` (default `1e-8`, propagated to Python scripts as `--z`)
+- `Z` (default `1`, propagated to Python scripts as `--z`)
 
 Lindblom batch jobs also resolve canonical cube/bank paths from these settings,
 so avoid hardcoding file names in local wrappers.
@@ -254,7 +254,7 @@ python -m scripts.template_banks.build_template_banks \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
-  --z 1e-8 \
+  --z 1 \
   --bank_dir ./data/template_banks
 ```
 

@@ -6,7 +6,6 @@ detector-frame mismatch surface values.
 
 import argparse
 import os
-import re
 from typing import Optional
 
 import h5py
@@ -14,18 +13,7 @@ import numpy as np
 
 from modules.cosmology import source_mass_redshift_scale, z_to_DL
 from modules.default_params import GIGAPC2SEC
-from modules.filenames import best_match_mcz_td_filename
-
-
-def _token_to_float(token: str) -> float:
-    return float(str(token).replace("p", "."))
-
-
-def _to_filename_token(value: float) -> str:
-    s = str(float(value))
-    if "." in s:
-        s = s.rstrip("0").rstrip(".")
-    return s.replace(".", "p")
+from modules.filenames import best_match_mcz_td_filename, parse_template_grid_tokens
 
 
 def _clean_endpoint(value: float, tol: float = 1e-6) -> float:
@@ -33,25 +21,6 @@ def _clean_endpoint(value: float, tol: float = 1e-6) -> float:
     if abs(float(value) - float(nearest_int)) <= tol:
         return float(nearest_int)
     return float(np.round(value, 8))
-
-
-def _parse_template_grid_tokens(path: str):
-    base = os.path.basename(path)
-    match = re.search(
-        r"_omega([^_]+)-([^x_]+)x(\d+)_theta([^_]+)-([^x_]+)x(\d+)_gamma0-2pix(\d+)_",
-        base,
-    )
-    if not match:
-        return None
-    return {
-        "omega_min": _token_to_float(match.group(1)),
-        "omega_max": _token_to_float(match.group(2)),
-        "omega_pts": int(match.group(3)),
-        "theta_min": _token_to_float(match.group(4)),
-        "theta_max": _token_to_float(match.group(5)),
-        "theta_pts": int(match.group(6)),
-        "gamma_pts": int(match.group(7)),
-    }
 
 
 def _default_output_path(
@@ -65,7 +34,7 @@ def _default_output_path(
     run_dir = os.path.dirname(os.path.dirname(input_path))
     orientation_tag = str(attrs.get("orientation_tag", "orientation"))
     i_value = float(attrs["I"])
-    grid_tokens = _parse_template_grid_tokens(input_path) or {}
+    grid_tokens = parse_template_grid_tokens(input_path) or {}
 
     return best_match_mcz_td_filename(
         results_dir=run_dir,

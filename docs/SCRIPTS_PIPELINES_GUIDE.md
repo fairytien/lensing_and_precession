@@ -82,7 +82,7 @@ python -m scripts.template_banks.build_template_banks \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
   --orient_preset Taman_edgeon \
-  --z 1e-8 \
+  --z 1 \
   --bank_dir ./data/template_banks
 ```
 
@@ -139,7 +139,7 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --omega_min 0 --omega_max 6 --omega_pts 61 \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
-  --z 1e-8 \
+  --z 1 \
   --bank_dir ./data/template_banks \
   --run_dir ./data/mismatch
 
@@ -149,10 +149,10 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
   --td_min_ms 20 --td_max_ms 70 \
   --mcz_min 10 --mcz_max 90 \
   --orientation_tag Taman_edgeon \
-  --z 1e-8
+  --z 1
 
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
-  --input_path ./data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --input_path ./data/mismatch_I0p5_z1_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
   --output_dir ./figures/mismatch
 ```
 

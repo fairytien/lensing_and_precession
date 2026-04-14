@@ -148,85 +148,55 @@ def main(
     if td_arr is None or not mcz_msun_vals:
         raise ValueError("No readable mismatch cubes found for aggregation")
 
-    # Use the mcz values discovered from mismatch cubes directly.
-    # Canonicalize tiny floating noise to keep logically identical points together.
+    # Canonicalize mcz values and build expected grid from metadata or discovered files.
     mcz_msun_vals_arr = np.round(np.array(mcz_msun_vals, dtype=np.float64), decimals=10)
-    desired_mcz_msun = np.sort(np.unique(mcz_msun_vals_arr))
+    discovered_mcz = np.sort(np.unique(mcz_msun_vals_arr))
 
-    # Warning-only completeness check for internal missing mcz rows.
-    # Prefer the exact compute grid saved by Stage 1; fallback to discovered rows.
-    expected_mcz_msun = desired_mcz_msun.copy()
-    if mcz_grid_meta:
+    # Prefer metadata grid if consistent; fallback to discovered values.
+    expected_mcz_msun = discovered_mcz
+    if mcz_grid_meta and mcz_grid_meta.get("mcz_pts", 0) > 0:
         try:
-            mcz_min_msun_attr = float(mcz_grid_meta["mcz_min"])
-            mcz_max_msun_attr = float(mcz_grid_meta["mcz_max"])
-            mcz_pts_attr = int(mcz_grid_meta["mcz_pts"])
-            if mcz_pts_attr > 0:
-                expected_mcz_msun = np.linspace(
-                    mcz_min_msun_attr,
-                    mcz_max_msun_attr,
-                    mcz_pts_attr,
-                    dtype=np.float64,
-                )
+            expected_mcz_msun = np.round(
+                np.linspace(
+                    float(mcz_grid_meta["mcz_min"]),
+                    float(mcz_grid_meta["mcz_max"]),
+                    int(mcz_grid_meta["mcz_pts"]),
+                ),
+                decimals=10,
+            )
         except Exception:
-            expected_mcz_msun = desired_mcz_msun.copy()
+            pass
 
-    expected_mcz_msun = np.round(expected_mcz_msun, decimals=10)
-
-    missing_mcz_msun = []
-    for x in expected_mcz_msun:
-        if np.min(np.abs(desired_mcz_msun - x)) > max(tol, 1e-3 * (abs(x) + 1.0)):
-            missing_mcz_msun.append(float(x))
-
-    if missing_mcz_msun:
-        preview = ", ".join(f"{v:g}" for v in missing_mcz_msun[:10])
-        suffix = "..." if len(missing_mcz_msun) > 10 else ""
+    # Warn about missing rows (discovered vs expected).
+    tol_base = max(tol, 1e-3)
+    missing = [
+        x for x in expected_mcz_msun if np.min(np.abs(discovered_mcz - x)) > tol_base
+    ]
+    if missing:
         print(
-            f"Warning: Detected {len(missing_mcz_msun)} missing mcz rows within requested range: {preview}{suffix}"
+            f"Warning: {len(missing)} missing mcz rows: {missing[:5]}{'...' if len(missing) > 5 else ''}"
         )
 
-    # Use expected mcz grid as output axis so missing rows remain explicit NaNs for plotting.
+    # Build output grids with NaN placeholders for missing rows.
     desired_mcz_msun = expected_mcz_msun
-
     td_len = td_arr.shape[0]
-    Zmap = np.full((desired_mcz_msun.shape[0], td_len), np.nan, dtype=np.float32)
-    Omap = np.full_like(Zmap, np.nan)
-    Tmap = np.full_like(Zmap, np.nan)
-    Gmap = np.full_like(Zmap, np.nan)
+    Zmap = np.full((len(desired_mcz_msun), td_len), np.nan, dtype=np.float32)
+    Omap, Tmap, Gmap = np.copy(Zmap), np.copy(Zmap), np.copy(Zmap)
 
-    # Place available rows by nearest expected mcz index (with small tolerance).
-    present_mcz_msun = np.round(np.array(mcz_msun_vals, dtype=np.float64), decimals=10)
-    order = np.argsort(present_mcz_msun)
-    present_mcz_msun_sorted = present_mcz_msun[order]
-    Z_rows_sorted = [Z_rows[i] for i in order]
-    O_rows_sorted = [O_rows[i] for i in order]
-    T_rows_sorted = [T_rows[i] for i in order]
-    G_rows_sorted = [G_rows[i] for i in order]
-    if desired_mcz_msun.shape[0] > 1:
-        pos_diffs = np.diff(desired_mcz_msun)
-        pos_diffs = pos_diffs[pos_diffs > tol]
-        row_tol = (
-            max(tol, 0.25 * float(np.min(pos_diffs))) if pos_diffs.size > 0 else tol
-        )
-    else:
-        row_tol = tol
-
-    for val, Zr, Or, Tr, Gr in zip(
-        present_mcz_msun_sorted,
-        Z_rows_sorted,
-        O_rows_sorted,
-        T_rows_sorted,
-        G_rows_sorted,
+    # Place rows using tolerance-based index matching.
+    row_tol = (
+        max(tol, 0.25 * np.min(np.diff(desired_mcz_msun)))
+        if len(desired_mcz_msun) > 1
+        else tol
+    )
+    for i, (mcz_val, Zr, Or, Tr, Gr) in enumerate(
+        zip(mcz_msun_vals, Z_rows, O_rows, T_rows, G_rows)
     ):
-        j = int(np.argmin(np.abs(desired_mcz_msun - val)))
-        if abs(float(desired_mcz_msun[j]) - float(val)) <= row_tol:
-            Zmap[j, :] = Zr
-            Omap[j, :] = Or
-            Tmap[j, :] = Tr
-            Gmap[j, :] = Gr
+        j = int(np.argmin(np.abs(desired_mcz_msun - mcz_val)))
+        if abs(desired_mcz_msun[j] - mcz_val) <= row_tol:
+            Zmap[j], Omap[j], Tmap[j], Gmap[j] = Zr, Or, Tr, Gr
 
-    # Determine mcz resolution from discovered unique mcz values
-    mcz_pts = int(desired_mcz_msun.shape[0])
+    mcz_pts = len(desired_mcz_msun)
     # Infer td/o/t/g resolution directly from HDF5 contents of the first cube
     # Also extract I from attributes for filename
     td_pts = omega_pts = theta_pts = gamma_pts = None

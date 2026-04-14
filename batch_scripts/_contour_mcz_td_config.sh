@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export FLUX_RATIO="${FLUX_RATIO:-0.5}"
-export ORIENT_PRESET="${ORIENT_PRESET:-Taman_random}"
+export ORIENT_PRESET="${ORIENT_PRESET:-Taman_edgeon}"
 export Z="${Z:-1}"
 
 export MCZ_MIN="${MCZ_MIN:-5}"

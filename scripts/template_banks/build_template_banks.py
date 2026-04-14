@@ -26,7 +26,6 @@ from modules.cli_utils import (
     add_frequency_args,
     add_redshift_arg,
     add_chunking_args,
-    set_argument_choices,
     resolve_grid_array,
 )
 
@@ -135,7 +134,9 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(
         description="Build RP template banks across mcz range and save as HDF5."
     )
-    add_orientation_args(p)
+    # Build dynamic choices list from orient_params to avoid drift
+    dynamic_choices = allowed_orient_presets(orient_params)
+    add_orientation_args(p, orient_choices=dynamic_choices)
     add_mcz_grid_args(p, default_min=10.0, default_max=90.0, default_pts=81)
     add_template_grid_args(
         p,
@@ -168,10 +169,6 @@ if __name__ == "__main__":
         help="Data type for stored complex strain arrays.",
     )
     add_chunking_args(p)
-
-    # Build dynamic choices list from orient_params to avoid drift
-    dynamic_choices = allowed_orient_presets(orient_params)
-    set_argument_choices(p, "orient_preset", dynamic_choices)
 
     args = p.parse_args()
 

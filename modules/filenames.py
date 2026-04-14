@@ -382,6 +382,32 @@ def _is_close(a: float, b: float, tol: float) -> bool:
     return math.isclose(float(a), float(b), rel_tol=0.0, abs_tol=float(tol))
 
 
+def parse_template_grid_tokens(path: str) -> Optional[dict]:
+    """Extract omega/theta/gamma grid parameters from a canonical filename.
+
+    Returns a dict with keys omega_min, omega_max, omega_pts, theta_min,
+    theta_max, theta_pts, gamma_pts, or None if the pattern is not found.
+    """
+    import re as _re
+
+    base = os.path.basename(path)
+    match = _re.search(
+        r"_omega([^_]+)-([^x_]+)x(\d+)_theta([^_]+)-([^x_]+)x(\d+)_gamma0-2pix(\d+)_",
+        base,
+    )
+    if not match:
+        return None
+    return {
+        "omega_min": _parse_decimal_token(match.group(1)),
+        "omega_max": _parse_decimal_token(match.group(2)),
+        "omega_pts": int(match.group(3)),
+        "theta_min": _parse_decimal_token(match.group(4)),
+        "theta_max": _parse_decimal_token(match.group(5)),
+        "theta_pts": int(match.group(6)),
+        "gamma_pts": int(match.group(7)),
+    }
+
+
 def find_mismatch_cube_files(
     results_dir: str,
     td_min_ms: Optional[float],

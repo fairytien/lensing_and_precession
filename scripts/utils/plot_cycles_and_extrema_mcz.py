@@ -5,14 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from modules.cosmology import source_mass_redshift_scale
+from modules.default_params import SOLMASS2SEC
 from modules.functions import mcz_for_n_lens_cycles
 from modules.filenames import contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
-
-
-SOLMASS2SEC = 4.92624076e-6
 
 
 def _optional_positive_float(container, key: str) -> Optional[float]:
