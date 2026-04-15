@@ -24,7 +24,9 @@ import matplotlib.gridspec as gridspec
 from matplotlib import ticker
 from scipy.ndimage import gaussian_filter, sobel
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.waveform import (
     number_of_lens_cycles,
