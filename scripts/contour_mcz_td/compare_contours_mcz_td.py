@@ -54,7 +54,7 @@ DEFAULT_PANEL_LABELS = [
 ]
 
 DEFAULT_OUTPUT = (
-    "figures/utils/"
+    "figures/contour_mcz_td/"
     "compare_LensingvsNPz1_LensingvsRPface-onz1_"
     "LensingvsRPedge-onz1_LensingvsRPrandomz1_same_scale.pdf"
 )
