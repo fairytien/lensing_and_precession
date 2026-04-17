@@ -73,7 +73,7 @@ PY
 CUBE_PATH=$(python - <<'PY'
 import os
 
-from modules.filenames import contour_run_dir, mismatch_cube_filename
+from modules.filenames import contour_run_dir, mismatch_mcz_cube_filename
 
 z = float(os.environ.get("Z", "0"))
 results_root = os.environ["RUN_DIR"]
@@ -88,7 +88,7 @@ run_dir = contour_run_dir(
     orientation_tag=os.environ["ORIENT_PRESET"],
 )
 
-path = mismatch_cube_filename(
+path = mismatch_mcz_cube_filename(
     results_dir=run_dir,
     mcz_msun=float(os.environ["MCZ_VAL"]),
     I=float(os.environ["FLUX_RATIO"]),

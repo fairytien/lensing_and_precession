@@ -21,7 +21,7 @@ from modules.filenames import (
     bank_filename,
     best_match_mcz_td_filename,
     contour_mcz_td_filename,
-    mismatch_cube_filename,
+    mismatch_mcz_cube_filename,
 )
 
 
@@ -105,7 +105,7 @@ def _plan_mismatch_cube_renames(results_dir: str) -> List[RenamePlan]:
             theta_max = float(max(theta))
         except Exception:
             continue
-        target = mismatch_cube_filename(
+        target = mismatch_mcz_cube_filename(
             results_dir=results_dir,
             mcz_msun=_to_float(g["mcz"]),
             I=_to_float(g["I"]),

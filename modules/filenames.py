@@ -219,7 +219,7 @@ def bank_filename(
     return os.path.join(bank_dir, name)
 
 
-def mismatch_cube_filename(
+def mismatch_mcz_cube_filename(
     results_dir: str,
     mcz_msun: float,
     I: float,
@@ -365,7 +365,7 @@ def get_mismatch_cube_resolution(h5_file) -> Tuple[int, int, int, int]:
     return td_pts, omega_pts, theta_pts, gamma_pts
 
 
-def parse_mcz_from_mismatch_cube_path(path: str) -> Optional[float]:
+def parse_mcz_from_mismatch_mcz_cube_path(path: str) -> Optional[float]:
     """Extract the mcz value from canonical mismatch cube filenames."""
     base = os.path.basename(path)
     try:
@@ -408,7 +408,7 @@ def parse_template_grid_tokens(path: str) -> Optional[dict]:
     }
 
 
-def find_mismatch_cube_files(
+def find_mismatch_mcz_cube_files(
     results_dir: str,
     td_min_ms: Optional[float],
     td_max_ms: Optional[float],
@@ -444,7 +444,7 @@ def find_mismatch_cube_files(
     matches = _glob_union(patterns)
     selected = []
     for path in matches:
-        mcz_val = parse_mcz_from_mismatch_cube_path(path)
+        mcz_val = parse_mcz_from_mismatch_mcz_cube_path(path)
         if mcz_val is None:
             continue
         if mcz_msun is not None and not _is_close(mcz_val, mcz_msun, mcz_tolerance):
@@ -457,7 +457,9 @@ def find_mismatch_cube_files(
     return selected
 
 
-def parse_mcz_range_from_best_match_path(path: str) -> Optional[Tuple[float, float]]:
+def parse_mcz_range_from_best_match_mcz_td_path(
+    path: str,
+) -> Optional[Tuple[float, float]]:
     """Extract (mcz_min, mcz_max) from canonical best-match filenames."""
     base = os.path.basename(path)
     try:
@@ -470,7 +472,7 @@ def parse_mcz_range_from_best_match_path(path: str) -> Optional[Tuple[float, flo
         return None
 
 
-def find_best_match_file(
+def find_best_match_mcz_td_file(
     results_dir: str,
     mcz_min: float,
     mcz_max: float,
@@ -501,7 +503,7 @@ def find_best_match_file(
 
     selected = []
     for path in matches:
-        parsed = parse_mcz_range_from_best_match_path(path)
+        parsed = parse_mcz_range_from_best_match_mcz_td_path(path)
         if parsed is None:
             continue
         lo, hi = parsed
@@ -529,6 +531,331 @@ def find_best_match_file(
                 if not _is_close(float(np.nanmin(td_arr)), td_min_s, mcz_tolerance):
                     continue
                 if not _is_close(float(np.nanmax(td_arr)), td_max_s, mcz_tolerance):
+                    continue
+                if "orientation_tag" in h5.attrs:
+                    if str(h5.attrs["orientation_tag"]) != str(orientation_tag):
+                        continue
+        except Exception:
+            continue
+
+        selected.append(path)
+
+    if not selected:
+        return None
+
+    selected.sort(key=os.path.getmtime, reverse=True)
+    return selected[0]
+
+
+# ==============================================================================
+# I-td Pipeline Naming Helpers (fixed mcz, varying I and td)
+# ==============================================================================
+
+
+def contour_I_td_run_dir(
+    base_dir: str,
+    mcz: float,
+    I_min: float,
+    I_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    z: Optional[float],
+    orientation_tag: Optional[str] = None,
+) -> str:
+    """Return run directory tagged by mcz, I range, z, td range for I-td pipeline.
+
+    Appends orientation tag suffix when provided.
+
+    If base_dir already appears to include mcz/I/z/td tokens, it is returned unchanged.
+    """
+    base_dir = base_dir.rstrip("/\\") or base_dir
+    run_dir = base_dir
+    base_name = os.path.basename(base_dir)
+    if not all(token in base_name for token in ("_mcz", "_I", "_z", "_td")):
+        mcz_part = f"mcz{_canonical_token(float(mcz))}"
+        i_part = f"I{_canonical_token(float(I_min))}-{_canonical_token(float(I_max))}"
+        z_part = _z_dir_token(z)
+        td_part = f"td{_canonical_token(float(td_min_ms))}-{_canonical_token(float(td_max_ms))}"
+        parts = [base_dir, mcz_part, i_part, z_part, td_part]
+        run_dir = "_".join(parts)
+
+    return _with_optional_orientation_suffix(run_dir, orientation_tag)
+
+
+def mismatch_I_cube_filename(
+    results_dir: str,
+    I: float,
+    mcz_msun: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    td_pts: int,
+    omega_min: float,
+    omega_max: float,
+    omega_pts: int,
+    theta_min: float,
+    theta_max: float,
+    theta_pts: int,
+    gamma_pts: int,
+    orientation_tag: str,
+    z: Optional[float] = None,
+) -> str:
+    """Build the HDF5 path for per-I mismatch cube outputs (I-td pipeline).
+
+    Returns a path under results_dir/mismatch_cubes; creates directories.
+    Order: z, I, mcz, td ranges, td-o-t-g resolution, orientation_tag.
+    """
+    mismatch_dir = os.path.join(results_dir, "mismatch_cubes")
+    os.makedirs(mismatch_dir, exist_ok=True)
+    z_token = _canonical_z_token(z)
+    name = (
+        f"mismatch_cubes_z{z_token}"
+        f"_I{_format_min_precision(I)}"
+        f"_mcz{_format_min_precision(mcz_msun)}"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}x{td_pts}"
+        f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
+        f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
+        f"_gamma0-2pix{gamma_pts}"
+        f"_{orientation_tag}.h5"
+    )
+    return os.path.join(mismatch_dir, name)
+
+
+def parse_I_from_mismatch_I_cube_path(path: str) -> Optional[float]:
+    """Extract the I value from canonical mismatch I-cube filenames."""
+    base = os.path.basename(path)
+    try:
+        token = base.split("_I", 1)[1]
+        token = token.split("_", 1)[0]
+        if not token:
+            return None
+        return _parse_decimal_token(token)
+    except Exception:
+        return None
+
+
+def best_match_I_td_filename(
+    results_dir: str,
+    mcz_msun: float,
+    I_min: float,
+    I_max: float,
+    I_pts: Optional[int],
+    td_min_ms: float,
+    td_max_ms: float,
+    td_pts: Optional[int],
+    omega_min: Optional[float],
+    omega_max: Optional[float],
+    omega_pts: Optional[int],
+    theta_min: Optional[float],
+    theta_max: Optional[float],
+    theta_pts: Optional[int],
+    gamma_pts: Optional[int],
+    orientation_tag: str,
+    z: Optional[float] = None,
+) -> str:
+    """Build the HDF5 path for aggregated best-match outputs across all I (I-td pipeline).
+
+    Returns a path under results_dir/best_match; creates directories.
+    Order: mcz, I ranges, td ranges, I-td-o-t-g resolution, orientation_tag.
+    """
+    best_match_dir = os.path.join(results_dir, "best_match")
+    os.makedirs(best_match_dir, exist_ok=True)
+    z_token = _canonical_z_token(z)
+    I_token = (
+        f"{_format_min_precision(I_min)}-{_format_min_precision(I_max)}"
+        if I_pts is None
+        else f"{_format_min_precision(I_min)}-{_format_min_precision(I_max)}x{I_pts}"
+    )
+    td_token = (
+        f"{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}"
+        if td_pts is None
+        else f"{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}x{td_pts}"
+    )
+    name = (
+        f"best_match_mcz{_format_min_precision(mcz_msun)}"
+        f"_I{I_token}"
+        f"_z{z_token}"
+        f"_td{td_token}"
+    )
+    # Append full template-grid tokens when available.
+    if (
+        td_pts is not None
+        and I_pts is not None
+        and omega_min is not None
+        and omega_max is not None
+        and omega_pts is not None
+        and theta_min is not None
+        and theta_max is not None
+        and theta_pts is not None
+        and gamma_pts is not None
+    ):
+        name += (
+            f"_omega{_format_min_precision(omega_min)}-{_format_min_precision(omega_max)}x{omega_pts}"
+            f"_theta{_format_min_precision(theta_min)}-{_format_min_precision(theta_max)}x{theta_pts}"
+            f"_gamma0-2pix{gamma_pts}"
+        )
+
+    name += f"_{orientation_tag}.h5"
+    return os.path.join(best_match_dir, name)
+
+
+def contour_I_td_filename(
+    fig_dir: str,
+    mcz_msun: float,
+    I_min: float,
+    I_max: float,
+    I_pts: Optional[int],
+    td_min_ms: float,
+    td_max_ms: float,
+    td_pts: Optional[int],
+    orientation_tag: str,
+    z: Optional[float] = None,
+    ext: str = "pdf",
+) -> str:
+    """Build the figure path for the final mismatch contour over (td, I).
+
+    Returns a path under fig_dir; creates directories.
+    Order: mcz, I ranges, td ranges, suffix, orientation_tag.
+    """
+    os.makedirs(fig_dir, exist_ok=True)
+    z_token = _canonical_z_token(z)
+    name = (
+        f"contour_mcz{_format_min_precision(mcz_msun)}"
+        f"_I{_format_min_precision(I_min)}-{_format_min_precision(I_max)}"
+        f"{'' if I_pts is None else f'x{int(I_pts)}'}"
+        f"_z{z_token}"
+        f"_td{_format_min_precision(td_min_ms)}-{_format_min_precision(td_max_ms)}"
+        f"{'' if td_pts is None else f'x{int(td_pts)}'}"
+        f"_min_mismatch_{orientation_tag}.{ext}"
+    )
+    return os.path.join(fig_dir, name)
+
+
+def find_mismatch_I_cube_files(
+    results_dir: str,
+    td_min_ms: Optional[float],
+    td_max_ms: Optional[float],
+    mcz_msun: float,
+    orientation_tag: str,
+    z: Optional[float] = None,
+    I_min: Optional[float] = None,
+    I_max: Optional[float] = None,
+    I_val: Optional[float] = None,
+    I_tolerance: float = 1e-6,
+    mcz_tolerance: float = 1e-6,
+) -> List[str]:
+    """Return mismatch I-cube files matching the requested I-td contour run."""
+    if td_min_ms is None or td_max_ms is None:
+        td_tokens = ["td*x*"]
+    else:
+        td_lo = _canonical_token(td_min_ms)
+        td_hi = _canonical_token(td_max_ms)
+        td_tokens = [f"td{td_lo}-{td_hi}x*"]
+
+    I_token = "I*"
+    mcz_token = f"mcz{_canonical_token(mcz_msun)}"
+    z_token = _canonical_z_token(z)
+
+    patterns = [
+        os.path.join(
+            results_dir,
+            "mismatch_cubes",
+            (
+                f"mismatch_cubes_z{z_token}_{I_token}_{mcz_token}_{td_token}"
+                f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
+            ),
+        )
+        for td_token in td_tokens
+    ]
+    matches = _glob_union(patterns)
+    selected = []
+    for path in matches:
+        I_parsed = parse_I_from_mismatch_I_cube_path(path)
+        if I_parsed is None:
+            continue
+        if I_val is not None and not _is_close(I_parsed, I_val, I_tolerance):
+            continue
+        if I_min is not None and I_parsed < I_min - I_tolerance:
+            continue
+        if I_max is not None and I_parsed > I_max + I_tolerance:
+            continue
+        selected.append(path)
+    return selected
+
+
+def parse_I_range_from_best_match_I_td_path(path: str) -> Optional[Tuple[float, float]]:
+    """Extract (I_min, I_max) from canonical I-td best-match filenames."""
+    base = os.path.basename(path)
+    try:
+        token = base.split("_I", 1)[1]
+        token = token.split("_", 1)[0]
+        bounds = token.split("x", 1)[0]
+        lo, hi = bounds.split("-", 1)
+        return _parse_decimal_token(lo), _parse_decimal_token(hi)
+    except Exception:
+        return None
+
+
+def find_best_match_I_td_file(
+    results_dir: str,
+    mcz_msun: float,
+    I_min: float,
+    I_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    orientation_tag: str,
+    z: Optional[float] = None,
+    tolerance: float = 1e-6,
+) -> Optional[str]:
+    """Return the newest best-match file for the requested I-td contour run."""
+    mcz_tok = _canonical_token(mcz_msun)
+    I_lo = _canonical_token(I_min)
+    I_hi = _canonical_token(I_max)
+    td_lo = _canonical_token(td_min_ms)
+    td_hi = _canonical_token(td_max_ms)
+
+    z_token = _canonical_z_token(z)
+    pattern = os.path.join(
+        results_dir,
+        "best_match",
+        (
+            f"best_match_mcz{mcz_tok}_I{I_lo}-{I_hi}x*_z{z_token}_td{td_lo}-{td_hi}x*"
+            f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
+        ),
+    )
+    matches = _glob_union([pattern])
+    if not matches:
+        return None
+
+    selected = []
+    for path in matches:
+        parsed = parse_I_range_from_best_match_I_td_path(path)
+        if parsed is None:
+            continue
+        lo, hi = parsed
+        if not _is_close(lo, I_min, tolerance):
+            continue
+        if not _is_close(hi, I_max, tolerance):
+            continue
+
+        # Final authenticity check from file contents.
+        try:
+            with h5py.File(path, "r") as h5:
+                if "I" not in h5 or "td" not in h5:
+                    continue
+                I_arr = h5["I"][:]
+                td_arr = h5["td"][:]
+                if I_arr.size == 0 or td_arr.size == 0:
+                    continue
+                if not _is_close(float(np.nanmin(I_arr)), I_min, tolerance):
+                    continue
+                if not _is_close(float(np.nanmax(I_arr)), I_max, tolerance):
+                    continue
+
+                td_min_s = float(td_min_ms) / 1e3
+                td_max_s = float(td_max_ms) / 1e3
+                if not _is_close(float(np.nanmin(td_arr)), td_min_s, tolerance):
+                    continue
+                if not _is_close(float(np.nanmax(td_arr)), td_max_s, tolerance):
                     continue
                 if "orientation_tag" in h5.attrs:
                     if str(h5.attrs["orientation_tag"]) != str(orientation_tag):

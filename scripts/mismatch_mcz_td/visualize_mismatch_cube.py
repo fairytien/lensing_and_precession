@@ -1,6 +1,6 @@
 """Visualize epsilon contours over (theta, omega) from a mismatch cube.
 
-Loads a per-mcz mismatch cube HDF5 (with datasets created by create_mismatch_cube),
+Loads a per-mcz mismatch cube HDF5 (with datasets created by create_mismatch_mcz_cube),
 then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
@@ -12,7 +12,7 @@ import argparse
 
 import numpy as np
 import h5py
-from modules.filenames import parse_mcz_from_mismatch_cube_path
+from modules.filenames import parse_mcz_from_mismatch_mcz_cube_path
 from modules.plot_utils import apply_physics_paper_style
 from scripts.mismatch_mcz_td._viz_utils import (
     infer_orientation_tag_from_filename,
@@ -30,7 +30,7 @@ def _infer_mcz_from_filename(path: str) -> str:
     Returns values like "70" or "70p5".
     Returns "unknown" if the mcz cannot be inferred.
     """
-    val = parse_mcz_from_mismatch_cube_path(path)
+    val = parse_mcz_from_mismatch_mcz_cube_path(path)
     if val is not None:
         return f"{float(val):g}".replace(".", "p")
     return "unknown"

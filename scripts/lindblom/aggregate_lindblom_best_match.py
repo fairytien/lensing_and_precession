@@ -11,12 +11,14 @@ import h5py
 import numpy as np
 
 # Ensure project root is on path for local invocation
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
 from modules.filenames import (
     _format_min_precision,
     get_mismatch_cube_resolution,
-    mismatch_cube_filename,
+    mismatch_mcz_cube_filename,
 )
 from modules.functions import timer_decorator
 
@@ -146,7 +148,9 @@ def main(
 
             # Load mismatch data
             with h5py.File(mismatch_cube_path, "r") as h5_mm:
-                epsilon_min_grid = np.array(h5_mm["epsilon_min_grid"])  # (td, theta, omega)
+                epsilon_min_grid = np.array(
+                    h5_mm["epsilon_min_grid"]
+                )  # (td, theta, omega)
 
             # For each td, find the best-matching template (minimum mismatch)
             # and compute Lindblom = mismatch - 1/(2*SNR^2)
@@ -161,7 +165,7 @@ def main(
                     int(np.nanargmin(mismatch_grid)), mismatch_grid.shape
                 )
                 mismatch_best = float(mismatch_grid[best_match_idx])
-                
+
                 if snr_cube is not None:
                     Sgrid = snr_cube[j]
                     snr_best = float(Sgrid[best_match_idx])

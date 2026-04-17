@@ -206,7 +206,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 Production cluster jobs live in `batch_scripts/`.
 
 - Template banks: `batch_scripts/build_template_banks.sbatch`
-- Mismatch cubes: `batch_scripts/compute_mismatch_cubes.sbatch`
+- Mismatch cubes (mcz-td): `batch_scripts/compute_mismatch_mcz_cubes.sbatch`
 - Lindblom cubes: `batch_scripts/compute_lindblom_cubes.sbatch`
 
 Shared contour config defaults are centralized in `batch_scripts/_contour_mcz_td_config.sh`.

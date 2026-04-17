@@ -37,7 +37,7 @@ This pipeline calculates **minimum mismatch contours** for lensed gravitational 
 
 ### Mismatch Computation
 1. **Compute mismatch cubes**: Run `python -m scripts.mismatch_mcz_td.compute_mismatch_cubes` to compare lensed sources against the prebuilt banks.
-2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_cubes.sbatch`.
+2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_mcz_cubes.sbatch`.
 3. **Output shape**: Each run writes one per-`mcz` mismatch cube under `data/mismatch/mismatch_cubes/`.
 
 ### Aggregation
@@ -49,7 +49,7 @@ After all requested `mcz` values finish, run `python -m scripts.mismatch_mcz_td.
 sbatch batch_scripts/build_template_banks.sbatch
 
 # 2. Submit array job for mismatch computation
-sbatch batch_scripts/compute_mismatch_cubes.sbatch
+sbatch batch_scripts/compute_mismatch_mcz_cubes.sbatch
 
 # 3. After all array tasks complete, aggregate results
 python -m scripts.mismatch_mcz_td.aggregate_best_match \

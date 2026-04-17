@@ -88,6 +88,39 @@ def add_mcz_grid_args(
     return parser
 
 
+def add_I_grid_args(
+    parser: ArgumentParser,
+    default_min: Optional[float] = 0.1,
+    default_max: Optional[float] = 0.9,
+    default_pts: Optional[int] = 41,
+    required: bool = False,
+) -> ArgumentParser:
+    """Attach flux ratio I grid arguments used by I-td contour pipeline scripts."""
+    parser.add_argument(
+        "--I_min",
+        type=float,
+        default=default_min,
+        required=required,
+        help="Minimum flux ratio I (must be > 0).",
+    )
+    parser.add_argument(
+        "--I_max",
+        type=float,
+        default=default_max,
+        required=required,
+        help="Maximum flux ratio I (must be < 1).",
+    )
+    if default_pts is not None:
+        parser.add_argument("--I_pts", type=int, default=default_pts)
+    parser.add_argument(
+        "--I_step",
+        type=float,
+        default=None,
+        help="Step size for I grid (arange-style). Mutually exclusive with --I_pts.",
+    )
+    return parser
+
+
 def add_td_grid_args(
     parser: ArgumentParser,
     default_min_ms: Optional[float] = 20.0,
@@ -175,5 +208,22 @@ def add_chunking_args(parser: ArgumentParser) -> ArgumentParser:
         type=int,
         default=None,
         help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
+    )
+    return parser
+
+
+def add_I_chunking_args(parser: ArgumentParser) -> ArgumentParser:
+    """Attach flux ratio I chunking arguments used by array jobs."""
+    parser.add_argument(
+        "--I_chunk_index",
+        type=int,
+        default=None,
+        help="Chunk index for I splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
+    )
+    parser.add_argument(
+        "--I_chunk_count",
+        type=int,
+        default=None,
+        help="Total chunks for I splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
     )
     return parser

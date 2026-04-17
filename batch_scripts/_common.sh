@@ -50,3 +50,13 @@ build_td_grid_args() {
     echo "--td_pts ${TD_PTS}"
   fi
 }
+
+build_I_grid_args() {
+  # Outputs: --I_min ... --I_max ... [--I_pts ... | --I_step ...]
+  echo "--I_min ${I_MIN} --I_max ${I_MAX}"
+  if [ -n "${I_STEP:-}" ]; then
+    echo "--I_step ${I_STEP}"
+  else
+    echo "--I_pts ${I_PTS}"
+  fi
+}

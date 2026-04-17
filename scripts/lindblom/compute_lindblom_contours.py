@@ -40,7 +40,7 @@ from modules.functions import (
 )
 from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets
-from modules.filenames import mismatch_cube_filename, bank_filename
+from modules.filenames import mismatch_mcz_cube_filename, bank_filename
 from modules.bank_io import open_bank_readonly
 from modules.match_utils import ensure_same_length, cast_to_match_precision
 

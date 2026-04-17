@@ -9,7 +9,7 @@ Notes:
 - The aggregated best-match file best_match_*.h5 does NOT contain full (omega, theta)
   mismatch contours; it only stores the global minima and best-fit parameters per (mcz, td).
   Therefore, this script requires the matching per-mcz mismatch cube file
-    discovered via modules.filenames.find_mismatch_cube_files.
+    discovered via modules.filenames.find_mismatch_mcz_cube_files.
 
 Usage example:
     python -m scripts.mismatch_mcz_td.plot_omega_theta_from_cube \
@@ -31,7 +31,7 @@ from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
 
-from modules.filenames import find_mismatch_cube_files
+from modules.filenames import find_mismatch_mcz_cube_files
 
 
 def plot_contour_slice(
@@ -142,7 +142,7 @@ def main():
             ]
         )
         for input_dir in input_dirs:
-            matches = find_mismatch_cube_files(
+            matches = find_mismatch_mcz_cube_files(
                 results_dir=input_dir,
                 td_min_ms=None,
                 td_max_ms=None,

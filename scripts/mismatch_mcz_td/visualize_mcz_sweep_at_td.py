@@ -1,6 +1,6 @@
 """Visualize epsilon contours over (theta, omega) while sweeping chirp mass at fixed td.
 
-Loads multiple per-mcz mismatch cube HDF5 files (created by create_mismatch_cube),
+Loads multiple per-mcz mismatch cube HDF5 files (created by create_mismatch_mcz_cube),
 then:
 - Extracts epsilon_min_grid slice at the requested time delay td (ms)
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping over chirp mass
@@ -16,8 +16,8 @@ from typing import List, Optional
 import numpy as np
 import h5py
 from modules.filenames import (
-    find_mismatch_cube_files,
-    parse_mcz_from_mismatch_cube_path,
+    find_mismatch_mcz_cube_files,
+    parse_mcz_from_mismatch_mcz_cube_path,
 )
 import matplotlib.pyplot as plt
 from modules.plot_utils import apply_physics_paper_style
@@ -40,7 +40,7 @@ def _infer_mcz_msun_numeric(h5_file) -> float:
         if val.size >= 1:
             return float(val[0])
     # Fallback to filename parser for canonical naming.
-    parsed = parse_mcz_from_mismatch_cube_path(h5_file.filename)
+    parsed = parse_mcz_from_mismatch_mcz_cube_path(h5_file.filename)
     if parsed is not None:
         return float(parsed)
     return float("nan")
@@ -149,7 +149,7 @@ def main():
     p.add_argument("--grid_max_panels", type=int, default=12)
     args = p.parse_args()
 
-    files = find_mismatch_cube_files(
+    files = find_mismatch_mcz_cube_files(
         results_dir=args.input_dir,
         td_min_ms=None,
         td_max_ms=None,
