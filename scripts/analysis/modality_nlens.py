@@ -119,10 +119,22 @@ def load_best_match(path):
     )
 
 
-def compute_nlens_grid(mcz_msun, td_s):
-    """Return n_lens on (mcz, td) meshgrid."""
+def compute_nlens_grid(mcz_msun, td_s, z=0.0):
+    """Return n_lens on (mcz, td) meshgrid.
+
+    Parameters
+    ----------
+    mcz_msun : array
+        Source-frame chirp masses in Msun.
+    td_s : array
+        Time delays in seconds.
+    z : float
+        Source redshift.  The stored mcz values are source-frame;
+        number_of_lens_cycles needs detector-frame mcz to obtain the
+        detector-frame f_cut, so we multiply by (1+z).
+    """
     TD, MCZ = np.meshgrid(td_s, mcz_msun)
-    return number_of_lens_cycles(MCZ, TD)
+    return number_of_lens_cycles(MCZ * (1 + z), TD)
 
 
 def gradient_magnitude(arr, dx, dy):
@@ -200,7 +212,7 @@ def load_indiv_contours(data_dir, z_filter=None):
 def fig1_mismatch_nlens(data, outdir):
     mcz, td = data["mcz"], data["td"]
     td_ms = td * 1e3
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     fig, ax = plt.subplots(figsize=(8, 6))
     cf = ax.contourf(
@@ -260,7 +272,7 @@ def fig1_mismatch_nlens(data, outdir):
 def fig2_gradient_multimodality(data, outdir):
     mcz, td = data["mcz"], data["td"]
     td_ms = td * 1e3
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     # Index-based gradient to avoid mixing mcz (Msun) and td (ms) scales
     omega_grad = gradient_magnitude_normalized(data["omega_best"])
@@ -329,7 +341,10 @@ def fig3_example_surfaces(contours, outdir):
 
     # Compute n_lens for each contour
     for c in contours:
-        c["n_lens"] = float(number_of_lens_cycles(c["mcz_msun"], c["td_ms"] * 1e-3))
+        c_z = c.get("z", 0.0) or 0.0
+        c["n_lens"] = float(
+            number_of_lens_cycles(c["mcz_msun"] * (1 + c_z), c["td_ms"] * 1e-3)
+        )
 
     # Sort by n_lens
     contours_sorted = sorted(contours, key=lambda c: c["n_lens"])
@@ -409,7 +424,7 @@ def fig3_example_surfaces(contours, outdir):
 def fig4_bestfit_vs_td(data, outdir):
     mcz, td = data["mcz"], data["td"]
     td_ms = td * 1e3
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     fig, axes = plt.subplots(2, 2, figsize=(13, 10))
 
@@ -493,7 +508,10 @@ def fig5_nminima_vs_nlens(contours, outdir):
     labels = []
 
     for c in contours:
-        n_lens_val = float(number_of_lens_cycles(c["mcz_msun"], c["td_ms"] * 1e-3))
+        c_z = c.get("z", 0.0) or 0.0
+        n_lens_val = float(
+            number_of_lens_cycles(c["mcz_msun"] * (1 + c_z), c["td_ms"] * 1e-3)
+        )
         minima = count_minima_from_contour(
             c["epsilon_matrix"], c["omega_matrix"], c["theta_matrix"]
         )
@@ -566,7 +584,7 @@ def fig6_unimodal_map(data, outdir, grad_threshold=0.5):
     """Classify each (mcz, td) point as unimodal (low gradient) or multimodal."""
     mcz, td = data["mcz"], data["td"]
     td_ms = td * 1e3
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     omega_grad = gradient_magnitude_normalized(data["omega_best"])
     theta_grad = gradient_magnitude_normalized(data["theta_best"])
@@ -693,7 +711,7 @@ def fig7_nlens_histogram(unimodal, nlens, data, outdir):
 def fig8_gradient_vs_nlens(data, outdir):
     """Binned plot of gradient magnitude vs N_lens for direct hypothesis test."""
     mcz, td = data["mcz"], data["td"]
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     omega_grad = gradient_magnitude_normalized(data["omega_best"])
     theta_grad = gradient_magnitude_normalized(data["theta_best"])
@@ -780,7 +798,7 @@ def fig9_nlens_band_breakdown(data, outdir):
     """Bar charts of unimodality fraction, avg gradient, mismatch, and
     parameter spread broken down by N_lens band."""
     mcz, td = data["mcz"], data["td"]
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     omega_grad = gradient_magnitude_normalized(data["omega_best"])
     theta_grad = gradient_magnitude_normalized(data["theta_best"])
@@ -905,7 +923,7 @@ def fig10_nlens_regime_map(data, outdir):
     unimodal/multimodal boundary and mismatch contours."""
     mcz, td = data["mcz"], data["td"]
     td_ms = td * 1e3
-    nlens = compute_nlens_grid(mcz, td)
+    nlens = compute_nlens_grid(mcz, td, z=data["z"])
 
     omega_grad = gradient_magnitude_normalized(data["omega_best"])
     theta_grad = gradient_magnitude_normalized(data["theta_best"])

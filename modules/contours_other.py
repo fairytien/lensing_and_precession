@@ -3,12 +3,12 @@
 #############################
 
 
-# import py scripts
-from modules.functions import *
-
 # import libraries
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
+
+from modules.geometry import calculate_cosJN
 
 #######################
 # Section 2: Contours #

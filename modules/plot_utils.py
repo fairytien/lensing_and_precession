@@ -4,14 +4,9 @@
 
 
 # import py scripts
-from modules.functions import (
-    set_to_params,
-    get_gw,
-    find_optimized_coalescence_params,
-    get_I_from_y,
-    get_td_from_MLz,
-)
 from modules.default_params import SOLMASS2SEC
+from modules.match_utils import find_optimized_coalescence_params
+from modules.waveform import set_to_params, get_gw, get_I_from_y, get_td_from_MLz
 
 # import libraries
 import matplotlib

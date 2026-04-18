@@ -98,7 +98,7 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
     t_params["theta_tilde"] = float(theta_val)
 
     if compare_both:
-        # Use new API to compare match and optimized_match internally
+        # Use new API to compare match and optimized_match_bounded internally
         res = optimize_mismatch_gammaP(
             t_params,
             s_params,
@@ -308,7 +308,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--compare_both",
         action="store_true",
-        help="Use both match and optimized_match internally and take the best.",
+        help="Use both match and optimized_match_bounded internally and take the best.",
     )
     parser.add_argument("--n_workers", type=int, default=None)
     parser.add_argument("--no_plot", action="store_true")

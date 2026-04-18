@@ -14,6 +14,30 @@ from pycbc.filter.matchedfilter import (
 from pycbc.types import FrequencySeries
 
 
+def _resolve_deps(**overrides):
+    """Fill None-valued overrides with lazy imports from source-of-truth modules."""
+    if all(v is not None for v in overrides.values()):
+        return overrides
+    from modules.Classes import LensingGeo, Precessing
+    from modules.default_params import SOLMASS2SEC
+    from modules.snr import Sn
+    from modules.waveform import set_to_params, get_fcut_from_mcz, get_gw
+
+    _defaults = {
+        "set_to_params_func": set_to_params,
+        "get_fcut_from_mcz_func": get_fcut_from_mcz,
+        "sn_func": Sn,
+        "optimize_mismatch_gammaP_func": optimize_mismatch_gammaP,
+        "mismatch_from_params_func": mismatch_from_params,
+        "mismatch_from_strains_func": mismatch_from_strains,
+        "get_gw_func": get_gw,
+        "solmass2sec": SOLMASS2SEC,
+        "lens_Class": LensingGeo,
+        "prec_Class": Precessing,
+    }
+    return {k: v if v is not None else _defaults[k] for k, v in overrides.items()}
+
+
 #############################
 # Section 1: Core Match API #
 #############################
@@ -141,7 +165,7 @@ def mismatch_from_strains(
     """Compute mismatch between two strains with optional bounded optimization."""
 
     if sn_func is None:
-        from modules.functions import Sn as sn_func
+        from modules.snr import Sn as sn_func
 
     if not isinstance(t_strain, FrequencySeries):
         t_strain = FrequencySeries(t_strain, delta_f)
@@ -154,7 +178,10 @@ def mismatch_from_strains(
 
     if compare_both:
         results = []
-        for func, name in zip([match, optimized_match], ["match", "optimized_match"]):
+        for func, name in zip(
+            [match, optimized_match_bounded],
+            ["match", "optimized_match_bounded"],
+        ):
             try:
                 match_val, index, phi = func(t_strain, s_strain, psd, return_phase=True)  # type: ignore
                 results.append(
@@ -169,7 +196,7 @@ def mismatch_from_strains(
             except Exception:
                 continue
         if not results:
-            raise RuntimeError("Both match and optimized_match failed.")
+            raise RuntimeError("Both match and optimized_match_bounded failed.")
         best_result = max(results, key=lambda x: x["match_val"])
         return {k: v for k, v in best_result.items() if k != "match_val"}
 
@@ -200,27 +227,16 @@ def mismatch_from_params(
 ) -> dict:
     """Compute mismatch between two parameter dictionaries."""
 
-    if (
-        get_gw_func is None
-        or sn_func is None
-        or lens_Class is None
-        or prec_Class is None
-    ):
-        from modules.functions import (
-            get_gw as _get_gw,
-            Sn as _Sn,
-            LensingGeo,
-            Precessing,
-        )
-
-        if get_gw_func is None:
-            get_gw_func = _get_gw
-        if sn_func is None:
-            sn_func = _Sn
-        if lens_Class is None:
-            lens_Class = LensingGeo
-        if prec_Class is None:
-            prec_Class = Precessing
+    d = _resolve_deps(
+        get_gw_func=get_gw_func,
+        sn_func=sn_func,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+    )
+    get_gw_func = d["get_gw_func"]
+    sn_func = d["sn_func"]
+    lens_Class = d["lens_Class"]
+    prec_Class = d["prec_Class"]
 
     t_gw = get_gw_func(t_params, f_min, delta_f, lens_Class, prec_Class)
     t_h = t_gw["strain"]
@@ -267,39 +283,22 @@ def optimize_mismatch_mcz(
 ) -> dict:
     """Optimize mismatch over template chirp mass around source chirp mass."""
 
-    if (
-        set_to_params_func is None
-        or get_gw_func is None
-        or sn_func is None
-        or mismatch_from_strains_func is None
-        or solmass2sec is None
-        or lens_Class is None
-        or prec_Class is None
-    ):
-        from modules.functions import (
-            set_to_params as _set_to_params,
-            get_gw as _get_gw,
-            Sn as _Sn,
-            mismatch_from_strains as _mismatch_from_strains,
-            SOLMASS2SEC as _SOLMASS2SEC,
-            LensingGeo,
-            Precessing,
-        )
-
-        if set_to_params_func is None:
-            set_to_params_func = _set_to_params
-        if get_gw_func is None:
-            get_gw_func = _get_gw
-        if sn_func is None:
-            sn_func = _Sn
-        if mismatch_from_strains_func is None:
-            mismatch_from_strains_func = _mismatch_from_strains
-        if solmass2sec is None:
-            solmass2sec = _SOLMASS2SEC
-        if lens_Class is None:
-            lens_Class = LensingGeo
-        if prec_Class is None:
-            prec_Class = Precessing
+    d = _resolve_deps(
+        set_to_params_func=set_to_params_func,
+        get_gw_func=get_gw_func,
+        sn_func=sn_func,
+        mismatch_from_strains_func=mismatch_from_strains_func,
+        solmass2sec=solmass2sec,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+    )
+    set_to_params_func = d["set_to_params_func"]
+    get_gw_func = d["get_gw_func"]
+    sn_func = d["sn_func"]
+    mismatch_from_strains_func = d["mismatch_from_strains_func"]
+    solmass2sec = d["solmass2sec"]
+    lens_Class = d["lens_Class"]
+    prec_Class = d["prec_Class"]
 
     t_params_copy, s_params_copy = set_to_params_func(t_params, s_params)
 
@@ -369,35 +368,20 @@ def optimize_mismatch_gammaP(
 ) -> dict:
     """Optimize mismatch over template precession phase gamma_P."""
 
-    if (
-        set_to_params_func is None
-        or get_gw_func is None
-        or sn_func is None
-        or mismatch_from_strains_func is None
-        or lens_Class is None
-        or prec_Class is None
-    ):
-        from modules.functions import (
-            set_to_params as _set_to_params,
-            get_gw as _get_gw,
-            Sn as _Sn,
-            mismatch_from_strains as _mismatch_from_strains,
-            LensingGeo,
-            Precessing,
-        )
-
-        if set_to_params_func is None:
-            set_to_params_func = _set_to_params
-        if get_gw_func is None:
-            get_gw_func = _get_gw
-        if sn_func is None:
-            sn_func = _Sn
-        if mismatch_from_strains_func is None:
-            mismatch_from_strains_func = _mismatch_from_strains
-        if lens_Class is None:
-            lens_Class = LensingGeo
-        if prec_Class is None:
-            prec_Class = Precessing
+    d = _resolve_deps(
+        set_to_params_func=set_to_params_func,
+        get_gw_func=get_gw_func,
+        sn_func=sn_func,
+        mismatch_from_strains_func=mismatch_from_strains_func,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+    )
+    set_to_params_func = d["set_to_params_func"]
+    get_gw_func = d["get_gw_func"]
+    sn_func = d["sn_func"]
+    mismatch_from_strains_func = d["mismatch_from_strains_func"]
+    lens_Class = d["lens_Class"]
+    prec_Class = d["prec_Class"]
 
     if s_strain is None and s_params is None:
         raise ValueError("Either s_params or s_strain must be provided")
@@ -567,47 +551,26 @@ def find_optimized_coalescence_params(
 ) -> dict:
     """Find optimal t_c/phi_c (and optionally gamma_P) for template params."""
 
-    if (
-        set_to_params_func is None
-        or get_fcut_from_mcz_func is None
-        or sn_func is None
-        or optimize_mismatch_gammaP_func is None
-        or mismatch_from_params_func is None
-        or get_gw_func is None
-        or solmass2sec is None
-        or lens_Class is None
-        or prec_Class is None
-    ):
-        from modules.functions import (
-            set_to_params as _set_to_params,
-            get_fcut_from_mcz as _get_fcut_from_mcz,
-            Sn as _Sn,
-            optimize_mismatch_gammaP as _optimize_mismatch_gammaP,
-            mismatch_from_params as _mismatch_from_params,
-            get_gw as _get_gw,
-            SOLMASS2SEC as _SOLMASS2SEC,
-            LensingGeo,
-            Precessing,
-        )
-
-        if set_to_params_func is None:
-            set_to_params_func = _set_to_params
-        if get_fcut_from_mcz_func is None:
-            get_fcut_from_mcz_func = _get_fcut_from_mcz
-        if sn_func is None:
-            sn_func = _Sn
-        if optimize_mismatch_gammaP_func is None:
-            optimize_mismatch_gammaP_func = _optimize_mismatch_gammaP
-        if mismatch_from_params_func is None:
-            mismatch_from_params_func = _mismatch_from_params
-        if get_gw_func is None:
-            get_gw_func = _get_gw
-        if solmass2sec is None:
-            solmass2sec = _SOLMASS2SEC
-        if lens_Class is None:
-            lens_Class = LensingGeo
-        if prec_Class is None:
-            prec_Class = Precessing
+    d = _resolve_deps(
+        set_to_params_func=set_to_params_func,
+        get_fcut_from_mcz_func=get_fcut_from_mcz_func,
+        sn_func=sn_func,
+        optimize_mismatch_gammaP_func=optimize_mismatch_gammaP_func,
+        mismatch_from_params_func=mismatch_from_params_func,
+        get_gw_func=get_gw_func,
+        solmass2sec=solmass2sec,
+        lens_Class=lens_Class,
+        prec_Class=prec_Class,
+    )
+    set_to_params_func = d["set_to_params_func"]
+    get_fcut_from_mcz_func = d["get_fcut_from_mcz_func"]
+    sn_func = d["sn_func"]
+    optimize_mismatch_gammaP_func = d["optimize_mismatch_gammaP_func"]
+    mismatch_from_params_func = d["mismatch_from_params_func"]
+    get_gw_func = d["get_gw_func"]
+    solmass2sec = d["solmass2sec"]
+    lens_Class = d["lens_Class"]
+    prec_Class = d["prec_Class"]
 
     t_params_copy, s_params_copy = set_to_params_func(t_params, s_params)
 
@@ -729,7 +692,8 @@ def build_psd_for_mcz(
     Build frequency grid and PSD for a given mcz using provided helpers.
     Returns (s_farr, psd, f_cut).
     """
-    from modules.functions import get_fcut_from_mcz, Sn
+    from modules.snr import Sn
+    from modules.waveform import get_fcut_from_mcz
 
     f_cut = get_fcut_from_mcz(mcz_msun)
     s_farr = np.arange(f_min, f_cut, delta_f)

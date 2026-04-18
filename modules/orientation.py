@@ -8,7 +8,7 @@ Provides helpers to:
 from typing import Optional, Dict, Tuple
 import logging
 
-from modules.functions import set_orientation
+from modules.waveform import set_orientation
 
 
 def orientation_tag(

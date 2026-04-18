@@ -21,12 +21,12 @@ try:
 except Exception:
     pass
 
-from modules.functions import get_gw
 from modules.default_params import SOLMASS2SEC
 from modules.Classes import Precessing as P2
 from modules.cosmology import apply_z
 from modules.filenames import bank_filename
 from modules.chunking import choose_bank_chunks
+from modules.waveform import get_gw
 from modules.bank_io import (
     create_bank_writer,
     write_orientation_attr,

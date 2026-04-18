@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from modules.Classes import LensingGeo, Precessing
 from modules.default_params import SOLMASS2SEC
-from modules.functions import get_MLz_from_td, get_y_from_I
+from modules.waveform import get_MLz_from_td, get_y_from_I
+from modules.match_utils import find_optimized_coalescence_params
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision
 from modules.plot_utils import (
@@ -609,8 +610,17 @@ def plot_best_match_overlay_from_contour(
     source_params = contour_data["source_params"].copy()
     template_params = get_best_match_template_params(contour_data)
 
+    # Find optimized t_c and phi_c so the RP waveform is properly aligned
+    opt_result = find_optimized_coalescence_params(
+        template_params,
+        source_params,
+        f_min=f_min,
+        optimize_gammaP=False,
+    )
+    opt_template_params = opt_result["opt_t_params"]
+
     lensed_inst = LensingGeo(source_params)
-    rp_inst = Precessing(template_params)
+    rp_inst = Precessing(opt_template_params)
     f_cut = min(lensed_inst.f_cut(), rp_inst.f_cut())
     f_arr = make_frequency_array(f_min, f_cut, npoints=npoints)
 
