@@ -604,9 +604,12 @@ def plot_best_match_overlay_from_contour(
     Right panel: phase differences with templates on the left, i.e.
     ``Phi_t - Phi_s``.
 
+    Note: this helper draws on pre-existing axes. Call
+    ``apply_physics_paper_style`` before creating the figure/axes so fonts and
+    tick-label styles are applied at creation time.
+
     Returns summary metadata dict containing best-match coordinates and epsilon.
     """
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
     source_params = contour_data["source_params"].copy()
     template_params = get_best_match_template_params(contour_data)
 

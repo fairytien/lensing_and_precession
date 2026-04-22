@@ -12,6 +12,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.plot_utils import customize_2x1_axes_ratio
+from modules.plot_utils import apply_physics_paper_style
 from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
 
@@ -20,8 +21,8 @@ DEFAULT_INPUTS = [
     "data/contour_omega_theta/v3_indiv_contour_mcz20_td30ms_I0.5_thetaS0.785_phiS0.0_thetaJ1.571_phiJ1.571_z1_2026-04-01_10-04-00.pkl",
 ]
 
-NOTEBOOK_LINE_STYLES = ["-", "--", ":"]
-NOTEBOOK_LINE_COLORS = ["black", "blue", "magenta"]
+LINE_STYLES = ["-", "--", ":"]
+LINE_COLORS = ["black", "blue", "magenta"]
 
 
 def load_pickle(path: str) -> dict:
@@ -101,6 +102,8 @@ def plot_combined(
     datasets = [load_pickle(path) for path in input_paths]
     ncols = len(datasets)
 
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+
     fig, axes = plt.subplots(
         nrows=2,
         ncols=ncols,
@@ -123,11 +126,11 @@ def plot_combined(
             col_axes,
             f_min=f_min,
             npoints=npoints,
-            baseline_color=NOTEBOOK_LINE_COLORS[1],
-            lensed_color=NOTEBOOK_LINE_COLORS[0],
+            baseline_color=LINE_COLORS[1],
+            lensed_color=LINE_COLORS[0],
             np_label="NP",
-            rp_color=NOTEBOOK_LINE_COLORS[2],
-            rp_linestyle=NOTEBOOK_LINE_STYLES[0],
+            rp_color=LINE_COLORS[2],
+            rp_linestyle=LINE_STYLES[0],
             rp_label="best RP",
         )
         summaries.append(summary)

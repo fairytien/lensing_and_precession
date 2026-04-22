@@ -599,11 +599,6 @@ def find_optimized_coalescence_params(
         t_params_copy["gamma_P"] = ep_min_gammaP
 
         ep_min_idx = gammaP_results["ep_min_idx"]
-        src_strain = get_gw_func(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
-            "strain"
-        ]
-        delta_t = src_strain.delta_t
-        t_params_copy["t_c"] = t_params_copy["t_c"] - ep_min_idx * delta_t
     else:
         ep_min_gammaP = None
         initial_mismatch = mismatch_from_params_func(
@@ -618,11 +613,13 @@ def find_optimized_coalescence_params(
             compare_both,
         )
         ep_min_idx = initial_mismatch["index"]
-        src_strain = get_gw_func(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
-            "strain"
-        ]
-        delta_t = src_strain.delta_t
-        t_params_copy["t_c"] = t_params_copy["t_c"] - ep_min_idx * delta_t
+
+    src_strain = get_gw_func(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
+        "strain"
+    ]
+    delta_t = src_strain.delta_t
+    ep_min_idx_wrapped = _wrap_match_index(ep_min_idx, len(src_strain))
+    t_params_copy["t_c"] = t_params_copy["t_c"] - ep_min_idx_wrapped * delta_t
 
     mismatch_results = mismatch_from_params_func(
         t_params_copy,
@@ -681,6 +678,12 @@ def ensure_same_length(t: np.ndarray, s: np.ndarray) -> tuple:
         pad = np.zeros((s.shape[0] - t.shape[0],), dtype=t.dtype)
         return np.concatenate([t, pad], axis=0), s
     return t[: s.shape[0]], s
+
+
+def _wrap_match_index(index: float, n_freq: int) -> float:
+    """Wrap cyclic match index to the minimal centered shift in samples."""
+    n_time = max(1, 2 * (int(n_freq) - 1))
+    return float((float(index) + n_time / 2.0) % n_time - n_time / 2.0)
 
 
 def build_psd_for_mcz(
