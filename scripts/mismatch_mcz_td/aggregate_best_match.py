@@ -23,10 +23,10 @@ from modules.filenames import (
 from modules.functions import timer_decorator
 from modules.bank_io import (
     read_source_attrs,
-    read_mcz_grid_attrs,
+    read_mcz_td_grid_attrs,
     read_mismatch_cube_shape,
-    mcz_grid_meta_consistent,
-    write_missing_mcz_metadata,
+    mcz_td_grid_meta_consistent,
+    write_missing_mcz_td_metadata,
     write_orientation_attr,
     write_scalar_attr_with_unit,
     write_dataset_units,
@@ -102,11 +102,11 @@ def main(
                 ref_shape = read_mismatch_cube_shape(h5)
                 # Extract source parameters from first cube file if available
                 source_attrs = read_source_attrs(h5)
-                mcz_grid_meta = read_mcz_grid_attrs(h5)
+                mcz_grid_meta = read_mcz_td_grid_attrs(h5)
             else:
                 # Light authenticity check: metadata should be consistent across cubes.
-                meta_i = read_mcz_grid_attrs(h5)
-                if not mcz_grid_meta_consistent(mcz_grid_meta, meta_i, tol=tol):
+                meta_i = read_mcz_td_grid_attrs(h5)
+                if not mcz_td_grid_meta_consistent(mcz_grid_meta, meta_i, tol=tol):
                     print(
                         "Warning: Inconsistent mcz grid metadata across mismatch cubes; "
                         "falling back to discovered mcz values where needed."
@@ -281,7 +281,7 @@ def main(
         h5["omega_best"].attrs["axis_order"] = "mcz,td"
         h5["theta_best"].attrs["axis_order"] = "mcz,td"
         h5["gamma_best"].attrs["axis_order"] = "mcz,td"
-        write_missing_mcz_metadata(
+        write_missing_mcz_td_metadata(
             h5,
             expected_mcz=np.array(expected_mcz_msun, dtype=np.float64),
             missing_mcz=np.array(missing_mcz_msun, dtype=np.float64),

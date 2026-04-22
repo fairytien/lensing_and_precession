@@ -1,6 +1,6 @@
 """Visualize epsilon contours over (theta, omega) while sweeping chirp mass at fixed td.
 
-Loads multiple per-mcz mismatch cube HDF5 files (created by create_mismatch_mcz_cube),
+Loads multiple per-mcz mismatch cube HDF5 files (created by create_mcz_mismatch_cube),
 then:
 - Extracts epsilon_min_grid slice at the requested time delay td (ms)
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping over chirp mass

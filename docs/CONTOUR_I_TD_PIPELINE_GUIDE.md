@@ -242,12 +242,12 @@ Notes:
 
 | Function | Description |
 |----------|-------------|
-| `write_I_grid_attrs()` | Write intended Stage 1 I grid metadata to an open HDF5 file |
-| `read_I_grid_attrs()` | Read I grid metadata from an open HDF5 file if present |
-| `I_grid_meta_consistent()` | Return True when two I grid metadata dicts are numerically consistent |
-| `write_missing_I_metadata()` | Write aggregation completeness metadata for I-td pipeline |
-| `read_missing_I_metadata()` | Read aggregation completeness metadata for I-td pipeline |
-| `create_mismatch_I_cube()` | Create HDF5 file with per-I mismatch cube datasets |
+| `write_I_td_grid_attrs()` | Write intended Stage 1 I grid metadata for the `I_td` pipeline |
+| `read_I_td_grid_attrs()` | Read `I_td` I grid metadata from an open HDF5 file if present |
+| `I_td_grid_meta_consistent()` | Return True when two `I_td` I grid metadata dicts match |
+| `write_missing_I_td_metadata()` | Write aggregation completeness metadata for the `I_td` pipeline |
+| `read_missing_I_td_metadata()` | Read aggregation completeness metadata for the `I_td` pipeline |
+| `create_I_mismatch_cube()` | Create HDF5 file with per-I mismatch cube datasets |
 | `read_best_match_I_td_contour_data()` | Load one best-match I-td contour dataset and infer plotting metadata |
 
 ### cli_utils.py (I_td pipeline argument helpers)

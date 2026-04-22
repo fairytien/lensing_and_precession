@@ -43,9 +43,9 @@ from modules.match_utils import (
 )
 from modules.bank_io import (
     safe_open_bank_readonly,
-    create_mismatch_mcz_cube,
+    create_mcz_mismatch_cube,
     write_source_attrs,
-    write_mcz_grid_attrs,
+    write_mcz_td_grid_attrs,
     write_orientation_attr,
     write_scalar_attr_with_unit,
     write_parameter_attrs,
@@ -274,7 +274,7 @@ def main(
                 z=z_val,
             )
             try:
-                mmh5, dsets = create_mismatch_mcz_cube(
+                mmh5, dsets = create_mcz_mismatch_cube(
                     filepath=mm_out_path,
                     td_pts=td_pts_eff,
                     theta_arr=theta_arr,
@@ -320,7 +320,7 @@ def main(
                 )
                 # Store the intended mcz grid so aggregation can detect missing rows
                 # from the actual compute configuration (not inferred from filenames).
-                write_mcz_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts_eff)
+                write_mcz_td_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts_eff)
                 write_scalar_attr_with_unit(mmh5, "z", z_val, none_as_nan=True)
                 mmh5.create_dataset("MLz", data=mlz_arr)
                 write_dataset_units(mmh5, {"MLz": "s"})

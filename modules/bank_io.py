@@ -1,10 +1,17 @@
-"""HDF5 I/O helpers for template banks and mismatch cubes.
+"""HDF5 I/O helpers for template banks and pipeline mismatch cubes.
+
+Sections:
+- Shared metadata and dataset helpers
+- Template-bank readers/writers
+- `mcz_td` pipeline helpers
+- `I_td` pipeline helpers
 
 Provides:
 - open_bank_readonly(path) -> (h5, omega, theta, gamma, bank, attrs)
 - safe_open_bank_readonly(path) -> (payload_or_none, error_message_or_none)
 - create_bank_writer(path, shape, dtype, chunking, dset_attrs)
-- create_mismatch_mcz_cube(path, td_pts, theta_arr, omega_arr, gamma_arr, mcz, td_arr, save_full_mismatch)
+- create_mcz_mismatch_cube(...)
+- create_I_mismatch_cube(...)
 
 Design goals: streaming-friendly writes, gzip compression, shuffle filter, and
 fletcher32 checksums for robustness.
@@ -12,7 +19,7 @@ fletcher32 checksums for robustness.
 
 import os
 from contextlib import contextmanager
-from typing import Tuple, Dict, Any, Optional
+from typing import Tuple, Dict, Any, Optional, cast
 
 import numpy as np
 import h5py
@@ -54,6 +61,20 @@ BankReadonlyPayload = Tuple[
 ]
 
 
+_COMPRESSED_DATASET_KWARGS = {
+    "compression": "gzip",
+    "compression_opts": 4,
+    "shuffle": True,
+    "fletcher32": True,
+}
+_MISMATCH_CHUNK_LIMIT = 16
+
+
+# ==============================================================================
+# Shared Metadata and Dataset Helpers
+# ==============================================================================
+
+
 def _is_scalar_metadata_value(value: Any) -> bool:
     return np.isscalar(value) or isinstance(value, (str, bytes))
 
@@ -75,6 +96,107 @@ def _write_attrs(
         h5.attrs[str(key)] = _normalize_attr_value(value, none_as_nan=none_as_nan)
 
 
+def _read_named_attrs(attrs: Any, keys: Tuple[str, ...]) -> Dict[str, Any]:
+    return {key: attrs[key] for key in keys if key in attrs}
+
+
+def _get_dataset(h5: h5py.File, name: str) -> h5py.Dataset:
+    obj = h5[name]
+    if not isinstance(obj, h5py.Dataset):
+        raise TypeError(f"Expected '{name}' to be an HDF5 dataset.")
+    return cast(h5py.Dataset, obj)
+
+
+def _write_grid_attrs(
+    h5: h5py.File,
+    axis_name: str,
+    axis_min: float,
+    axis_max: float,
+    axis_pts: int,
+) -> None:
+    _write_attrs(
+        h5,
+        {
+            f"{axis_name}_min": float(axis_min),
+            f"{axis_name}_max": float(axis_max),
+            f"{axis_name}_pts": int(axis_pts),
+        },
+    )
+
+
+def _read_grid_attrs(h5: h5py.File, axis_name: str) -> Dict[str, Any]:
+    return _read_named_attrs(
+        h5.attrs,
+        (f"{axis_name}_min", f"{axis_name}_max", f"{axis_name}_pts"),
+    )
+
+
+def _grid_meta_consistent(
+    reference_meta: Dict[str, Any],
+    candidate_meta: Dict[str, Any],
+    axis_name: str,
+    tol: float = 1e-6,
+) -> bool:
+    if not reference_meta or not candidate_meta:
+        return True
+    return (
+        abs(
+            float(candidate_meta.get(f"{axis_name}_min", np.nan))
+            - float(reference_meta.get(f"{axis_name}_min", np.nan))
+        )
+        <= tol
+        and abs(
+            float(candidate_meta.get(f"{axis_name}_max", np.nan))
+            - float(reference_meta.get(f"{axis_name}_max", np.nan))
+        )
+        <= tol
+        and int(candidate_meta.get(f"{axis_name}_pts", -1))
+        == int(reference_meta.get(f"{axis_name}_pts", -1))
+    )
+
+
+def _write_missing_axis_metadata(
+    h5: h5py.File,
+    axis_name: str,
+    expected_values: np.ndarray,
+    missing_values: np.ndarray,
+) -> None:
+    missing = np.asarray(missing_values, dtype=np.float64)
+    expected = np.asarray(expected_values, dtype=np.float64)
+    _write_attrs(h5, {f"missing_{axis_name}_count": int(missing.shape[0])})
+    if missing.shape[0] > 0:
+        h5.create_dataset(f"missing_{axis_name}", data=missing)
+    h5.create_dataset(f"expected_{axis_name}", data=expected)
+
+
+def _read_missing_axis_metadata(
+    h5: h5py.File,
+    axis_name: str,
+    *,
+    expected_default: Any,
+) -> Dict[str, Any]:
+    missing_name = f"missing_{axis_name}"
+    expected_name = f"expected_{axis_name}"
+    missing = (
+        np.array(h5[missing_name], dtype=np.float64)
+        if missing_name in h5
+        else np.array([], dtype=np.float64)
+    )
+    if expected_name in h5:
+        expected = np.array(h5[expected_name], dtype=np.float64)
+    elif expected_default is None:
+        expected = None
+    else:
+        expected = np.array(expected_default, dtype=np.float64)
+    return {
+        f"missing_{axis_name}_count": int(
+            h5.attrs.get(f"missing_{axis_name}_count", missing.shape[0])
+        ),
+        missing_name: missing,
+        expected_name: expected,
+    }
+
+
 def write_orientation_attr(h5: h5py.File, orientation_tag: str) -> None:
     """Write orientation tag as file metadata."""
     _write_attrs(h5, {"orientation_tag": str(orientation_tag)})
@@ -85,7 +207,7 @@ def write_scalar_attr_with_unit(
     key: str,
     value: Any,
     *,
-    unit: str = None,
+    unit: Optional[str] = None,
     none_as_nan: bool = False,
 ) -> None:
     """Write one scalar file attr and optional `unit_<key>` companion attr."""
@@ -155,10 +277,7 @@ def write_source_attrs(
 
 def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
     """Read source metadata attributes from an open HDF5 file if present."""
-    attrs: Dict[str, Any] = {}
-    for key in ("I", "theta_J", "phi_J", "theta_S", "phi_S"):
-        if key in h5.attrs:
-            attrs[key] = h5.attrs[key]
+    attrs = _read_named_attrs(h5.attrs, ("I", "theta_J", "phi_J", "theta_S", "phi_S"))
     # Propagate orientation and any source/template parameter snapshots.
     if "orientation_tag" in h5.attrs:
         attrs["orientation_tag"] = h5.attrs["orientation_tag"]
@@ -170,183 +289,109 @@ def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
     return attrs
 
 
-def write_mcz_grid_attrs(
+def read_mismatch_cube_shape(h5: h5py.File) -> Tuple[int, int, int, int]:
+    """Return axis sizes for a mismatch cube as (td, theta, omega, gamma)."""
+    return (
+        int(_get_dataset(h5, "td").shape[0]),
+        int(_get_dataset(h5, "theta").shape[0]),
+        int(_get_dataset(h5, "omega").shape[0]),
+        int(_get_dataset(h5, "gamma").shape[0]),
+    )
+
+
+# ==============================================================================
+# `mcz_td` Pipeline Helpers
+# ==============================================================================
+
+
+def write_mcz_td_grid_attrs(
     h5: h5py.File,
     mcz_min: float,
     mcz_max: float,
     mcz_pts: int,
 ) -> None:
-    """Write intended Stage 1 mcz grid metadata to an open HDF5 file."""
-    _write_attrs(
-        h5,
-        {
-            "mcz_min": float(mcz_min),
-            "mcz_max": float(mcz_max),
-            "mcz_pts": int(mcz_pts),
-        },
-    )
+    """Write intended Stage 1 mcz grid metadata for the `mcz_td` pipeline."""
+    _write_grid_attrs(h5, "mcz", mcz_min, mcz_max, mcz_pts)
 
 
-def read_mcz_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
-    """Read mcz grid metadata from an open HDF5 file if present."""
-    attrs: Dict[str, Any] = {}
-    for key in ("mcz_min", "mcz_max", "mcz_pts"):
-        if key in h5.attrs:
-            attrs[key] = h5.attrs[key]
-    return attrs
+def read_mcz_td_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
+    """Read `mcz_td` mcz grid metadata from an open HDF5 file if present."""
+    return _read_grid_attrs(h5, "mcz")
 
 
-def read_mismatch_cube_shape(h5: h5py.File) -> Tuple[int, int, int, int]:
-    """Return axis sizes for a mismatch cube as (td, theta, omega, gamma)."""
-    return (
-        int(h5["td"].shape[0]),
-        int(h5["theta"].shape[0]),
-        int(h5["omega"].shape[0]),
-        int(h5["gamma"].shape[0]),
-    )
-
-
-def mcz_grid_meta_consistent(
+def mcz_td_grid_meta_consistent(
     reference_meta: Dict[str, Any],
     candidate_meta: Dict[str, Any],
     tol: float = 1e-6,
 ) -> bool:
-    """Return True when two mcz grid metadata dicts are numerically consistent."""
-    if not reference_meta or not candidate_meta:
-        return True
-    return (
-        abs(
-            float(candidate_meta.get("mcz_min", np.nan))
-            - float(reference_meta.get("mcz_min", np.nan))
-        )
-        <= tol
-        and abs(
-            float(candidate_meta.get("mcz_max", np.nan))
-            - float(reference_meta.get("mcz_max", np.nan))
-        )
-        <= tol
-        and int(candidate_meta.get("mcz_pts", -1))
-        == int(reference_meta.get("mcz_pts", -1))
-    )
+    """Return True when two `mcz_td` mcz grid metadata dicts match."""
+    return _grid_meta_consistent(reference_meta, candidate_meta, "mcz", tol=tol)
+
+
+def write_missing_mcz_td_metadata(
+    h5: h5py.File,
+    expected_mcz: np.ndarray,
+    missing_mcz: np.ndarray,
+) -> None:
+    """Write aggregation completeness metadata for the `mcz_td` pipeline."""
+    _write_missing_axis_metadata(h5, "mcz", expected_mcz, missing_mcz)
+
+
+def read_missing_mcz_td_metadata(h5: h5py.File) -> Dict[str, Any]:
+    """Read aggregation completeness metadata for the `mcz_td` pipeline."""
+    return _read_missing_axis_metadata(h5, "mcz", expected_default=None)
 
 
 # ==============================================================================
-# I-td Pipeline Helpers (flux ratio grid metadata)
+# `I_td` Pipeline Helpers
 # ==============================================================================
 
 
-def write_I_grid_attrs(
+def write_I_td_grid_attrs(
     h5: h5py.File,
     I_min: float,
     I_max: float,
     I_pts: int,
 ) -> None:
-    """Write intended Stage 1 I grid metadata to an open HDF5 file."""
-    _write_attrs(
-        h5,
-        {
-            "I_min": float(I_min),
-            "I_max": float(I_max),
-            "I_pts": int(I_pts),
-        },
-    )
+    """Write intended Stage 1 I grid metadata for the `I_td` pipeline."""
+    _write_grid_attrs(h5, "I", I_min, I_max, I_pts)
 
 
-def read_I_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
-    """Read I grid metadata from an open HDF5 file if present."""
-    attrs: Dict[str, Any] = {}
-    for key in ("I_min", "I_max", "I_pts"):
-        if key in h5.attrs:
-            attrs[key] = h5.attrs[key]
-    return attrs
+def read_I_td_grid_attrs(h5: h5py.File) -> Dict[str, Any]:
+    """Read `I_td` I grid metadata from an open HDF5 file if present."""
+    return _read_grid_attrs(h5, "I")
 
 
-def I_grid_meta_consistent(
+def I_td_grid_meta_consistent(
     reference_meta: Dict[str, Any],
     candidate_meta: Dict[str, Any],
     tol: float = 1e-6,
 ) -> bool:
-    """Return True when two I grid metadata dicts are numerically consistent."""
-    if not reference_meta or not candidate_meta:
-        return True
-    return (
-        abs(
-            float(candidate_meta.get("I_min", np.nan))
-            - float(reference_meta.get("I_min", np.nan))
-        )
-        <= tol
-        and abs(
-            float(candidate_meta.get("I_max", np.nan))
-            - float(reference_meta.get("I_max", np.nan))
-        )
-        <= tol
-        and int(candidate_meta.get("I_pts", -1)) == int(reference_meta.get("I_pts", -1))
-    )
+    """Return True when two `I_td` I grid metadata dicts match."""
+    return _grid_meta_consistent(reference_meta, candidate_meta, "I", tol=tol)
 
 
-def write_missing_I_metadata(
+def write_missing_I_td_metadata(
     h5: h5py.File,
     expected_I: np.ndarray,
     missing_I: np.ndarray,
 ) -> None:
-    """Write aggregation completeness metadata for I-td pipeline to an open HDF5 file."""
-    missing = np.asarray(missing_I, dtype=np.float64)
-    expected = np.asarray(expected_I, dtype=np.float64)
-    _write_attrs(h5, {"missing_I_count": int(missing.shape[0])})
-    if missing.shape[0] > 0:
-        h5.create_dataset("missing_I", data=missing)
-    h5.create_dataset("expected_I", data=expected)
+    """Write aggregation completeness metadata for the `I_td` pipeline."""
+    _write_missing_axis_metadata(h5, "I", expected_I, missing_I)
 
 
-def read_missing_I_metadata(h5: h5py.File) -> Dict[str, Any]:
-    """Read aggregation completeness metadata for I-td pipeline from an open HDF5 file."""
-    missing = (
-        np.array(h5["missing_I"], dtype=np.float64)
-        if "missing_I" in h5
-        else np.array([], dtype=np.float64)
+def read_missing_I_td_metadata(h5: h5py.File) -> Dict[str, Any]:
+    """Read aggregation completeness metadata for the `I_td` pipeline."""
+    return _read_missing_axis_metadata(
+        h5,
+        "I",
+        expected_default=np.array([], dtype=np.float64),
     )
-    expected = (
-        np.array(h5["expected_I"], dtype=np.float64)
-        if "expected_I" in h5
-        else np.array([], dtype=np.float64)
-    )
-    return {
-        "missing_I_count": int(h5.attrs.get("missing_I_count", 0)),
-        "missing_I": missing,
-        "expected_I": expected,
-    }
 
 
-def write_missing_mcz_metadata(
-    h5: h5py.File,
-    expected_mcz: np.ndarray,
-    missing_mcz: np.ndarray,
-) -> None:
-    """Write aggregation completeness metadata to an open HDF5 file."""
-    missing = np.asarray(missing_mcz, dtype=np.float64)
-    expected = np.asarray(expected_mcz, dtype=np.float64)
-    _write_attrs(h5, {"missing_mcz_count": int(missing.shape[0])})
-    if missing.shape[0] > 0:
-        h5.create_dataset("missing_mcz", data=missing)
-    h5.create_dataset("expected_mcz", data=expected)
-
-
-def read_missing_mcz_metadata(h5: h5py.File) -> Dict[str, Any]:
-    """Read aggregation completeness metadata from an open HDF5 file."""
-    missing = (
-        np.array(h5["missing_mcz"], dtype=np.float64)
-        if "missing_mcz" in h5
-        else np.array([], dtype=np.float64)
-    )
-    count = int(h5.attrs.get("missing_mcz_count", missing.shape[0]))
-    expected = (
-        np.array(h5["expected_mcz"], dtype=np.float64) if "expected_mcz" in h5 else None
-    )
-    return {
-        "missing_mcz_count": count,
-        "missing_mcz": missing,
-        "expected_mcz": expected,
-    }
+# ==============================================================================
+# Best-Match Contour Readers
+# ==============================================================================
 
 
 def _decode_string_attr(value: Any) -> str:
@@ -364,6 +409,72 @@ def _read_optional_float_attr(attrs: Any, key: str) -> Optional[float]:
     return value
 
 
+def _require_datasets(h5: h5py.File, input_path: str, names: Tuple[str, ...]) -> None:
+    missing = [name for name in names if name not in h5]
+    if missing:
+        raise KeyError(
+            f"Missing datasets in {input_path}: {missing}. "
+            f"Available datasets: {list(h5.keys())}"
+        )
+
+
+def _read_best_match_axes_and_values(
+    h5: h5py.File,
+    input_path: str,
+    axis_name: str,
+    value_dataset: str,
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    _require_datasets(h5, input_path, (axis_name, "td", value_dataset))
+
+    axis_arr = np.array(h5[axis_name], dtype=np.float64)
+    td_arr = np.array(h5["td"], dtype=np.float64)
+    values = np.array(h5[value_dataset], dtype=np.float64)
+
+    if axis_arr.ndim != 1 or td_arr.ndim != 1:
+        raise ValueError(
+            f"Expected 1D axes in {input_path}, got {axis_name} ndim={axis_arr.ndim}, td ndim={td_arr.ndim}."
+        )
+    if axis_arr.size == 0 or td_arr.size == 0:
+        raise ValueError(f"Empty axis dataset found in {input_path}.")
+
+    expected_shape = (int(axis_arr.shape[0]), int(td_arr.shape[0]))
+    if values.shape != expected_shape:
+        raise ValueError(
+            f"Dataset '{value_dataset}' in {input_path} has shape {values.shape}, "
+            f"expected {expected_shape}."
+        )
+    return axis_arr, td_arr, values
+
+
+def _read_required_scalar_attr(h5: h5py.File, input_path: str, key: str) -> float:
+    if key not in h5.attrs:
+        raise ValueError(f"Missing required attribute '{key}' in {input_path}.")
+    raw = np.asarray(h5.attrs[key])
+    if raw.size != 1:
+        raise ValueError(f"Attribute '{key}' must be scalar in {input_path}.")
+    return float(raw.reshape(-1)[0])
+
+
+def _read_required_scalar_dataset(h5: h5py.File, input_path: str, key: str) -> float:
+    if key not in h5:
+        raise ValueError(f"Missing required dataset '{key}' in {input_path}.")
+    raw = np.asarray(h5[key])
+    if raw.size != 1:
+        raise ValueError(f"Dataset '{key}' must be scalar in {input_path}.")
+    return float(raw.reshape(-1)[0])
+
+
+def _read_required_orientation_tag(h5: h5py.File, input_path: str) -> str:
+    if "orientation_tag" not in h5.attrs:
+        raise ValueError(
+            f"Missing required attribute 'orientation_tag' in {input_path}."
+        )
+    orientation_tag = _decode_string_attr(h5.attrs["orientation_tag"]).strip()
+    if not orientation_tag:
+        raise ValueError(f"Attribute 'orientation_tag' is empty in {input_path}.")
+    return orientation_tag
+
+
 def read_best_match_mcz_td_contour_data(
     input_path: str, value_dataset: str
 ) -> Dict[str, Any]:
@@ -375,49 +486,16 @@ def read_best_match_mcz_td_contour_data(
         raise FileNotFoundError(f"Best-match file not found: {input_path}")
 
     with h5py.File(input_path, "r") as h5:
-        required = ("mcz", "td", value_dataset)
-        missing = [name for name in required if name not in h5]
-        if missing:
-            raise KeyError(
-                f"Missing datasets in {input_path}: {missing}. "
-                f"Available datasets: {list(h5.keys())}"
-            )
-
-        mcz_arr = np.array(h5["mcz"], dtype=np.float64)
-        td_arr = np.array(h5["td"], dtype=np.float64)
-        values = np.array(h5[value_dataset], dtype=np.float64)
-
-        if mcz_arr.ndim != 1 or td_arr.ndim != 1:
-            raise ValueError(
-                f"Expected 1D axes in {input_path}, got mcz ndim={mcz_arr.ndim}, td ndim={td_arr.ndim}."
-            )
-        if mcz_arr.size == 0 or td_arr.size == 0:
-            raise ValueError(f"Empty axis dataset found in {input_path}.")
-
-        expected_shape = (int(mcz_arr.shape[0]), int(td_arr.shape[0]))
-        if values.shape != expected_shape:
-            raise ValueError(
-                f"Dataset '{value_dataset}' in {input_path} has shape {values.shape}, "
-                f"expected {expected_shape}."
-            )
-
-        if "I" not in h5.attrs:
-            raise ValueError(f"Missing required attribute 'I' in {input_path}.")
-        if "orientation_tag" not in h5.attrs:
-            raise ValueError(
-                f"Missing required attribute 'orientation_tag' in {input_path}."
-            )
-
-        i_raw = np.asarray(h5.attrs["I"])
-        if i_raw.size != 1:
-            raise ValueError(f"Attribute 'I' must be scalar in {input_path}.")
-        I_value = float(i_raw.reshape(-1)[0])
-        orientation_tag = _decode_string_attr(h5.attrs["orientation_tag"]).strip()
-        if not orientation_tag:
-            raise ValueError(f"Attribute 'orientation_tag' is empty in {input_path}.")
-
+        mcz_arr, td_arr, values = _read_best_match_axes_and_values(
+            h5,
+            input_path,
+            "mcz",
+            value_dataset,
+        )
+        I_value = _read_required_scalar_attr(h5, input_path, "I")
+        orientation_tag = _read_required_orientation_tag(h5, input_path)
         z_value = _read_optional_float_attr(h5.attrs, "z")
-        missing_meta = read_missing_mcz_metadata(h5)
+        missing_meta = read_missing_mcz_td_metadata(h5)
 
     return {
         "mcz": mcz_arr,
@@ -447,51 +525,16 @@ def read_best_match_I_td_contour_data(
         raise FileNotFoundError(f"Best-match file not found: {input_path}")
 
     with h5py.File(input_path, "r") as h5:
-        required = ("I", "td", value_dataset)
-        missing = [name for name in required if name not in h5]
-        if missing:
-            raise KeyError(
-                f"Missing datasets in {input_path}: {missing}. "
-                f"Available datasets: {list(h5.keys())}"
-            )
-
-        I_arr = np.array(h5["I"], dtype=np.float64)
-        td_arr = np.array(h5["td"], dtype=np.float64)
-        values = np.array(h5[value_dataset], dtype=np.float64)
-
-        if I_arr.ndim != 1 or td_arr.ndim != 1:
-            raise ValueError(
-                f"Expected 1D axes in {input_path}, got I ndim={I_arr.ndim}, td ndim={td_arr.ndim}."
-            )
-        if I_arr.size == 0 or td_arr.size == 0:
-            raise ValueError(f"Empty axis dataset found in {input_path}.")
-
-        expected_shape = (int(I_arr.shape[0]), int(td_arr.shape[0]))
-        if values.shape != expected_shape:
-            raise ValueError(
-                f"Dataset '{value_dataset}' in {input_path} has shape {values.shape}, "
-                f"expected {expected_shape}."
-            )
-
-        # Read mcz (scalar or array with one value)
-        if "mcz" not in h5:
-            raise ValueError(f"Missing required dataset 'mcz' in {input_path}.")
-        mcz_raw = np.asarray(h5["mcz"])
-        if mcz_raw.size != 1:
-            raise ValueError(f"Dataset 'mcz' must be scalar in {input_path}.")
-        mcz_value = float(mcz_raw.reshape(-1)[0])
-
-        if "orientation_tag" not in h5.attrs:
-            raise ValueError(
-                f"Missing required attribute 'orientation_tag' in {input_path}."
-            )
-
-        orientation_tag = _decode_string_attr(h5.attrs["orientation_tag"]).strip()
-        if not orientation_tag:
-            raise ValueError(f"Attribute 'orientation_tag' is empty in {input_path}.")
-
+        I_arr, td_arr, values = _read_best_match_axes_and_values(
+            h5,
+            input_path,
+            "I",
+            value_dataset,
+        )
+        mcz_value = _read_required_scalar_dataset(h5, input_path, "mcz")
+        orientation_tag = _read_required_orientation_tag(h5, input_path)
         z_value = _read_optional_float_attr(h5.attrs, "z")
-        missing_meta = read_missing_I_metadata(h5)
+        missing_meta = read_missing_I_td_metadata(h5)
 
     return {
         "I": I_arr,
@@ -521,10 +564,10 @@ def open_bank_readonly(
     """
     h5 = h5py.File(filepath, "r")
     try:
-        omega = np.array(h5["omega"]).astype(float)
-        theta = np.array(h5["theta"]).astype(float)
-        gamma = np.array(h5["gamma"]).astype(float)
-        bank = h5["bank"]
+        omega = np.asarray(_get_dataset(h5, "omega"), dtype=float)
+        theta = np.asarray(_get_dataset(h5, "theta"), dtype=float)
+        gamma = np.asarray(_get_dataset(h5, "gamma"), dtype=float)
+        bank = _get_dataset(h5, "bank")
         attrs = dict(bank.attrs.items())
         return h5, omega, theta, gamma, bank, attrs
     except Exception:
@@ -545,6 +588,11 @@ def safe_open_bank_readonly(
         return open_bank_readonly(filepath), None
     except Exception as exc:
         return None, f"{type(exc).__name__}: {exc}"
+
+
+# ==============================================================================
+# Template-Bank Readers/Writers
+# ==============================================================================
 
 
 @contextmanager
@@ -569,10 +617,7 @@ def create_bank_writer(
             shape=shape,
             dtype=dtype,
             chunks=chunking,
-            compression="gzip",
-            compression_opts=4,
-            shuffle=True,
-            fletcher32=True,
+            **_COMPRESSED_DATASET_KWARGS,
         )
         for k, v in dset_attrs.items():
             bank.attrs[k] = v
@@ -581,7 +626,100 @@ def create_bank_writer(
         h5.close()
 
 
-def create_mismatch_mcz_cube(
+# ==============================================================================
+# Shared Mismatch-Cube Builders
+# ==============================================================================
+
+
+def _create_compressed_dataset(
+    h5: h5py.File,
+    name: str,
+    shape: Tuple[int, ...],
+    chunks: Tuple[int, ...],
+) -> h5py.Dataset:
+    return h5.create_dataset(
+        name,
+        shape=shape,
+        dtype=np.float32,
+        chunks=chunks,
+        **_COMPRESSED_DATASET_KWARGS,
+    )
+
+
+def _create_mismatch_cube_datasets(
+    h5: h5py.File,
+    td_pts: int,
+    n_theta: int,
+    n_omega: int,
+    n_gamma: int,
+    save_full_mismatch: bool,
+) -> Dict[str, h5py.Dataset]:
+    theta_chunk = min(_MISMATCH_CHUNK_LIMIT, n_theta)
+    omega_chunk = min(_MISMATCH_CHUNK_LIMIT, n_omega)
+    grid_shape = (int(td_pts), n_theta, n_omega)
+    grid_chunks = (1, theta_chunk, omega_chunk)
+
+    datasets: Dict[str, h5py.Dataset] = {}
+    if save_full_mismatch:
+        datasets["mismatch"] = _create_compressed_dataset(
+            h5,
+            "mismatch",
+            shape=(int(td_pts), n_theta, n_omega, n_gamma),
+            chunks=(1, theta_chunk, omega_chunk, n_gamma),
+        )
+
+    for name in ("epsilon_min_grid", "gamma_best_grid"):
+        datasets[name] = _create_compressed_dataset(
+            h5,
+            name,
+            shape=grid_shape,
+            chunks=grid_chunks,
+        )
+
+    datasets["epsilon_min_grid"].attrs["axis_order"] = "td,theta,omega"
+    datasets["gamma_best_grid"].attrs["axis_order"] = "td,theta,omega"
+    if "mismatch" in datasets:
+        datasets["mismatch"].attrs["axis_order"] = "td,theta,omega,gamma"
+    return datasets
+
+
+def _create_mismatch_cube_file(
+    filepath: str,
+    td_pts: int,
+    theta_arr: np.ndarray,
+    omega_arr: np.ndarray,
+    gamma_arr: np.ndarray,
+    td_arr: np.ndarray,
+    scalar_datasets: Dict[str, float],
+    dataset_units: Dict[str, str],
+    save_full_mismatch: bool,
+) -> Tuple[h5py.File, Dict[str, h5py.Dataset]]:
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    h5 = h5py.File(filepath, "w")
+    for name, value in scalar_datasets.items():
+        h5.create_dataset(name, data=np.array([value], dtype=np.float64))
+    h5.create_dataset("td", data=np.asarray(td_arr, dtype=np.float64))
+    h5.create_dataset("omega", data=np.asarray(omega_arr, dtype=np.float64))
+    h5.create_dataset("theta", data=np.asarray(theta_arr, dtype=np.float64))
+    h5.create_dataset("gamma", data=np.asarray(gamma_arr, dtype=np.float64))
+    write_dataset_units(h5, dataset_units)
+    datasets = _create_mismatch_cube_datasets(
+        h5,
+        td_pts=int(td_pts),
+        n_theta=int(theta_arr.shape[0]),
+        n_omega=int(omega_arr.shape[0]),
+        n_gamma=int(gamma_arr.shape[0]),
+        save_full_mismatch=save_full_mismatch,
+    )
+    return h5, datasets
+
+
+# ==============================================================================
+# Artifact Mismatch-Cube Writers
+# ==============================================================================
+
+
+def create_mcz_mismatch_cube(
     filepath: str,
     td_pts: int,
     theta_arr: np.ndarray,
@@ -600,72 +738,26 @@ def create_mismatch_mcz_cube(
       - 'gamma_best_grid': (td, theta, omega)
     Caller is responsible for closing the returned h5 file.
     """
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    h5 = h5py.File(filepath, "w")
-    h5.create_dataset("mcz", data=np.array([mcz], dtype=np.float64))
-    h5.create_dataset("td", data=td_arr.astype(np.float64))
-    h5.create_dataset("omega", data=omega_arr.astype(np.float64))
-    h5.create_dataset("theta", data=theta_arr.astype(np.float64))
-    h5.create_dataset("gamma", data=gamma_arr.astype(np.float64))
-    write_dataset_units(
-        h5,
-        {
+    return _create_mismatch_cube_file(
+        filepath,
+        td_pts,
+        theta_arr,
+        omega_arr,
+        gamma_arr,
+        td_arr,
+        scalar_datasets={"mcz": mcz},
+        dataset_units={
             "mcz": "Msun",
             "td": "s",
             "omega": "dimensionless",
             "theta": "dimensionless",
             "gamma": "rad",
         },
+        save_full_mismatch=save_full_mismatch,
     )
 
-    n_theta = int(theta_arr.shape[0])
-    n_omega = int(omega_arr.shape[0])
-    n_gamma = int(gamma_arr.shape[0])
 
-    datasets: Dict[str, Any] = {}
-    if save_full_mismatch:
-        datasets["mismatch"] = h5.create_dataset(
-            "mismatch",
-            shape=(int(td_pts), n_theta, n_omega, n_gamma),
-            dtype=np.float32,
-            chunks=(1, min(16, n_theta), min(16, n_omega), n_gamma),
-            compression="gzip",
-            compression_opts=4,
-            shuffle=True,
-            fletcher32=True,
-        )
-
-    datasets["epsilon_min_grid"] = h5.create_dataset(
-        "epsilon_min_grid",
-        shape=(int(td_pts), n_theta, n_omega),
-        dtype=np.float32,
-        chunks=(1, min(16, n_theta), min(16, n_omega)),
-        compression="gzip",
-        compression_opts=4,
-        shuffle=True,
-        fletcher32=True,
-    )
-
-    datasets["gamma_best_grid"] = h5.create_dataset(
-        "gamma_best_grid",
-        shape=(int(td_pts), n_theta, n_omega),
-        dtype=np.float32,
-        chunks=(1, min(16, n_theta), min(16, n_omega)),
-        compression="gzip",
-        compression_opts=4,
-        shuffle=True,
-        fletcher32=True,
-    )
-
-    datasets["epsilon_min_grid"].attrs["axis_order"] = "td,theta,omega"
-    datasets["gamma_best_grid"].attrs["axis_order"] = "td,theta,omega"
-    if "mismatch" in datasets:
-        datasets["mismatch"].attrs["axis_order"] = "td,theta,omega,gamma"
-
-    return h5, datasets
-
-
-def create_mismatch_I_cube(
+def create_I_mismatch_cube(
     filepath: str,
     td_pts: int,
     theta_arr: np.ndarray,
@@ -677,7 +769,7 @@ def create_mismatch_I_cube(
     save_full_mismatch: bool = False,
 ):
     """
-    Create an HDF5 file with per-I mismatch cube datasets (I-td pipeline).
+    Create an HDF5 file with per-I mismatch cube datasets.
 
     Returns a tuple (h5, datasets) where datasets is a dict containing:
       - 'mismatch' (optional): (td, theta, omega, gamma)
@@ -685,17 +777,15 @@ def create_mismatch_I_cube(
       - 'gamma_best_grid': (td, theta, omega)
     Caller is responsible for closing the returned h5 file.
     """
-    os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    h5 = h5py.File(filepath, "w")
-    h5.create_dataset("I", data=np.array([I_val], dtype=np.float64))
-    h5.create_dataset("mcz", data=np.array([mcz], dtype=np.float64))
-    h5.create_dataset("td", data=td_arr.astype(np.float64))
-    h5.create_dataset("omega", data=omega_arr.astype(np.float64))
-    h5.create_dataset("theta", data=theta_arr.astype(np.float64))
-    h5.create_dataset("gamma", data=gamma_arr.astype(np.float64))
-    write_dataset_units(
-        h5,
-        {
+    return _create_mismatch_cube_file(
+        filepath,
+        td_pts,
+        theta_arr,
+        omega_arr,
+        gamma_arr,
+        td_arr,
+        scalar_datasets={"I": I_val, "mcz": mcz},
+        dataset_units={
             "I": "dimensionless",
             "mcz": "Msun",
             "td": "s",
@@ -703,50 +793,27 @@ def create_mismatch_I_cube(
             "theta": "dimensionless",
             "gamma": "rad",
         },
+        save_full_mismatch=save_full_mismatch,
     )
 
-    n_theta = int(theta_arr.shape[0])
-    n_omega = int(omega_arr.shape[0])
-    n_gamma = int(gamma_arr.shape[0])
 
-    datasets: Dict[str, Any] = {}
-    if save_full_mismatch:
-        datasets["mismatch"] = h5.create_dataset(
-            "mismatch",
-            shape=(int(td_pts), n_theta, n_omega, n_gamma),
-            dtype=np.float32,
-            chunks=(1, min(16, n_theta), min(16, n_omega), n_gamma),
-            compression="gzip",
-            compression_opts=4,
-            shuffle=True,
-            fletcher32=True,
-        )
+# ==============================================================================
+# Backward-Compatible Aliases
+# ==============================================================================
 
-    datasets["epsilon_min_grid"] = h5.create_dataset(
-        "epsilon_min_grid",
-        shape=(int(td_pts), n_theta, n_omega),
-        dtype=np.float32,
-        chunks=(1, min(16, n_theta), min(16, n_omega)),
-        compression="gzip",
-        compression_opts=4,
-        shuffle=True,
-        fletcher32=True,
-    )
 
-    datasets["gamma_best_grid"] = h5.create_dataset(
-        "gamma_best_grid",
-        shape=(int(td_pts), n_theta, n_omega),
-        dtype=np.float32,
-        chunks=(1, min(16, n_theta), min(16, n_omega)),
-        compression="gzip",
-        compression_opts=4,
-        shuffle=True,
-        fletcher32=True,
-    )
+write_mcz_grid_attrs = write_mcz_td_grid_attrs
+read_mcz_grid_attrs = read_mcz_td_grid_attrs
+mcz_grid_meta_consistent = mcz_td_grid_meta_consistent
+write_missing_mcz_metadata = write_missing_mcz_td_metadata
+read_missing_mcz_metadata = read_missing_mcz_td_metadata
+create_mcz_td_mismatch_cube = create_mcz_mismatch_cube
+create_mismatch_mcz_cube = create_mcz_mismatch_cube
 
-    datasets["epsilon_min_grid"].attrs["axis_order"] = "td,theta,omega"
-    datasets["gamma_best_grid"].attrs["axis_order"] = "td,theta,omega"
-    if "mismatch" in datasets:
-        datasets["mismatch"].attrs["axis_order"] = "td,theta,omega,gamma"
-
-    return h5, datasets
+write_I_grid_attrs = write_I_td_grid_attrs
+read_I_grid_attrs = read_I_td_grid_attrs
+I_grid_meta_consistent = I_td_grid_meta_consistent
+write_missing_I_metadata = write_missing_I_td_metadata
+read_missing_I_metadata = read_missing_I_td_metadata
+create_I_td_mismatch_cube = create_I_mismatch_cube
+create_mismatch_I_cube = create_I_mismatch_cube

@@ -106,6 +106,17 @@ Matching and mismatch optimization now use `modules.match_utils` as the single s
 
 Legacy/versioned implementations are kept under `modules/legacy/` and should be imported explicitly as `modules.legacy.*` when needed.
 
+### Repo Naming Style
+
+- Use artifact names for helpers that read, write, parse, or validate one concrete file or schema.
+- Use pipeline names for helpers that encode sweep metadata, run directories, aggregated outputs, or final contour products.
+- Keep shared low-level helpers pipeline-neutral.
+
+Examples:
+
+- Artifact names: `create_mcz_mismatch_cube`, `create_I_mismatch_cube`, `mismatch_mcz_cube_filename`
+- Pipeline names: `write_mcz_td_grid_attrs`, `write_I_td_grid_attrs`, `best_match_mcz_td_filename`, `read_best_match_I_td_contour_data`
+
 ## GitHub Landing Page Note
 
 Keep `README.md` at the repository root if you want this introduction to appear by default on the main GitHub repository page.

@@ -1,6 +1,6 @@
 """Visualize epsilon contours over (theta, omega) from a mismatch cube.
 
-Loads a per-mcz mismatch cube HDF5 (with datasets created by create_mismatch_mcz_cube),
+Loads a per-mcz mismatch cube HDF5 (with datasets created by create_mcz_mismatch_cube),
 then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
