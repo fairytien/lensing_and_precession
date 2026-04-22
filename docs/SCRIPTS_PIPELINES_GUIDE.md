@@ -43,6 +43,7 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 
 - Run Python modules from repository root with `python -m ...` to avoid path issues.
 - Keep naming and discovery canonical via helpers in `modules/filenames.py`.
+- Follow the repo naming grammar in `README.md`: artifact names use `<qualifier>_<artifact>`, pipeline names use `<family>_<pipeline>`.
 - Main-pipeline scripts should import canonical modules: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
 - Canonical modules are the source of truth for production code.
 - Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
@@ -206,7 +207,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 Production cluster jobs live in `batch_scripts/`.
 
 - Template banks: `batch_scripts/build_template_banks.sbatch`
-- Mismatch cubes (mcz-td): `batch_scripts/compute_mismatch_mcz_cubes.sbatch`
+- Mismatch cubes (mcz-td): `batch_scripts/compute_mismatch_mcz_td_cubes.sbatch`
 - Lindblom cubes: `batch_scripts/compute_lindblom_cubes.sbatch`
 
 Shared contour config defaults are centralized in `batch_scripts/_contour_mcz_td_config.sh`.

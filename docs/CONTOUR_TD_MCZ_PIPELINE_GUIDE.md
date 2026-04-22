@@ -33,7 +33,7 @@ The production batch scripts are configured for the following default run:
 sbatch batch_scripts/build_template_banks.sbatch
 
 # Stage 1: Compute mismatch cubes
-sbatch batch_scripts/compute_mismatch_mcz_cubes.sbatch
+sbatch batch_scripts/compute_mismatch_mcz_td_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
 python -m scripts.mismatch_mcz_td.aggregate_best_match \

@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J compute_mismatch_test # Job name
+#SBATCH -J compute_mismatch_mcz_td_cubes_test # Job name
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes
 #SBATCH --ntasks=1 # Single task (not MPI)
@@ -8,7 +8,7 @@
 #SBATCH -t 00:09:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
 #SBATCH --array=0 # Single job (no array)
-#SBATCH -o batch_outputs/compute_mismatch_test_%A_%a.out # Output file
+#SBATCH -o batch_outputs/compute_mismatch_mcz_td_cubes_test_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 
@@ -33,4 +33,4 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
   --n_workers ${NWORKERS} \
   --use_opt_match \
   --bank_dir "${BANK_DIR}" \
-  --run_dir "${RUN_DIR}" \
+  --run_dir "${RUN_DIR}"

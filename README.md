@@ -37,7 +37,7 @@ This pipeline calculates **minimum mismatch contours** for lensed gravitational 
 
 ### Mismatch Computation
 1. **Compute mismatch cubes**: Run `python -m scripts.mismatch_mcz_td.compute_mismatch_cubes` to compare lensed sources against the prebuilt banks.
-2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_mcz_cubes.sbatch`.
+2. **For cluster/array jobs**: Use `batch_scripts/compute_mismatch_mcz_td_cubes.sbatch`.
 3. **Output shape**: Each run writes one per-`mcz` mismatch cube under `data/mismatch/mismatch_cubes/`.
 
 ### Aggregation
@@ -49,7 +49,7 @@ After all requested `mcz` values finish, run `python -m scripts.mismatch_mcz_td.
 sbatch batch_scripts/build_template_banks.sbatch
 
 # 2. Submit array job for mismatch computation
-sbatch batch_scripts/compute_mismatch_mcz_cubes.sbatch
+sbatch batch_scripts/compute_mismatch_mcz_td_cubes.sbatch
 
 # 3. After all array tasks complete, aggregate results
 python -m scripts.mismatch_mcz_td.aggregate_best_match \
@@ -112,10 +112,22 @@ Legacy/versioned implementations are kept under `modules/legacy/` and should be 
 - Use pipeline names for helpers that encode sweep metadata, run directories, aggregated outputs, or final contour products.
 - Keep shared low-level helpers pipeline-neutral.
 
+Grammar:
+
+- Concrete artifact: `<qualifier>_<artifact>`
+- Artifact helper: `<verb>_<qualifier>_<artifact>`
+- Pipeline family or product: `<family>_<pipeline>`
+- Pipeline helper or entrypoint: `<verb>_<family>_<pipeline>[_artifact]` or `<verb>_<pipeline>_<concept>`
+
 Examples:
 
 - Artifact names: `create_mcz_mismatch_cube`, `create_I_mismatch_cube`, `mismatch_mcz_cube_filename`
-- Pipeline names: `write_mcz_td_grid_attrs`, `write_I_td_grid_attrs`, `best_match_mcz_td_filename`, `read_best_match_I_td_contour_data`
+- Pipeline names: `write_mcz_td_grid_attrs`, `write_I_td_grid_attrs`, `best_match_mcz_td_filename`, `compute_mismatch_mcz_td_cubes.sbatch`
+
+Order rule:
+
+- Put the qualifier before the noun for concrete artifacts.
+- Put the workflow family before the pipeline token for pipeline-scoped names.
 
 ## GitHub Landing Page Note
 

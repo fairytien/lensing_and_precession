@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J compute_mismatch # Job name
+#SBATCH -J compute_mismatch_mcz_td_cubes # Job name
 #SBATCH --account=PHY24021 # Account to submit jobs under
 #SBATCH -N 1 # Number of nodes
 #SBATCH --ntasks=1 # Single task (not MPI)
@@ -8,7 +8,7 @@
 #SBATCH -t 00:09:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
 #SBATCH --array=0-80
-#SBATCH -o batch_outputs/compute_mismatch_%A_%a.out # Output file
+#SBATCH -o batch_outputs/compute_mismatch_mcz_td_cubes_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
 

@@ -44,7 +44,7 @@ python -m scripts.template_banks.build_template_banks \
   --bank_dir ./data/template_banks
 
 # Stage 1: Compute mismatch cubes (array job across I values)
-sbatch batch_scripts/compute_mismatch_I_cubes.sbatch
+sbatch batch_scripts/compute_mismatch_I_td_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
 python -m scripts.mismatch_I_td.aggregate_best_match \
