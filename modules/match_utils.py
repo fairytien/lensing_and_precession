@@ -38,8 +38,80 @@ def _resolve_deps(**overrides):
     return {k: v if v is not None else _defaults[k] for k, v in overrides.items()}
 
 
+###############################
+# Section 1: Shared Helpers   #
+###############################
+
+
+def _build_frequency_grid(f_min: float, delta_f: float, f_cut: float) -> np.ndarray:
+    """Build the standard half-open frequency grid used by match helpers."""
+    return np.arange(f_min, f_cut, delta_f)
+
+
+def _build_psd_from_frequency_array(
+    f_arr: np.ndarray,
+    f_min: float,
+    delta_f: float,
+    sn_func,
+):
+    """Build a PSD on an existing frequency grid using the configured noise model."""
+    return sn_func(f_arr, f_min=f_min, delta_f=delta_f)
+
+
+def _resolve_psd_from_frequency_array(
+    psd: FrequencySeries,
+    f_arr: np.ndarray,
+    f_min: float,
+    delta_f: float,
+    sn_func,
+):
+    """Reuse a provided PSD or build one from a supplied frequency grid."""
+    if psd is not None:
+        return psd
+    return _build_psd_from_frequency_array(
+        f_arr,
+        f_min=f_min,
+        delta_f=delta_f,
+        sn_func=sn_func,
+    )
+
+
+def _resolve_psd_from_strain(
+    psd: FrequencySeries,
+    strain: FrequencySeries,
+    f_min: float,
+    sn_func,
+    delta_f: float = None,
+):
+    """Reuse a provided PSD or derive one from a strain's sample grid."""
+    if psd is not None:
+        return psd
+    f_arr = strain.sample_frequencies + f_min
+    psd_delta_f = strain.delta_f if delta_f is None else delta_f
+    return _build_psd_from_frequency_array(
+        f_arr,
+        f_min=f_min,
+        delta_f=psd_delta_f,
+        sn_func=sn_func,
+    )
+
+
+def _resize_frequency_series_like(
+    strain: FrequencySeries, reference: FrequencySeries
+) -> FrequencySeries:
+    """Resize a FrequencySeries in place to match a reference length.
+
+    This helper is for PyCBC FrequencySeries objects produced by waveform
+    generation. It preserves that code path's object type and mutates the
+    series only when its length differs from the reference.
+    """
+    if len(strain) != len(reference):
+        strain.resize(len(reference))
+    return strain
+
+
 #############################
-# Section 1: Core Match API #
+# Section 2: Core Match API #
 #############################
 
 
@@ -148,7 +220,7 @@ def optimized_match_bounded(
 
 
 #################################
-# Section 2: Mismatch Utilities #
+# Section 3: Mismatch Utilities #
 #################################
 
 
@@ -172,9 +244,13 @@ def mismatch_from_strains(
     if not isinstance(s_strain, FrequencySeries):
         s_strain = FrequencySeries(s_strain, delta_f)
 
-    if psd is None:
-        f_arr = s_strain.sample_frequencies + f_min
-        psd = sn_func(f_arr, f_min=f_min, delta_f=delta_f)
+    psd = _resolve_psd_from_strain(
+        psd,
+        s_strain,
+        f_min=f_min,
+        sn_func=sn_func,
+        delta_f=delta_f,
+    )
 
     if compare_both:
         results = []
@@ -242,11 +318,15 @@ def mismatch_from_params(
     t_h = t_gw["strain"]
     s_gw = get_gw_func(s_params, f_min, delta_f, lens_Class, prec_Class)
     s_h = s_gw["strain"]
-    t_h.resize(len(s_h))
+    t_h = _resize_frequency_series_like(t_h, s_h)
 
-    if psd is None:
-        f_arr = s_gw["f_array"]
-        psd = sn_func(f_arr, f_min=f_min, delta_f=delta_f)
+    psd = _resolve_psd_from_frequency_array(
+        psd,
+        s_gw["f_array"],
+        f_min=f_min,
+        delta_f=delta_f,
+        sn_func=sn_func,
+    )
 
     return mismatch_from_strains(
         t_h,
@@ -261,7 +341,7 @@ def mismatch_from_params(
 
 
 #####################################
-# Section 3: Mismatch Optimizations #
+# Section 4: Mismatch Optimizations #
 #####################################
 
 
@@ -309,8 +389,13 @@ def optimize_mismatch_mcz(
     s_gw = get_gw_func(s_params_copy, f_min, delta_f, lens_Class, prec_Class)
     s_h = s_gw["strain"]
     f_arr = s_gw["f_array"]
-    if psd is None:
-        psd = sn_func(f_arr, f_min=f_min, delta_f=delta_f)
+    psd = _resolve_psd_from_frequency_array(
+        psd,
+        f_arr,
+        f_min=f_min,
+        delta_f=delta_f,
+        sn_func=sn_func,
+    )
 
     ep_arr = np.empty(n_pts, dtype=float)
     idx_arr = np.empty(n_pts, dtype=int)
@@ -319,8 +404,7 @@ def optimize_mismatch_mcz(
     for i, mcz in enumerate(mcz_arr_msun):
         t_params_i = {**t_params_copy, "mcz": float(mcz) * solmass2sec}
         t_h = get_gw_func(t_params_i, f_min, delta_f, lens_Class, prec_Class)["strain"]
-        if len(t_h) != len(s_h):
-            t_h.resize(len(s_h))
+        t_h = _resize_frequency_series_like(t_h, s_h)
 
         res = mismatch_from_strains_func(
             t_h,
@@ -395,17 +479,21 @@ def optimize_mismatch_gammaP(
         s_params_copy = set_to_params_func(s_params)[0]
         s_gw = get_gw_func(s_params_copy, f_min, delta_f, lens_Class, prec_Class)
         s_strain_local = s_gw["strain"]
-        f_arr = s_gw["f_array"]
-        psd_local = (
-            psd if psd is not None else sn_func(f_arr, f_min=f_min, delta_f=delta_f)
+        psd_local = _resolve_psd_from_frequency_array(
+            psd,
+            s_gw["f_array"],
+            f_min=f_min,
+            delta_f=delta_f,
+            sn_func=sn_func,
         )
     else:
         s_strain_local = s_strain
-        if psd is not None:
-            psd_local = psd
-        else:
-            f_arr = s_strain_local.sample_frequencies + f_min
-            psd_local = sn_func(f_arr, f_min=f_min, delta_f=s_strain_local.delta_f)
+        psd_local = _resolve_psd_from_strain(
+            psd,
+            s_strain_local,
+            f_min=f_min,
+            sn_func=sn_func,
+        )
 
     if not two_stage:
         if gamma_grid is not None:
@@ -424,8 +512,7 @@ def optimize_mismatch_gammaP(
             t_strain = get_gw_func(t_params_i, f_min, delta_f, lens_Class, prec_Class)[
                 "strain"
             ]
-            if len(t_strain) != len(s_strain_local):
-                t_strain.resize(len(s_strain_local))
+            t_strain = _resize_frequency_series_like(t_strain, s_strain_local)
 
             res = mismatch_from_strains_func(
                 t_strain,
@@ -460,8 +547,7 @@ def optimize_mismatch_gammaP(
         t_strain_local = get_gw_func(
             t_params_i, f_min, delta_f, lens_Class, prec_Class
         )["strain"]
-        if len(t_strain_local) != len(s_strain_local):
-            t_strain_local.resize(len(s_strain_local))
+        t_strain_local = _resize_frequency_series_like(t_strain_local, s_strain_local)
         res_local = mismatch_from_strains_func(
             t_strain_local,
             s_strain_local,
@@ -508,8 +594,7 @@ def optimize_mismatch_gammaP(
     t_strain_star = get_gw_func(t_params_star, f_min, delta_f, lens_Class, prec_Class)[
         "strain"
     ]
-    if len(t_strain_star) != len(s_strain_local):
-        t_strain_star.resize(len(s_strain_local))
+    t_strain_star = _resize_frequency_series_like(t_strain_star, s_strain_local)
     res_star = mismatch_from_strains_func(
         t_strain_star,
         s_strain_local,
@@ -576,8 +661,14 @@ def find_optimized_coalescence_params(
 
     if psd is None:
         f_cut = get_fcut_from_mcz_func(s_params_copy["mcz"] / solmass2sec)
-        f_arr = np.arange(f_min, f_cut, delta_f)
-        psd = sn_func(f_arr, f_min=f_min, delta_f=delta_f)
+        f_arr = _build_frequency_grid(f_min, delta_f, f_cut)
+        psd = _resolve_psd_from_frequency_array(
+            psd,
+            f_arr,
+            f_min=f_min,
+            delta_f=delta_f,
+            sn_func=sn_func,
+        )
 
     if optimize_gammaP:
         if "gamma_P" not in t_params:
@@ -660,9 +751,12 @@ def find_optimized_coalescence_params(
     }
 
 
-##############################
-# Section 4: Helper Routines #
-##############################
+###################################
+# Section 5: Convenience Helpers  #
+###################################
+
+
+# Array preparation helpers.
 
 
 def cast_to_match_precision(arr: np.ndarray) -> np.ndarray:
@@ -671,7 +765,12 @@ def cast_to_match_precision(arr: np.ndarray) -> np.ndarray:
 
 
 def ensure_same_length(t: np.ndarray, s: np.ndarray) -> tuple:
-    """Pad or truncate template to match source length; returns (t_fixed, s)."""
+    """Pad or truncate ndarray inputs to match the source length.
+
+    This helper is for raw NumPy arrays, such as template-bank rows loaded
+    from HDF5 in worker processes. Unlike _resize_frequency_series_like, it
+    returns adjusted arrays rather than mutating a FrequencySeries in place.
+    """
     if t.shape[0] == s.shape[0]:
         return t, s
     if t.shape[0] < s.shape[0]:
@@ -686,21 +785,29 @@ def _wrap_match_index(index: float, n_freq: int) -> float:
     return float((float(index) + n_time / 2.0) % n_time - n_time / 2.0)
 
 
+# Match setup helpers.
+
+
 def build_psd_for_mcz(
     f_min: float,
     delta_f: float,
     mcz_msun: float,
 ) -> Tuple[np.ndarray, np.ndarray, float]:
     """
-    Build frequency grid and PSD for a given mcz using provided helpers.
+    Build the match-setup frequency grid and PSD for a given chirp mass.
     Returns (s_farr, psd, f_cut).
     """
     from modules.snr import Sn
     from modules.waveform import get_fcut_from_mcz
 
     f_cut = get_fcut_from_mcz(mcz_msun)
-    s_farr = np.arange(f_min, f_cut, delta_f)
-    psd = Sn(s_farr, f_min=f_min, delta_f=delta_f)
+    s_farr = _build_frequency_grid(f_min, delta_f, f_cut)
+    psd = _build_psd_from_frequency_array(
+        s_farr,
+        f_min=f_min,
+        delta_f=delta_f,
+        sn_func=Sn,
+    )
     return s_farr, psd, f_cut
 
 
@@ -716,7 +823,7 @@ def build_source_strain_for_td(
 
 
 ###########################################
-# Section 5: Multiprocessing Worker State #
+# Section 6: Multiprocessing Worker State #
 ###########################################
 
 
