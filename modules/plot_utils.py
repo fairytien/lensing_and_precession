@@ -1,6 +1,6 @@
-#############################
-# Section 1: Import Modules #
-#############################
+# ============================================================================
+# Imports
+# ============================================================================
 
 
 # import py scripts
@@ -17,9 +17,9 @@ import numpy as np
 
 plt.rcParams["figure.dpi"] = 150
 
-##########################
-# Section 2: Convenience #
-##########################
+# ============================================================================
+# Style And Convenience
+# ============================================================================
 
 
 def set_default_plot_style():
@@ -107,9 +107,9 @@ def angle_to_pi_string(
     return _wrap(rf"{numerator}\pi/{denominator}")
 
 
-##########################
-# Section 3: Plotting 2D #
-##########################
+# ============================================================================
+# Waveform Plots
+# ============================================================================
 
 
 def plot_standalone_waveform_comparison(
@@ -545,9 +545,48 @@ def customize_2x1_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
     axes[1].grid()
 
 
-##########################
-# Section 4: Plotting 3D #
-##########################
+# ============================================================================
+# Contour Plots
+# ============================================================================
+
+
+def _draw_mismatch_contour(X, Y, Z, n_levels):
+    """Draw contourf with standard mismatch axes and colorbar."""
+    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
+    plt.xlabel(r"$\~\Omega$", fontsize=14)
+    plt.ylabel(r"$\~\theta$", fontsize=14)
+    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
+        label=r"$\epsilon(\~h_{\rm L}, \~h_{\rm P})$", size=14
+    )
+
+
+def _mark_contour_minima(X, Y, Z, n_minima):
+    """Scatter white circles at the n lowest mismatch values."""
+    if n_minima > 0:
+        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
+        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
+        print(
+            f"minima: {Z[ep_min_indices]}, omega: {X[ep_min_indices]}, theta: {Y[ep_min_indices]}"
+        )
+
+
+def _add_contour_title(src_params, td, I):
+    """Add standard physics annotation title to the current contour plot."""
+    plt.title(
+        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+            angle_to_pi_string(src_params["theta_S"]),
+            angle_to_pi_string(src_params["phi_S"]),
+            angle_to_pi_string(src_params["theta_J"]),
+            angle_to_pi_string(src_params["phi_J"]),
+            r"$\mathcal{M}_{\rm s}$",
+            src_params["mcz"] / SOLMASS2SEC,
+            r"$M_{\odot}$",
+            td * 1e3,
+            I,
+        ),
+        fontsize=12,
+        y=1.021,
+    )
 
 
 def plot_indiv_contour(
@@ -590,19 +629,8 @@ def plot_indiv_contour(
     - Uses `LensingGeo(src_params).td()` and `.I()` to annotate time delay and interference strength in the title when `title=True`.
     """
 
-    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
-    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm L}, \~h_{\rm P})$", size=14
-    )
-
-    if n_minima > 0:
-        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
-        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
-        print(
-            f"minima: {Z[ep_min_indices]}, omega: {X[ep_min_indices]}, theta: {Y[ep_min_indices]}"
-        )
+    _draw_mismatch_contour(X, Y, Z, n_levels)
+    _mark_contour_minima(X, Y, Z, n_minima)
 
     if suptitle:
         plt.suptitle(
@@ -615,21 +643,7 @@ def plot_indiv_contour(
     if title:
         I = get_I_from_y(src_params["y"])
         td = get_td_from_MLz(src_params["MLz"] / SOLMASS2SEC, src_params["y"])
-        plt.title(
-            r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-                angle_to_pi_string(src_params["theta_S"]),
-                angle_to_pi_string(src_params["phi_S"]),
-                angle_to_pi_string(src_params["theta_J"]),
-                angle_to_pi_string(src_params["phi_J"]),
-                r"$\mathcal{M}_{\rm s}$",
-                src_params["mcz"] / SOLMASS2SEC,
-                r"$M_{\odot}$",
-                td * 1e3,
-                I,
-            ),
-            fontsize=12,
-            y=1.021,
-        )
+        _add_contour_title(src_params, td, I)
 
 
 def plot_indiv_contour_from_dict(
@@ -675,19 +689,8 @@ def plot_indiv_contour_from_dict(
         I = d["I"]
         td = k
 
-    plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
-    plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm L}, \~h_{\rm P})$", size=14
-    )
-
-    if n_minima > 0:
-        ep_min_indices = np.unravel_index(np.argsort(Z, axis=None)[:n_minima], Z.shape)
-        plt.scatter(X[ep_min_indices], Y[ep_min_indices], color="white", marker="o")
-        print(
-            f"minima: {Z[ep_min_indices]}, omega: {X[ep_min_indices]}, theta: {Y[ep_min_indices]}"
-        )
+    _draw_mismatch_contour(X, Y, Z, n_levels)
+    _mark_contour_minima(X, Y, Z, n_minima)
 
     if suptitle:
         plt.suptitle(
@@ -698,18 +701,4 @@ def plot_indiv_contour_from_dict(
         )
 
     if title:
-        plt.title(
-            r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
-                angle_to_pi_string(src_params["theta_S"]),
-                angle_to_pi_string(src_params["phi_S"]),
-                angle_to_pi_string(src_params["theta_J"]),
-                angle_to_pi_string(src_params["phi_J"]),
-                r"$\mathcal{M}_{\rm s}$",
-                src_params["mcz"] / SOLMASS2SEC,
-                r"$M_{\odot}$",
-                td * 1e3,
-                I,
-            ),
-            fontsize=12,
-            y=1.021,
-        )
+        _add_contour_title(src_params, td, I)
