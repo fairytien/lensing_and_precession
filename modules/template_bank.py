@@ -121,7 +121,9 @@ def build_bank_for_mcz(
     probe = get_gw(
         probe_params, f_min=f_min, delta_f=delta_f, prec_Class=P2, frequencySeries=False
     )
-    target_dtype = np.complex64 if str(dtype) == "complex64" else np.complex128
+    target_dtype = np.dtype(
+        np.complex64 if str(dtype) == "complex64" else np.complex128
+    )
     probe_strain = np.asarray(probe["strain"], dtype=target_dtype)
     n_freq = int(probe_strain.shape[0])
     delta_f_actual = float(delta_f)
@@ -304,7 +306,9 @@ def build_and_save_bank(
     probe = get_gw(
         probe_params, f_min=f_min, delta_f=delta_f, prec_Class=P2, frequencySeries=False
     )
-    target_dtype = np.complex64 if str(dtype) == "complex64" else np.complex128
+    target_dtype = np.dtype(
+        np.complex64 if str(dtype) == "complex64" else np.complex128
+    )
     n_freq = int(np.asarray(probe["strain"], dtype=target_dtype).shape[0])
     df_actual = float(delta_f)
 

@@ -10,12 +10,14 @@ from modules.match_utils import find_optimized_coalescence_params
 from modules.waveform import set_to_params, get_gw, get_I_from_y, get_td_from_MLz
 
 # import libraries
-import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import colors
+from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from fractions import Fraction
 import numpy as np
+
+AxesArray = np.ndarray  # Array of matplotlib Axes returned by plt.subplots.
 
 plt.rcParams["figure.dpi"] = 150
 
@@ -120,7 +122,7 @@ def plot_standalone_waveform_comparison(
     phase_shift: float = 0,
     return_fig: bool = False,
     **kwargs,
-) -> None:
+) -> tuple[Figure, AxesArray] | None:
     """
     Plot a standalone, publication-ready comparison between a lensed source and its best-matching RP template.
 
@@ -245,7 +247,7 @@ def plot_standalone_waveform_comparison(
 def plot_template_on_axes(
     t_params: dict,  # template parameters
     s_params: dict,  # source parameters
-    axes: matplotlib.axes._axes.Axes,
+    axes: AxesArray,
     phase_shift: float = 0,
     label: str = "template",
     c: str = "k",
@@ -330,7 +332,7 @@ def plot_template_on_axes(
 
 def plot_waveform_panels(
     data,
-    axes: matplotlib.axes._axes.Axes,
+    axes: AxesArray,
     plot_local_min=False,
     local_min_omega=0.0,
     local_min_theta=0.0,
@@ -425,7 +427,7 @@ def plot_waveform_panels(
         )
 
 
-def customize_2x1_axes(axes: matplotlib.axes._axes.Axes) -> None:
+def customize_2x1_axes(axes: AxesArray) -> None:
     # customize strain plot
     axes[0].set_xlabel("f (Hz)", fontsize=24)
     axes[0].set_ylabel(r"$|\~{h}|$", fontsize=24)
@@ -443,7 +445,7 @@ def customize_2x1_axes(axes: matplotlib.axes._axes.Axes) -> None:
     # axes[1].legend(handles, labels, fontsize=20)
 
 
-def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
+def customize_2x2_axes(axes: AxesArray) -> None:
     # top panel
     axes[0, 0].legend(
         bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
@@ -476,7 +478,7 @@ def customize_2x2_axes(axes: matplotlib.axes._axes.Axes) -> None:
     axes[1, 0].set_ylim(y_min, y_max)
 
 
-def customize_2x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
+def customize_2x2_axes_ratio(axes: AxesArray) -> None:
     # top panel
     axes[0, 0].legend(
         bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
@@ -503,7 +505,7 @@ def customize_2x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
         ax.autoscale_view()
 
 
-def customize_3x2_axes_abs(axes: matplotlib.axes._axes.Axes) -> None:
+def customize_3x2_axes_abs(axes: AxesArray) -> None:
     for row in range(3):
         axes[row, 0].legend(
             bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
@@ -518,7 +520,7 @@ def customize_3x2_axes_abs(axes: matplotlib.axes._axes.Axes) -> None:
     axes[2, 1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
 
 
-def customize_3x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
+def customize_3x2_axes_ratio(axes: AxesArray) -> None:
     for row in range(3):
         axes[row, 0].legend(
             bbox_to_anchor=(2.3, 1), loc="upper left", borderaxespad=0.0, fontsize=20
@@ -533,7 +535,7 @@ def customize_3x2_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
     axes[2, 1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
 
 
-def customize_2x1_axes_ratio(axes: matplotlib.axes._axes.Axes) -> None:
+def customize_2x1_axes_ratio(axes: AxesArray) -> None:
     axes[0].set_xlabel("f (Hz)", fontsize=24)
     axes[0].set_ylabel(r"$\left(B/B_{\rm unlensed}\right) - 1$", fontsize=24)
     axes[0].tick_params(axis="both", which="major", labelsize=18)

@@ -21,9 +21,9 @@ from modules.default_params import SOLMASS2SEC
 
 # Compatibility shim for NumPy 1.24+ where several aliases were removed.
 if not hasattr(np, "asscalar"):
-    np.asscalar = lambda a: a.item()
+    np.asscalar = lambda a: a.item()  # type: ignore[attr-defined]
 if not hasattr(np, "alen"):
-    np.alen = lambda a: len(a)
+    np.alen = lambda a: len(a)  # type: ignore[attr-defined]
 if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
     for _name, _alias in (
         ("float", float),
@@ -206,7 +206,7 @@ def mcz_for_n_lens_cycles(
 
 
 def mcz_for_n_prec_cycles(
-    n_cycles: float,
+    n_cycles: Union[float, np.ndarray],
     omega_tilde: Union[float, np.ndarray],
     f_min: float = 20,
     eta: float = 0.25,
