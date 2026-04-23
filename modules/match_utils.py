@@ -70,16 +70,6 @@ def _build_frequency_grid(f_min: float, delta_f: float, f_cut: float) -> np.ndar
     return np.arange(f_min, f_cut, delta_f)
 
 
-def _build_psd_from_frequency_array(
-    f_arr: np.ndarray,
-    f_min: float,
-    delta_f: float,
-    sn_func,
-) -> PsdLike:
-    """Build a PSD on an existing frequency grid using the configured noise model."""
-    return sn_func(f_arr, f_min=f_min, delta_f=delta_f)
-
-
 def _resolve_psd_from_frequency_array(
     psd: Optional[PsdLike],
     f_arr: np.ndarray,
@@ -90,12 +80,7 @@ def _resolve_psd_from_frequency_array(
     """Reuse a provided PSD or build one from a supplied frequency grid."""
     if psd is not None:
         return psd
-    return _build_psd_from_frequency_array(
-        f_arr,
-        f_min=f_min,
-        delta_f=delta_f,
-        sn_func=sn_func,
-    )
+    return sn_func(f_arr, f_min=f_min, delta_f=delta_f)
 
 
 def _resolve_psd_from_strain(
@@ -110,12 +95,7 @@ def _resolve_psd_from_strain(
         return psd
     f_arr = strain.sample_frequencies + f_min
     psd_delta_f = strain.delta_f if delta_f is None else delta_f
-    return _build_psd_from_frequency_array(
-        f_arr,
-        f_min=f_min,
-        delta_f=psd_delta_f,
-        sn_func=sn_func,
-    )
+    return sn_func(f_arr, f_min=f_min, delta_f=psd_delta_f)
 
 
 def _resize_frequency_series_like(
@@ -854,12 +834,7 @@ def build_psd_for_mcz(
 
     f_cut = float(get_fcut_from_mcz(mcz_msun))
     s_farr = _build_frequency_grid(f_min, delta_f, f_cut)
-    psd = _build_psd_from_frequency_array(
-        s_farr,
-        f_min=f_min,
-        delta_f=delta_f,
-        sn_func=Sn,
-    )
+    psd = Sn(s_farr, f_min=f_min, delta_f=delta_f)
     return s_farr, psd, f_cut
 
 
@@ -893,9 +868,25 @@ _GAMMA_CHUNK: Optional[int] = None
 
 def _require_worker_state() -> tuple:
     """Validate worker state and return initialized globals for job functions."""
-    if _S_STRAIN is None or _DELTA_F is None or _BANK_DSET is None or _GAMMA_ARR is None:
-        raise RuntimeError("Worker state is not initialized. Call init_mismatch_worker first.")
-    return _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
+    if (
+        _S_STRAIN is None
+        or _DELTA_F is None
+        or _BANK_DSET is None
+        or _GAMMA_ARR is None
+    ):
+        raise RuntimeError(
+            "Worker state is not initialized. Call init_mismatch_worker first."
+        )
+    return (
+        _S_STRAIN,
+        _PSD,
+        _DELTA_F,
+        _COMPARE_BOTH,
+        _USE_OPT_MATCH,
+        _BANK_DSET,
+        _GAMMA_ARR,
+        _GAMMA_CHUNK,
+    )
 
 
 def init_mismatch_worker(
@@ -960,7 +951,16 @@ def mismatch_gamma_job(args: tuple) -> tuple:
             - best_ep: minimal mismatch value over gamma (float)
             - best_gamma: gamma value achieving minimal mismatch (float)
     """
-    s_strain, psd, delta_f, compare_both, use_opt_match, bank_dset, gamma_arr, gamma_chunk = _require_worker_state()
+    (
+        s_strain,
+        psd,
+        delta_f,
+        compare_both,
+        use_opt_match,
+        bank_dset,
+        gamma_arr,
+        gamma_chunk,
+    ) = _require_worker_state()
     r, c = args
     n_gamma = bank_dset.shape[2]
     ep_vec = np.empty(n_gamma, dtype=np.float32)
@@ -969,7 +969,9 @@ def mismatch_gamma_job(args: tuple) -> tuple:
     chunk = gamma_chunk or max(1, min(32, n_gamma))
     for k0 in range(0, n_gamma, chunk):
         k1 = min(n_gamma, k0 + chunk)
-        gamma_block = cast(np.ndarray, bank_dset[int(r), int(c), k0:k1, :])  # shape (g, n_freq)
+        gamma_block = cast(
+            np.ndarray, bank_dset[int(r), int(c), k0:k1, :]
+        )  # shape (g, n_freq)
         gamma_block = cast_to_match_precision(gamma_block)
         for local_idx in range(gamma_block.shape[0]):
             k = k0 + local_idx
