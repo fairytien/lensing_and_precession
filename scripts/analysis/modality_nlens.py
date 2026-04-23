@@ -47,7 +47,7 @@ def find_local_minima(Z, x, y, print_results=False):
     """Find local minima in a 2D surface Z(y, x) via multi-start Nelder-Mead.
 
     Standalone reimplementation avoiding the legacy import chain in
-    modules.contour_multimodality.
+    modules.multimodality.
     """
     Zt = Z.T  # (n_x, n_y) for RegularGridInterpolator
     interp = RegularGridInterpolator((x, y), Zt, bounds_error=False, fill_value=np.inf)
