@@ -1,17 +1,39 @@
-"""Utilities for matched filtering and worker processes."""
+"""Utilities for matched filtering and worker processes.
+
+Sections:
+- Dependency resolution and override wiring
+- Shared frequency, PSD, and strain helpers
+- Core match API wrappers
+- Mismatch APIs (strain- and parameter-level)
+- Mismatch optimization helpers
+- Convenience helpers for arrays and setup
+- Multiprocessing worker state and jobs
+
+Design goals: preserve numerical behavior, keep call-sites explicit, and reduce
+repeated boilerplate in optimization loops.
+"""
 
 import numpy as np
 import h5py
-from typing import Tuple, Union, List
+from typing import Tuple, Union, List, Optional, cast
 
-from scipy.optimize import minimize_scalar
+from scipy.optimize import OptimizeResult, minimize_scalar
 from pycbc.filter import match, optimized_match
 from pycbc.filter.matchedfilter import (
     make_frequency_series,
     get_cutoff_indices,
     sigmasq,
 )
+
 from pycbc.types import FrequencySeries
+
+
+PsdLike = Union[np.ndarray, FrequencySeries]
+
+
+# ============================================================================
+# Dependency Resolution And Override Wiring
+# ============================================================================
 
 
 def _resolve_deps(**overrides):
@@ -38,9 +60,9 @@ def _resolve_deps(**overrides):
     return {k: v if v is not None else _defaults[k] for k, v in overrides.items()}
 
 
-###############################
-# Section 1: Shared Helpers   #
-###############################
+# ============================================================================
+# Shared Frequency, PSD, And Strain Helpers
+# ============================================================================
 
 
 def _build_frequency_grid(f_min: float, delta_f: float, f_cut: float) -> np.ndarray:
@@ -53,18 +75,18 @@ def _build_psd_from_frequency_array(
     f_min: float,
     delta_f: float,
     sn_func,
-):
+) -> PsdLike:
     """Build a PSD on an existing frequency grid using the configured noise model."""
     return sn_func(f_arr, f_min=f_min, delta_f=delta_f)
 
 
 def _resolve_psd_from_frequency_array(
-    psd: FrequencySeries,
+    psd: Optional[PsdLike],
     f_arr: np.ndarray,
     f_min: float,
     delta_f: float,
     sn_func,
-):
+) -> PsdLike:
     """Reuse a provided PSD or build one from a supplied frequency grid."""
     if psd is not None:
         return psd
@@ -77,12 +99,12 @@ def _resolve_psd_from_frequency_array(
 
 
 def _resolve_psd_from_strain(
-    psd: FrequencySeries,
+    psd: Optional[PsdLike],
     strain: FrequencySeries,
     f_min: float,
     sn_func,
-    delta_f: float = None,
-):
+    delta_f: Optional[float] = None,
+) -> PsdLike:
     """Reuse a provided PSD or derive one from a strain's sample grid."""
     if psd is not None:
         return psd
@@ -110,9 +132,23 @@ def _resize_frequency_series_like(
     return strain
 
 
-#############################
-# Section 2: Core Match API #
-#############################
+def _build_template_strain_like_source(
+    get_gw_func,
+    t_params: dict,
+    f_min: float,
+    delta_f: float,
+    lens_Class,
+    prec_Class,
+    s_strain: FrequencySeries,
+) -> FrequencySeries:
+    """Build template strain and resize to match a source strain length."""
+    t_strain = get_gw_func(t_params, f_min, delta_f, lens_Class, prec_Class)["strain"]
+    return _resize_frequency_series_like(t_strain, s_strain)
+
+
+# ============================================================================
+# Core Match API Wrappers
+# ============================================================================
 
 
 def optimized_match_bounded(
@@ -142,16 +178,21 @@ def optimized_match_bounded(
     delta_t = stilde.delta_t
 
     try:
-        _, max_id, _ = match(
-            htilde,
-            stilde,
-            psd=psd,
-            low_frequency_cutoff=low_frequency_cutoff,
-            high_frequency_cutoff=high_frequency_cutoff,
-            return_phase=True,
+        _, max_id, _ = cast(
+            Tuple[float, float, float],
+            match(
+                htilde,
+                stilde,
+                psd=psd,
+                low_frequency_cutoff=low_frequency_cutoff,
+                high_frequency_cutoff=high_frequency_cutoff,
+                return_phase=True,
+            ),
         )
 
-        stilde_shifted = stilde.cyclic_time_shift(-max_id * delta_t)
+        stilde_shifted = cast(
+            FrequencySeries, stilde.cyclic_time_shift(-max_id * delta_t)
+        )
 
         frequencies = stilde_shifted.sample_frequencies.numpy()
         waveform_1 = htilde.numpy()
@@ -195,10 +236,13 @@ def optimized_match_bounded(
         )
         norm = np.sqrt(norm_1 * norm_2)
 
-        res = minimize_scalar(
-            to_minimize,
-            method="bounded",
-            bounds=(-delta_t, delta_t),
+        res = cast(
+            OptimizeResult,
+            minimize_scalar(
+                to_minimize,
+                method="bounded",
+                bounds=(-delta_t, delta_t),
+            ),
         )
         m, angle = product_offset(res.x)
 
@@ -219,9 +263,9 @@ def optimized_match_bounded(
         )
 
 
-#################################
-# Section 3: Mismatch Utilities #
-#################################
+# ============================================================================
+# Mismatch APIs
+# ============================================================================
 
 
 def mismatch_from_strains(
@@ -229,7 +273,7 @@ def mismatch_from_strains(
     s_strain: Union[np.ndarray, FrequencySeries],
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: FrequencySeries = None,
+    psd: Optional[PsdLike] = None,
     use_opt_match=True,
     compare_both=False,
     sn_func=None,
@@ -293,7 +337,7 @@ def mismatch_from_params(
     s_params: dict,
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: FrequencySeries = None,
+    psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
     use_opt_match=True,
@@ -340,9 +384,9 @@ def mismatch_from_params(
     )
 
 
-#####################################
-# Section 4: Mismatch Optimizations #
-#####################################
+# ============================================================================
+# Mismatch Optimization Helpers
+# ============================================================================
 
 
 def optimize_mismatch_mcz(
@@ -350,7 +394,7 @@ def optimize_mismatch_mcz(
     s_params: dict,
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: FrequencySeries = None,
+    psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
     use_opt_match=True,
@@ -403,8 +447,15 @@ def optimize_mismatch_mcz(
 
     for i, mcz in enumerate(mcz_arr_msun):
         t_params_i = {**t_params_copy, "mcz": float(mcz) * solmass2sec}
-        t_h = get_gw_func(t_params_i, f_min, delta_f, lens_Class, prec_Class)["strain"]
-        t_h = _resize_frequency_series_like(t_h, s_h)
+        t_h = _build_template_strain_like_source(
+            get_gw_func,
+            t_params_i,
+            f_min,
+            delta_f,
+            lens_Class,
+            prec_Class,
+            s_h,
+        )
 
         res = mismatch_from_strains_func(
             t_h,
@@ -430,17 +481,17 @@ def optimize_mismatch_mcz(
 
 def optimize_mismatch_gammaP(
     t_params: dict,
-    s_params: dict = None,
-    s_strain: FrequencySeries = None,
+    s_params: Optional[dict] = None,
+    s_strain: Optional[FrequencySeries] = None,
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: FrequencySeries = None,
+    psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
     use_opt_match=True,
     compare_both=False,
     grid_points: int = 101,
-    gamma_grid: np.ndarray = None,
+    gamma_grid: Optional[np.ndarray] = None,
     two_stage=False,
     coarse_points: int = 17,
     xatol: float = 1e-3,
@@ -509,10 +560,15 @@ def optimize_mismatch_gammaP(
 
         for i, gamma_P in enumerate(gamma_arr):
             t_params_i = {**t_params_copy, "gamma_P": float(gamma_P)}
-            t_strain = get_gw_func(t_params_i, f_min, delta_f, lens_Class, prec_Class)[
-                "strain"
-            ]
-            t_strain = _resize_frequency_series_like(t_strain, s_strain_local)
+            t_strain = _build_template_strain_like_source(
+                get_gw_func,
+                t_params_i,
+                f_min,
+                delta_f,
+                lens_Class,
+                prec_Class,
+                s_strain_local,
+            )
 
             res = mismatch_from_strains_func(
                 t_strain,
@@ -544,10 +600,15 @@ def optimize_mismatch_gammaP(
     def objective(gamma_val: float) -> float:
         gamma = float(np.mod(gamma_val, 2 * np.pi))
         t_params_i = {**t_params_copy, "gamma_P": gamma}
-        t_strain_local = get_gw_func(
-            t_params_i, f_min, delta_f, lens_Class, prec_Class
-        )["strain"]
-        t_strain_local = _resize_frequency_series_like(t_strain_local, s_strain_local)
+        t_strain_local = _build_template_strain_like_source(
+            get_gw_func,
+            t_params_i,
+            f_min,
+            delta_f,
+            lens_Class,
+            prec_Class,
+            s_strain_local,
+        )
         res_local = mismatch_from_strains_func(
             t_strain_local,
             s_strain_local,
@@ -579,11 +640,14 @@ def optimize_mismatch_gammaP(
     best_fun = np.inf
     best_x = g0
     for lo, hi in segments:
-        res = minimize_scalar(
-            objective,
-            method="bounded",
-            bounds=(lo, hi),
-            options={"xatol": float(xatol), "maxiter": int(maxiter)},
+        res = cast(
+            OptimizeResult,
+            minimize_scalar(
+                objective,
+                method="bounded",
+                bounds=(lo, hi),
+                options={"xatol": float(xatol), "maxiter": int(maxiter)},
+            ),
         )
         if res.fun < best_fun:
             best_fun = float(res.fun)
@@ -591,10 +655,15 @@ def optimize_mismatch_gammaP(
 
     gamma_star = float(np.mod(best_x, 2 * np.pi))
     t_params_star = {**t_params_copy, "gamma_P": gamma_star}
-    t_strain_star = get_gw_func(t_params_star, f_min, delta_f, lens_Class, prec_Class)[
-        "strain"
-    ]
-    t_strain_star = _resize_frequency_series_like(t_strain_star, s_strain_local)
+    t_strain_star = _build_template_strain_like_source(
+        get_gw_func,
+        t_params_star,
+        f_min,
+        delta_f,
+        lens_Class,
+        prec_Class,
+        s_strain_local,
+    )
     res_star = mismatch_from_strains_func(
         t_strain_star,
         s_strain_local,
@@ -618,7 +687,7 @@ def find_optimized_coalescence_params(
     s_params: dict,
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: FrequencySeries = None,
+    psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
     use_opt_match=True,
@@ -659,6 +728,19 @@ def find_optimized_coalescence_params(
 
     t_params_copy, s_params_copy = set_to_params_func(t_params, s_params)
 
+    def _evaluate_current_mismatch() -> dict:
+        return mismatch_from_params_func(
+            t_params_copy,
+            s_params_copy,
+            f_min,
+            delta_f,
+            psd,
+            lens_Class,
+            prec_Class,
+            use_opt_match,
+            compare_both,
+        )
+
     if psd is None:
         f_cut = get_fcut_from_mcz_func(s_params_copy["mcz"] / solmass2sec)
         f_arr = _build_frequency_grid(f_min, delta_f, f_cut)
@@ -692,17 +774,7 @@ def find_optimized_coalescence_params(
         ep_min_idx = gammaP_results["ep_min_idx"]
     else:
         ep_min_gammaP = None
-        initial_mismatch = mismatch_from_params_func(
-            t_params_copy,
-            s_params_copy,
-            f_min,
-            delta_f,
-            psd,
-            lens_Class,
-            prec_Class,
-            use_opt_match,
-            compare_both,
-        )
+        initial_mismatch = _evaluate_current_mismatch()
         ep_min_idx = initial_mismatch["index"]
 
     src_strain = get_gw_func(s_params_copy, f_min, delta_f, lens_Class, prec_Class)[
@@ -712,32 +784,12 @@ def find_optimized_coalescence_params(
     ep_min_idx_wrapped = _wrap_match_index(ep_min_idx, len(src_strain))
     t_params_copy["t_c"] = t_params_copy["t_c"] - ep_min_idx_wrapped * delta_t
 
-    mismatch_results = mismatch_from_params_func(
-        t_params_copy,
-        s_params_copy,
-        f_min,
-        delta_f,
-        psd,
-        lens_Class,
-        prec_Class,
-        use_opt_match,
-        compare_both,
-    )
+    mismatch_results = _evaluate_current_mismatch()
     phi = mismatch_results["phi"]
     t_params_copy["phi_c"] = phi
 
     if verify_optimization:
-        mismatch_results = mismatch_from_params_func(
-            t_params_copy,
-            s_params_copy,
-            f_min,
-            delta_f,
-            psd,
-            lens_Class,
-            prec_Class,
-            use_opt_match,
-            compare_both,
-        )
+        mismatch_results = _evaluate_current_mismatch()
         print(
             f"Verification results: index = {mismatch_results['index']:.3g}, phi = {mismatch_results['phi']:.3g}, both should be ~0 if optimization was successful"
         )
@@ -751,9 +803,9 @@ def find_optimized_coalescence_params(
     }
 
 
-###################################
-# Section 5: Convenience Helpers  #
-###################################
+# ============================================================================
+# Convenience Helpers For Arrays And Setup
+# ============================================================================
 
 
 # Array preparation helpers.
@@ -764,7 +816,7 @@ def cast_to_match_precision(arr: np.ndarray) -> np.ndarray:
     return np.asarray(arr, dtype=np.complex128)
 
 
-def ensure_same_length(t: np.ndarray, s: np.ndarray) -> tuple:
+def ensure_same_length(t: np.ndarray, s: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """Pad or truncate ndarray inputs to match the source length.
 
     This helper is for raw NumPy arrays, such as template-bank rows loaded
@@ -792,7 +844,7 @@ def build_psd_for_mcz(
     f_min: float,
     delta_f: float,
     mcz_msun: float,
-) -> Tuple[np.ndarray, np.ndarray, float]:
+) -> Tuple[np.ndarray, PsdLike, float]:
     """
     Build the match-setup frequency grid and PSD for a given chirp mass.
     Returns (s_farr, psd, f_cut).
@@ -800,7 +852,7 @@ def build_psd_for_mcz(
     from modules.snr import Sn
     from modules.waveform import get_fcut_from_mcz
 
-    f_cut = get_fcut_from_mcz(mcz_msun)
+    f_cut = float(get_fcut_from_mcz(mcz_msun))
     s_farr = _build_frequency_grid(f_min, delta_f, f_cut)
     psd = _build_psd_from_frequency_array(
         s_farr,
@@ -822,21 +874,28 @@ def build_source_strain_for_td(
     return s["strain"]
 
 
-###########################################
-# Section 6: Multiprocessing Worker State #
-###########################################
+# ============================================================================
+# Multiprocessing Worker State And Jobs
+# ============================================================================
 
 
 # Globals for worker processes (used by init_mismatch_worker/mismatch_gamma_job)
-_S_STRAIN = None
-_PSD = None
-_DELTA_F = None
+_S_STRAIN: Optional[np.ndarray] = None
+_PSD: Optional[PsdLike] = None
+_DELTA_F: Optional[float] = None
 _COMPARE_BOTH = False
 _USE_OPT_MATCH = True
-_BANK_H5 = None
-_BANK_DSET = None
-_GAMMA_ARR = None
-_GAMMA_CHUNK = None
+_BANK_H5: Optional[h5py.File] = None
+_BANK_DSET: Optional[h5py.Dataset] = None
+_GAMMA_ARR: Optional[np.ndarray] = None
+_GAMMA_CHUNK: Optional[int] = None
+
+
+def _require_worker_state() -> tuple:
+    """Validate worker state and return initialized globals for job functions."""
+    if _S_STRAIN is None or _DELTA_F is None or _BANK_DSET is None or _GAMMA_ARR is None:
+        raise RuntimeError("Worker state is not initialized. Call init_mismatch_worker first.")
+    return _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
 
 
 def init_mismatch_worker(
@@ -868,16 +927,22 @@ def init_mismatch_worker(
     import atexit
 
     global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
+    bank_h5 = h5py.File(bank_path, "r")
+    bank_obj = bank_h5["bank"]
+    if not isinstance(bank_obj, h5py.Dataset):
+        bank_h5.close()
+        raise TypeError("Expected 'bank' to be an HDF5 dataset.")
+
     _S_STRAIN = cast_to_match_precision(s_strain)
     _PSD = psd
-    _DELTA_F = delta_f
+    _DELTA_F = float(delta_f)
     _COMPARE_BOTH = bool(compare_both)
     _USE_OPT_MATCH = bool(use_opt_match)
-    _BANK_H5 = h5py.File(bank_path, "r")
-    _BANK_DSET = _BANK_H5["bank"]
-    _GAMMA_ARR = gamma_arr
+    _BANK_H5 = bank_h5
+    _BANK_DSET = cast(h5py.Dataset, bank_obj)
+    _GAMMA_ARR = np.asarray(gamma_arr)
     _GAMMA_CHUNK = int(gamma_chunk) if gamma_chunk is not None else None
-    atexit.register(lambda: _BANK_H5.close())
+    atexit.register(lambda h5=bank_h5: h5.close())
 
 
 def mismatch_gamma_job(args: tuple) -> tuple:
@@ -895,32 +960,33 @@ def mismatch_gamma_job(args: tuple) -> tuple:
             - best_ep: minimal mismatch value over gamma (float)
             - best_gamma: gamma value achieving minimal mismatch (float)
     """
+    s_strain, psd, delta_f, compare_both, use_opt_match, bank_dset, gamma_arr, gamma_chunk = _require_worker_state()
     r, c = args
-    n_gamma = _BANK_DSET.shape[2]
+    n_gamma = bank_dset.shape[2]
     ep_vec = np.empty(n_gamma, dtype=np.float32)
     best_ep = np.inf
     best_gamma = 0.0
-    chunk = _GAMMA_CHUNK or max(1, min(32, n_gamma))
+    chunk = gamma_chunk or max(1, min(32, n_gamma))
     for k0 in range(0, n_gamma, chunk):
         k1 = min(n_gamma, k0 + chunk)
-        gamma_block = _BANK_DSET[int(r), int(c), k0:k1, :]  # shape (g, n_freq)
+        gamma_block = cast(np.ndarray, bank_dset[int(r), int(c), k0:k1, :])  # shape (g, n_freq)
         gamma_block = cast_to_match_precision(gamma_block)
         for local_idx in range(gamma_block.shape[0]):
             k = k0 + local_idx
             t_arr = gamma_block[local_idx]
-            t_arr, _ = ensure_same_length(t_arr, _S_STRAIN)
+            t_arr, _ = ensure_same_length(t_arr, s_strain)
             res = mismatch_from_strains(
                 t_arr,
-                _S_STRAIN,
+                s_strain,
                 f_min=20.0,
-                delta_f=_DELTA_F,
-                psd=_PSD,
-                use_opt_match=_USE_OPT_MATCH,
-                compare_both=_COMPARE_BOTH,
+                delta_f=delta_f,
+                psd=psd,
+                use_opt_match=use_opt_match,
+                compare_both=compare_both,
             )
             ep = float(res["mismatch"])
             ep_vec[k] = ep
             if ep < best_ep:
                 best_ep = ep
-                best_gamma = float(_GAMMA_ARR[k])
+                best_gamma = float(gamma_arr[k])
     return int(r), int(c), ep_vec, float(best_ep), float(best_gamma)
