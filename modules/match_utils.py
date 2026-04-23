@@ -18,7 +18,7 @@ import h5py
 from typing import Tuple, Union, List, Optional, cast
 
 from scipy.optimize import OptimizeResult, minimize_scalar
-from pycbc.filter import match, optimized_match
+from pycbc.filter import match
 from pycbc.filter.matchedfilter import (
     make_frequency_series,
     get_cutoff_indices,
@@ -141,11 +141,44 @@ def optimized_match_bounded(
     v2_norm=None,
     return_phase=False,
 ):
-    """Optimized match wrapper using SciPy bounded minimization.
+    """Given two waveforms (as numpy arrays),
+    compute the optimized match between them, making use
+    of scipy.minimize_scalar.
 
-    Uses bounds=(-delta_t, delta_t) for sub-sample time-shift refinement.
-    If bounded minimization fails, falls back to local PyCBC optimized_match
-    (typically brent in unmodified installs).
+    This function computes the same quantities as "match";
+    it is more accurate and slower.
+
+    Compared to PyCBC's optimized_match, this helper is identical
+    except it uses method="bounded" in scipy.minimize_scalar.
+
+    Parameters
+    ----------
+    vec1 : TimeSeries or FrequencySeries
+        The input vector containing a waveform.
+    vec2 : TimeSeries or FrequencySeries
+        The input vector containing a waveform.
+    psd : FrequencySeries
+        A power spectral density to weight the overlap.
+    low_frequency_cutoff : {None, float}, optional
+        The frequency to begin the match.
+    high_frequency_cutoff : {None, float}, optional
+        The frequency to stop the match.
+    v1_norm : {None, float}, optional
+        The normalization of the first waveform. This is equivalent to its
+        sigmasq value. If None, it is internally calculated.
+    v2_norm : {None, float}, optional
+        The normalization of the second waveform. This is equivalent to its
+        sigmasq value. If None, it is internally calculated.
+    return_phase : {False, bool}, optional
+        If True, also return the phase shift that gives the match.
+
+    Returns
+    -------
+    match: float
+    index: int
+        The number of samples to shift to get the match.
+    phi: float
+        Phase to rotate complex waveform to get the match, if desired.
     """
 
     htilde = make_frequency_series(vec1)
@@ -157,90 +190,77 @@ def optimized_match_bounded(
     assert np.isclose(htilde.delta_t, stilde.delta_t)
     delta_t = stilde.delta_t
 
-    try:
-        _, max_id, _ = cast(
-            Tuple[float, float, float],
-            match(
-                htilde,
-                stilde,
-                psd=psd,
-                low_frequency_cutoff=low_frequency_cutoff,
-                high_frequency_cutoff=high_frequency_cutoff,
-                return_phase=True,
-            ),
-        )
-
-        stilde_shifted = cast(
-            FrequencySeries, stilde.cyclic_time_shift(-max_id * delta_t)
-        )
-
-        frequencies = stilde_shifted.sample_frequencies.numpy()
-        waveform_1 = htilde.numpy()
-        waveform_2 = stilde_shifted.numpy()
-
-        N = (len(stilde_shifted) - 1) * 2
-        kmin, kmax = get_cutoff_indices(
-            low_frequency_cutoff, high_frequency_cutoff, delta_f, N
-        )
-        mask = slice(kmin, kmax)
-
-        waveform_1 = waveform_1[mask]
-        waveform_2 = waveform_2[mask]
-        frequencies = frequencies[mask]
-
-        if psd is not None:
-            psd_arr = psd.numpy()[mask]
-        else:
-            psd_arr = np.ones_like(waveform_1)
-
-        def product(a, b):
-            integral = np.sum(np.conj(a) * b / psd_arr) * delta_f
-            return 4 * abs(integral), np.angle(integral)
-
-        def product_offset(dt):
-            offset = np.exp(2j * np.pi * frequencies * dt)
-            return product(waveform_1, waveform_2 * offset)
-
-        def to_minimize(dt):
-            return -product_offset(dt)[0]
-
-        norm_1 = (
-            sigmasq(htilde, psd, low_frequency_cutoff, high_frequency_cutoff)
-            if v1_norm is None
-            else v1_norm
-        )
-        norm_2 = (
-            sigmasq(stilde_shifted, psd, low_frequency_cutoff, high_frequency_cutoff)
-            if v2_norm is None
-            else v2_norm
-        )
-        norm = np.sqrt(norm_1 * norm_2)
-
-        res = cast(
-            OptimizeResult,
-            minimize_scalar(
-                to_minimize,
-                method="bounded",
-                bounds=(-delta_t, delta_t),
-            ),
-        )
-        m, angle = product_offset(res.x)
-
-        if return_phase:
-            return m / norm, res.x / delta_t + max_id, -angle
-        return m / norm, res.x / delta_t + max_id
-
-    except Exception:
-        return optimized_match(
-            vec1,
-            vec2,
+    _, max_id, _ = cast(
+        Tuple[float, float, float],
+        match(
+            htilde,
+            stilde,
             psd=psd,
             low_frequency_cutoff=low_frequency_cutoff,
             high_frequency_cutoff=high_frequency_cutoff,
-            v1_norm=v1_norm,
-            v2_norm=v2_norm,
-            return_phase=return_phase,
-        )
+            return_phase=True,
+        ),
+    )
+
+    stilde = cast(FrequencySeries, stilde.cyclic_time_shift(-max_id * delta_t))
+
+    frequencies = stilde.sample_frequencies.numpy()
+    waveform_1 = htilde.numpy()
+    waveform_2 = stilde.numpy()
+
+    N = (len(stilde) - 1) * 2
+    kmin, kmax = get_cutoff_indices(
+        low_frequency_cutoff, high_frequency_cutoff, delta_f, N
+    )
+    mask = slice(kmin, kmax)
+
+    waveform_1 = waveform_1[mask]
+    waveform_2 = waveform_2[mask]
+    frequencies = frequencies[mask]
+
+    if psd is not None:
+        psd_arr = psd.numpy()[mask]
+    else:
+        psd_arr = np.ones_like(waveform_1)
+
+    def product(a, b):
+        integral = np.sum(np.conj(a) * b / psd_arr) * delta_f
+        return 4 * abs(integral), np.angle(integral)
+
+    def product_offset(dt):
+        offset = np.exp(2j * np.pi * frequencies * dt)
+        return product(waveform_1, waveform_2 * offset)
+
+    def to_minimize(dt):
+        return -product_offset(dt)[0]
+
+    norm_1 = (
+        sigmasq(htilde, psd, low_frequency_cutoff, high_frequency_cutoff)
+        if v1_norm is None
+        else v1_norm
+    )
+    norm_2 = (
+        sigmasq(stilde, psd, low_frequency_cutoff, high_frequency_cutoff)
+        if v2_norm is None
+        else v2_norm
+    )
+
+    norm = np.sqrt(norm_1 * norm_2)
+
+    res = cast(
+        OptimizeResult,
+        minimize_scalar(
+            to_minimize,
+            method="bounded",
+            bounds=(-delta_t, delta_t),
+        ),
+    )
+    m, angle = product_offset(res.x)
+
+    if return_phase:
+        return m / norm, res.x / delta_t + max_id, -angle
+    else:
+        return m / norm, res.x / delta_t + max_id
 
 
 # ============================================================================
