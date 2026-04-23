@@ -22,6 +22,11 @@ from modules.plot_utils import (
 )
 
 
+# ============================================================================
+# Utilities And Plot Helpers
+# ============================================================================
+
+
 def make_frequency_array(f_min, f_cut, delta_f=None, npoints=None):
     if f_min < 0:
         raise ValueError("f_min must be non-negative")
@@ -92,6 +97,11 @@ def _plot_baseline(
     )
 
 
+# ============================================================================
+# Parameter Builders
+# ============================================================================
+
+
 def _apply_optional_redshift(params: dict, z: Optional[float]) -> dict:
     if z is None:
         return params
@@ -142,6 +152,11 @@ def _build_precessing_instances(
     return Precessing(RP_params), Precessing(NP_params)
 
 
+# ============================================================================
+# Figure Layout Helpers
+# ============================================================================
+
+
 def _add_vertical_axis_labels(
     fig,
     axes,
@@ -189,6 +204,11 @@ def _build_save_path_with_mcz(
         f"{root}{_format_min_precision(z, prefix='_z')}"
         f"_mcz{_format_min_precision(mcz_msun, suffix='Msun')}{ext}"
     )
+
+
+# ============================================================================
+# Plot Functions
+# ============================================================================
 
 
 def plot_lensing_figure(
@@ -553,6 +573,11 @@ def plot_precessing_figure(
             pad_inches=pad_inches,
         )
     return fig, axes
+
+
+# ============================================================================
+# Contour Overlay
+# ============================================================================
 
 
 def get_best_match_template_params(contour_data: dict) -> dict:

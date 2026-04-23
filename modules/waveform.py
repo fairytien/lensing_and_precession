@@ -15,6 +15,10 @@ from modules.Classes import LensingGeo, Precessing
 from modules.default_params import SOLMASS2SEC
 
 
+# ============================================================================
+# NumPy Compatibility Shim
+# ============================================================================
+
 # Compatibility shim for NumPy 1.24+ where several aliases were removed.
 if not hasattr(np, "asscalar"):
     np.asscalar = lambda a: a.item()
@@ -30,6 +34,11 @@ if NumpyVersion(np.__version__) < NumpyVersion("1.24.0"):
     ):
         if not hasattr(np, _name):
             setattr(np, _name, _alias)
+
+
+# ============================================================================
+# Parameter Utilities
+# ============================================================================
 
 
 def set_to_params(*args):
@@ -49,6 +58,11 @@ def set_orientation(orient_dict: dict, *args):
         arg_copy["phi_S"] = orient_dict["phi_S"]
 
     return tuple(args_copy)
+
+
+# ============================================================================
+# Core Waveform
+# ============================================================================
 
 
 def get_gw(
@@ -71,6 +85,11 @@ def get_gw(
     phase = np.unwrap(np.angle(strain))
 
     return {"strain": strain, "phase": phase, "f_array": f_arr}
+
+
+# ============================================================================
+# Lensing Physics
+# ============================================================================
 
 
 def get_MLz_from_td(td, y) -> Union[float, np.ndarray]:
@@ -122,6 +141,11 @@ def get_y_from_I(I: Union[float, np.ndarray]) -> Union[float, np.ndarray]:
     return y_roots
 
 
+# ============================================================================
+# Frequency And Chirp Mass
+# ============================================================================
+
+
 def get_fcut_from_mcz(mcz, eta=0.25) -> Union[float, np.ndarray]:
     """Return ISCO cutoff frequency [Hz] from chirp mass [Msun]."""
     return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * mcz * SOLMASS2SEC)
@@ -130,6 +154,11 @@ def get_fcut_from_mcz(mcz, eta=0.25) -> Union[float, np.ndarray]:
 def get_mcz_from_fcut(fcut, eta=0.25) -> Union[float, np.ndarray]:
     """Return chirp mass [Msun] from ISCO cutoff frequency [Hz]."""
     return eta ** (3 / 5) / (6 ** (3 / 2) * np.pi * fcut) / SOLMASS2SEC
+
+
+# ============================================================================
+# Cycle Counting
+# ============================================================================
 
 
 def number_of_prec_cycles(
@@ -201,6 +230,11 @@ def mcz_for_n_prec_cycles(
         )
 
     return 1.0 / denom
+
+
+# ============================================================================
+# Lens Limit Computation
+# ============================================================================
 
 
 def get_lens_limits_for_RP_L(
