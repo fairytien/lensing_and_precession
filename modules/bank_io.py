@@ -795,25 +795,3 @@ def create_I_mismatch_cube(
         },
         save_full_mismatch=save_full_mismatch,
     )
-
-
-# ==============================================================================
-# Backward-Compatible Aliases
-# ==============================================================================
-
-
-write_mcz_grid_attrs = write_mcz_td_grid_attrs
-read_mcz_grid_attrs = read_mcz_td_grid_attrs
-mcz_grid_meta_consistent = mcz_td_grid_meta_consistent
-write_missing_mcz_metadata = write_missing_mcz_td_metadata
-read_missing_mcz_metadata = read_missing_mcz_td_metadata
-create_mcz_td_mismatch_cube = create_mcz_mismatch_cube
-create_mismatch_mcz_cube = create_mcz_mismatch_cube
-
-write_I_grid_attrs = write_I_td_grid_attrs
-read_I_grid_attrs = read_I_td_grid_attrs
-I_grid_meta_consistent = I_td_grid_meta_consistent
-write_missing_I_metadata = write_missing_I_td_metadata
-read_missing_I_metadata = read_missing_I_td_metadata
-create_I_td_mismatch_cube = create_I_mismatch_cube
-create_mismatch_I_cube = create_I_mismatch_cube

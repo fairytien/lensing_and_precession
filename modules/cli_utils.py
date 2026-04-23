@@ -1,9 +1,22 @@
-"""Small argparse helpers shared by repo entry points."""
+"""Small argparse helpers shared by repo entry points.
+
+Sections:
+- Grid resolution helpers
+- Shared argument helpers
+- Grid argument groups
+- Sampling and cosmology argument groups
+- Chunking argument groups
+"""
 
 from argparse import ArgumentParser
 from typing import Iterable, Optional
 
 import numpy as np
+
+
+# ==============================================================================
+# Grid Resolution Helpers
+# ==============================================================================
 
 
 def resolve_grid_array(
@@ -39,6 +52,57 @@ def resolve_grid_array(
     )
 
 
+# ==============================================================================
+# Shared Argument Helpers
+# ==============================================================================
+
+
+def _add_grid_size_args(
+    parser: ArgumentParser,
+    *,
+    pts_flag: str,
+    default_pts: Optional[int],
+    step_flag: str,
+    step_help: str,
+) -> ArgumentParser:
+    if default_pts is not None:
+        parser.add_argument(pts_flag, type=int, default=default_pts)
+    parser.add_argument(step_flag, type=float, default=None, help=step_help)
+    return parser
+
+
+def _add_chunking_args(
+    parser: ArgumentParser,
+    *,
+    axis_name: str,
+    axis_label: str,
+) -> ArgumentParser:
+    parser.add_argument(
+        f"--{axis_name}_chunk_index",
+        type=int,
+        default=None,
+        help=(
+            f"Chunk index for {axis_label} splitting (0-based). "
+            "Defaults to SLURM_ARRAY_TASK_ID if set."
+        ),
+    )
+    parser.add_argument(
+        f"--{axis_name}_chunk_count",
+        type=int,
+        default=None,
+        help=(
+            f"Total chunks for {axis_label} splitting. "
+            "Defaults to SLURM_ARRAY_TASK_COUNT if set."
+        ),
+    )
+    return parser
+
+
+# ==============================================================================
+# Shared Argument Groups
+# ==============================================================================
+
+
 def add_orientation_args(
     parser: ArgumentParser,
     orient_choices: Optional[Iterable[str]] = None,
@@ -67,6 +131,11 @@ def add_orientation_args(
     return parser
 
 
+# ==============================================================================
+# Grid Argument Groups
+# ==============================================================================
+
+
 def add_mcz_grid_args(
     parser: ArgumentParser,
     default_min: Optional[float] = 10.0,
@@ -77,15 +146,13 @@ def add_mcz_grid_args(
     """Attach mcz grid arguments used by contour pipeline scripts."""
     parser.add_argument("--mcz_min", type=float, default=default_min, required=required)
     parser.add_argument("--mcz_max", type=float, default=default_max, required=required)
-    if default_pts is not None:
-        parser.add_argument("--mcz_pts", type=int, default=default_pts)
-    parser.add_argument(
-        "--mcz_step",
-        type=float,
-        default=None,
-        help="Step size for mcz grid (arange-style). Mutually exclusive with --mcz_pts.",
+    return _add_grid_size_args(
+        parser,
+        pts_flag="--mcz_pts",
+        default_pts=default_pts,
+        step_flag="--mcz_step",
+        step_help="Step size for mcz grid (arange-style). Mutually exclusive with --mcz_pts.",
     )
-    return parser
 
 
 def add_I_grid_args(
@@ -110,15 +177,13 @@ def add_I_grid_args(
         required=required,
         help="Maximum flux ratio I (must be < 1).",
     )
-    if default_pts is not None:
-        parser.add_argument("--I_pts", type=int, default=default_pts)
-    parser.add_argument(
-        "--I_step",
-        type=float,
-        default=None,
-        help="Step size for I grid (arange-style). Mutually exclusive with --I_pts.",
+    return _add_grid_size_args(
+        parser,
+        pts_flag="--I_pts",
+        default_pts=default_pts,
+        step_flag="--I_step",
+        step_help="Step size for I grid (arange-style). Mutually exclusive with --I_pts.",
     )
-    return parser
 
 
 def add_td_grid_args(
@@ -135,15 +200,13 @@ def add_td_grid_args(
     parser.add_argument(
         "--td_max_ms", type=float, default=default_max_ms, required=required
     )
-    if default_pts is not None:
-        parser.add_argument("--td_pts", type=int, default=default_pts)
-    parser.add_argument(
-        "--td_step_ms",
-        type=float,
-        default=None,
-        help="Step size for td grid in ms (arange-style). Mutually exclusive with --td_pts.",
+    return _add_grid_size_args(
+        parser,
+        pts_flag="--td_pts",
+        default_pts=default_pts,
+        step_flag="--td_step_ms",
+        step_help="Step size for td grid in ms (arange-style). Mutually exclusive with --td_pts.",
     )
-    return parser
 
 
 def add_template_grid_args(
@@ -165,6 +228,11 @@ def add_template_grid_args(
     parser.add_argument("--theta_pts", type=int, default=theta_pts)
     parser.add_argument("--gamma_pts", type=int, default=gamma_pts)
     return parser
+
+
+# ==============================================================================
+# Sampling and Cosmology Argument Groups
+# ==============================================================================
 
 
 def add_frequency_args(
@@ -195,35 +263,24 @@ def add_redshift_arg(
     return parser
 
 
-def add_chunking_args(parser: ArgumentParser) -> ArgumentParser:
+# ==============================================================================
+# Chunking Argument Groups
+# ==============================================================================
+
+
+def add_mcz_chunking_args(parser: ArgumentParser) -> ArgumentParser:
     """Attach common mcz chunking arguments used by array jobs."""
-    parser.add_argument(
-        "--mcz_chunk_index",
-        type=int,
-        default=None,
-        help="Chunk index for mcz splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
+    return _add_chunking_args(
+        parser,
+        axis_name="mcz",
+        axis_label="mcz",
     )
-    parser.add_argument(
-        "--mcz_chunk_count",
-        type=int,
-        default=None,
-        help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
-    )
-    return parser
 
 
 def add_I_chunking_args(parser: ArgumentParser) -> ArgumentParser:
     """Attach flux ratio I chunking arguments used by array jobs."""
-    parser.add_argument(
-        "--I_chunk_index",
-        type=int,
-        default=None,
-        help="Chunk index for I splitting (0-based). Defaults to SLURM_ARRAY_TASK_ID if set.",
+    return _add_chunking_args(
+        parser,
+        axis_name="I",
+        axis_label="I",
     )
-    parser.add_argument(
-        "--I_chunk_count",
-        type=int,
-        default=None,
-        help="Total chunks for I splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
-    )
-    return parser

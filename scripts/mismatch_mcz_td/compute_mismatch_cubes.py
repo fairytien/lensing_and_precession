@@ -62,7 +62,7 @@ from modules.cli_utils import (
     add_template_grid_args,
     add_frequency_args,
     add_redshift_arg,
-    add_chunking_args,
+    add_mcz_chunking_args,
     resolve_grid_array,
 )
 
@@ -469,7 +469,7 @@ if __name__ == "__main__":
             "Final tagged run directory is auto-derived if needed."
         ),
     )
-    add_chunking_args(p)
+    add_mcz_chunking_args(p)
 
     args = p.parse_args()
 
