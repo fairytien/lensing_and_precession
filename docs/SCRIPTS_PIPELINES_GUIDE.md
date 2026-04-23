@@ -43,7 +43,7 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 
 - Run Python modules from repository root with `python -m ...` to avoid path issues.
 - Keep naming and discovery canonical via helpers in `modules/filenames.py`.
-- Follow the repo naming grammar in `README.md`: artifact names use `<qualifier>_<artifact>`, pipeline names use `<family>_<pipeline>`.
+- Follow the repo naming grammar in `README.md` for the rule, token order, and examples.
 - Main-pipeline scripts should import canonical modules: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
 - Canonical modules are the source of truth for production code.
 - Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
@@ -220,3 +220,63 @@ Deprecated batch scripts (for older workflows) are in `legacy/batch_scripts/`.
 - Prefer adding examples in this guide and workflow docs under `docs/` instead of creating new nested README files.
 - When adding new outputs, document filename/discovery behavior in `modules/filenames.py`-adjacent docs to prevent naming drift.
 - For data layout, LFS, and STOCKYARD workflow see `docs/DATA_LFS.md` and `docs/STOCKYARD.md`.
+
+## Main Pipeline Naming Strategy
+
+Main-pipeline scripts now use stable, versionless import targets:
+
+- `modules.Classes`
+- `modules.default_params`
+- `modules.functions`
+- `modules.plot_utils`
+
+These canonical modules are now the source of truth for production code.
+Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export from canonical modules.
+
+`modules.functions` is now a facade over specialized source modules:
+
+- `modules.waveform`
+- `modules.numerics`
+- `modules.geometry`
+- `modules.snr`
+
+Matching and mismatch optimization now use `modules.match_utils` as the single source of truth.
+
+`modules.functions_v3` remains a compatibility wrapper to preserve legacy imports.
+
+Legacy/versioned implementations are kept under `modules/legacy/` and should be imported explicitly as `modules.legacy.*` when needed.
+
+### Repo Naming Style
+
+- Use artifact names for helpers that read, write, parse, or validate one concrete file or schema.
+- Use pipeline names for helpers that encode sweep metadata, run directories, aggregated outputs, final contour products, or batch entrypoints.
+- Keep shared low-level helpers pipeline-neutral.
+
+Choose the name by scope:
+
+- If the symbol names one concrete file, dataset layout, or schema object, name the artifact.
+- If the symbol names a sweep, run configuration, aggregated product, plotting stage, or batch entrypoint, name the pipeline.
+- If the symbol is reusable across pipelines and artifacts, keep it neutral and avoid pipeline tokens.
+
+Patterns:
+
+- Concrete artifact: `<qualifier>_<artifact>`
+- Artifact helper: `<verb>_<qualifier>_<artifact>`
+- Pipeline family or product: `<family>_<pipeline>`
+- Pipeline helper or entrypoint: `<verb>_<family>_<pipeline>[_artifact]` or `<verb>_<pipeline>_<concept>`
+
+Order:
+
+- Put local qualifiers such as `mcz`, `I`, and `td` before the artifact noun.
+- Put workflow families such as `mismatch`, `best_match`, and `contour` before pipeline tokens such as `mcz_td` and `I_td`.
+
+Examples:
+
+- Artifact names: `create_mcz_mismatch_cube`, `create_I_mismatch_cube`, `mismatch_mcz_cube_filename`
+- Pipeline names: `write_mcz_td_grid_attrs`, `write_I_td_grid_attrs`, `best_match_mcz_td_filename`, `compute_mismatch_mcz_td_cubes.sbatch`
+
+When in doubt:
+
+- If the symbol could be reused in another workflow without changing what it names, use an artifact name.
+- If reusing it outside the current sweep would make the name misleading, use a pipeline name.
+- Prefer existing stable filename-builder names in `modules/filenames.py` unless you are doing a coordinated rename of the whole filename/discovery surface.
