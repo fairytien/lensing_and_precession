@@ -27,6 +27,3 @@ from modules.match_utils import (
     optimize_mismatch_mcz,
     optimized_match_bounded,
 )
-
-
-__all__ = [name for name in globals() if not name.startswith("_")]
