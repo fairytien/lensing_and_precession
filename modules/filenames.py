@@ -120,23 +120,11 @@ def _z_dir_token(z: Optional[float]) -> str:
     return f"z{_canonical_z_token(z)}"
 
 
-def _canonical_z_value(z: Optional[float]) -> float:
-    """Return canonical numeric z value.
-
-    Returns NaN when z is omitted (None).
-    Preserves provided finite z values exactly (no near-zero snapping).
-    """
-    if z is None:
-        return np.nan
-    z_val = float(z)
-    if np.isnan(z_val):
-        return np.nan
-    return z_val
-
-
 def _canonical_z_token(z: Optional[float]) -> str:
     """Return canonical z token used in filenames/directories."""
-    z_val = _canonical_z_value(z)
+    if z is None:
+        return _Z_NONE_TOKEN
+    z_val = float(z)
     if np.isnan(z_val):
         return _Z_NONE_TOKEN
     return _canonical_token(z_val)
@@ -561,26 +549,19 @@ def best_match_mcz_td_filename(
         f"td{_range_token(td_min_ms, td_max_ms, td_pts)}",
     ]
     # Append full template-grid tokens when available.
-    if (
-        td_pts is not None
-        and mcz_pts is not None
-        and omega_min is not None
-        and omega_max is not None
-        and omega_pts is not None
-        and theta_min is not None
-        and theta_max is not None
-        and theta_pts is not None
-        and gamma_pts is not None
-    ):
+    grid_params = (
+        omega_min,
+        omega_max,
+        omega_pts,
+        theta_min,
+        theta_max,
+        theta_pts,
+        gamma_pts,
+    )
+    if td_pts is not None and mcz_pts is not None and None not in grid_params:
         name_parts.append(
             _template_grid_token(
-                omega_min,
-                omega_max,
-                omega_pts,
-                theta_min,
-                theta_max,
-                theta_pts,
-                gamma_pts,
+                *cast(Tuple[float, float, int, float, float, int, int], grid_params)
             )
         )
     return _build_named_path(
@@ -855,26 +836,19 @@ def best_match_I_td_filename(
         f"td{_range_token(td_min_ms, td_max_ms, td_pts)}",
     ]
     # Append full template-grid tokens when available.
-    if (
-        td_pts is not None
-        and I_pts is not None
-        and omega_min is not None
-        and omega_max is not None
-        and omega_pts is not None
-        and theta_min is not None
-        and theta_max is not None
-        and theta_pts is not None
-        and gamma_pts is not None
-    ):
+    grid_params = (
+        omega_min,
+        omega_max,
+        omega_pts,
+        theta_min,
+        theta_max,
+        theta_pts,
+        gamma_pts,
+    )
+    if td_pts is not None and I_pts is not None and None not in grid_params:
         name_parts.append(
             _template_grid_token(
-                omega_min,
-                omega_max,
-                omega_pts,
-                theta_min,
-                theta_max,
-                theta_pts,
-                gamma_pts,
+                *cast(Tuple[float, float, int, float, float, int, int], grid_params)
             )
         )
     return _build_named_path(
