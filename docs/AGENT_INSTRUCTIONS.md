@@ -73,6 +73,13 @@ Guidelines for AI agents working in this repository.
 - **Verify meaningfully.** A check that cannot catch the actual failure is noise.
   Prefer `git diff` to confirm behavioral intent; prefer a targeted runtime
   assertion over a module-level smoke test.
+- **Warning-fix policy.** Prefer warning fixes that are annotation-only or
+  checker-only and do not alter runtime behavior.
+- **Rename/delete safety policy.** Before renaming or deleting a module, search
+  references in Python files and legacy notebooks. If references exist, either
+  update all references in the same change or do not rename before checking in
+  with the user. After renaming, verify zero stale references with workspace
+  search and run `get_errors` on affected Python files.
 - **Parallel edits need a dependency check.** Before batching multi-file changes,
   confirm they are truly independent. Apply sequentially if one change affects
   the context of another.
