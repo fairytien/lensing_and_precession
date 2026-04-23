@@ -1,7 +1,15 @@
 # Scripts and Pipelines Guide
 
-This document is the canonical reference for everything under `scripts/`.
-It replaces the previous per-folder README files and groups usage by workflow goals.
+This document is the canonical index for everything under `scripts/`.
+Use it to answer two questions quickly:
+
+- which workflow folder owns the task you want to run
+- which document to open next for step-by-step instructions
+
+This guide complements the pipeline runbooks rather than replacing them:
+
+- `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` for the production `(td, mcz)` pipeline
+- `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md` for the production `(td, I)` pipeline
 
 ## Scope
 
@@ -9,12 +17,13 @@ Use this guide when you need to:
 
 - build template banks
 - compute mismatch cubes and contours in `(td, mcz)` space
+- compute mismatch cubes and contours in `(td, I)` space
 - run Lindblom distinguishability post-processing
 - generate super contours and parameter sweeps
 - run one-off or test contours
 - use utility scripts for conversion, diagnostics, and plotting
 
-For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`.
+If you are running a full production pipeline, jump from here to the matching pipeline guide above.
 
 ## Directory Overview
 
@@ -22,18 +31,20 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 |---|---|
 | `scripts/template_banks/` | Build and manage precessing template banks. |
 | `scripts/mismatch_mcz_td/` | Compute mismatch cubes, aggregate best match, and plot `(td, mcz)` contours. |
+| `scripts/mismatch_I_td/` | Compute mismatch cubes, aggregate best match, and plot `(td, I)` contours at fixed `mcz`. |
 | `scripts/lindblom/` | Run Lindblom criterion and related SNR contour workflows. |
 | `scripts/contour_mcz_td/` | Contour sweeps over (mcz, td) parameter space. |
 | `scripts/contour_omega_theta/` | Single-case contour runs over (omega, theta) parameter space. |
+| `scripts/analysis/` | Analysis helpers that are not tied to a single production pipeline. |
 | `scripts/utils/` | Conversion, inspection, timing, and plotting helpers. |
-| `scripts/plot_bestmatch_waveform_overlays.py` | Overlay source and best-match template waveforms from best-match outputs. |
 
 ## Choose the Right Workflow
 
 | Goal | Start Here |
 |---|---|
 | Build reusable banks for batch runs | `scripts/template_banks/build_template_banks.py` |
-| Run the production mismatch contour pipeline | `scripts/mismatch_mcz_td/compute_mismatch_cubes.py` -> `aggregate_best_match.py` -> `plot_contour_mcz_td_from_best_match.py` |
+| Run the production `(td, mcz)` mismatch contour pipeline | `scripts/mismatch_mcz_td/compute_mismatch_cubes.py` -> `aggregate_best_match.py` -> `plot_contour_mcz_td_from_best_match.py`, then `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` |
+| Run the production `(td, I)` mismatch contour pipeline | `scripts/mismatch_I_td/compute_mismatch_cubes.py` -> `aggregate_best_match.py` -> `plot_contour_I_td_from_best_match.py`, then `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md` |
 | Produce Lindblom distinguishability contours | `scripts/lindblom/compute_lindblom_contours.py` and `scripts/lindblom/complete_lindblom_pipeline.sh` |
 | Sweep across `mcz`, `td`, or `I` quickly | `legacy/scripts/contour_mcz_td/contours_mcz.py`, `contours_td.py`, `contours_I.py` (legacy) |
 | Generate a one-off contour for debugging | `scripts/contour_omega_theta/v4_indiv_contour_otf.py` |
@@ -51,7 +62,7 @@ For full details of the modular contour pipeline, see `docs/CONTOUR_TD_MCZ_PIPEL
 - Matching/mismatch logic has one source of truth in `modules.match_utils`.
 - `modules.functions` is a compatibility facade over these modules, and `modules.functions_v3` is a legacy wrapper.
 - Production waveform physics remains pinned to the canonical `modules.Classes` implementation (originated from `Classes_v2`); treat `Classes_v3+` as testing-only (not numerically reliable for production outputs).
-- Legacy/versioned module implementations are now kept under `legacy/modules/`.
+- Legacy/versioned module implementations are kept under `legacy/modules/`.
 - Legacy scripts under `legacy/scripts/` should import legacy helpers from `legacy.modules.*`.
 - If historical files use legacy names, migrate them once with:
 
@@ -72,7 +83,7 @@ python -m scripts.utils.rename_legacy_filenames --apply
 
 ### Secondary/legacy utility
 
-- `template_bank_npz.py` (legacy NPZ format utility)
+- `legacy/scripts/template_banks/template_bank_npz.py` (legacy NPZ format utility)
 
 ### Typical usage
 
@@ -87,7 +98,10 @@ python -m scripts.template_banks.build_template_banks \
   --bank_dir ./data/template_banks
 ```
 
-## Mismatch Pipeline (`scripts/mismatch_mcz_td/`)
+## Mismatch Pipeline over `(td, mcz)` (`scripts/mismatch_mcz_td/`)
+
+Use this folder for the production workflow that varies `mcz` across a fixed `I` grid.
+For the full stage-by-stage runbook, see `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`.
 
 ### Core stage scripts
 
@@ -116,6 +130,18 @@ python -m scripts.mismatch_mcz_td.visualize_mcz_sweep_at_td \
 - `convert_best_match_redshift.py`
 
 > **For detailed stage examples, HDF5 schema, and batch configuration:** see [CONTOUR_TD_MCZ_PIPELINE_GUIDE.md](CONTOUR_TD_MCZ_PIPELINE_GUIDE.md).
+
+## Mismatch Pipeline over `(td, I)` (`scripts/mismatch_I_td/`)
+
+Use this folder for the production workflow that varies `I` across a fixed `mcz` value.
+Unlike the `(td, mcz)` pipeline, all `I` values reuse the same template bank.
+For the full stage-by-stage runbook, see `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md`.
+
+### Core stage scripts
+
+- `compute_mismatch_cubes.py` — Stage 1: compute per-`I` mismatch cubes
+- `aggregate_best_match.py` — Stage 2: aggregate across `I` into best-match file
+- `plot_contour_I_td_from_best_match.py` — Stage 3: plot contour from best-match output
 
 ## Lindblom Pipeline (`scripts/lindblom/`)
 
@@ -168,7 +194,7 @@ Use this folder when you want broad parameter sweeps rather than strict stage-by
 
 ### Active scripts
 
-- `v4_indiv_contour_otf.py` — latest OTF path (uses `Classes_v4` for solve_ivp)
+- `v4_indiv_contour_otf.py` — latest on-the-fly contour path
 - `v3_indiv_contour_otf.py`
 - `v3_indiv_contour_otf_v2prec.py`
 
@@ -190,6 +216,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 ### Plotting and comparison
 
+- `plot_bestmatch_waveform_overlays.py`
 - `plot_contour_from_dataset.py` (supports both pickle and hdf5 contour inputs)
 - `plot_cycles_and_extrema_mcz.py`
 - `compare_contours.py`
@@ -208,6 +235,7 @@ Production cluster jobs live in `batch_scripts/`.
 
 - Template banks: `batch_scripts/build_template_banks.sbatch`
 - Mismatch cubes (mcz-td): `batch_scripts/compute_mismatch_mcz_td_cubes.sbatch`
+- Mismatch cubes (I-td): `batch_scripts/compute_mismatch_I_td_cubes.sbatch`
 - Lindblom cubes: `batch_scripts/compute_lindblom_cubes.sbatch`
 
 Shared contour config defaults are centralized in `batch_scripts/_contour_mcz_td_config.sh`.
@@ -217,11 +245,13 @@ Deprecated batch scripts (for older workflows) are in `legacy/batch_scripts/`.
 ## Recommended Collaboration Practices
 
 - Keep new script entry points under an existing workflow folder whenever possible.
-- Prefer adding examples in this guide and workflow docs under `docs/` instead of creating new nested README files.
+- Prefer updating this guide plus the relevant pipeline guide under `docs/` instead of creating new nested README files.
 - When adding new outputs, document filename/discovery behavior in `modules/filenames.py`-adjacent docs to prevent naming drift.
 - For data layout, LFS, and STOCKYARD workflow see `docs/DATA_LFS.md` and `docs/STOCKYARD.md`.
 
 ## Main Pipeline Naming Strategy
+
+Use this section when naming new scripts, outputs, or filename helpers. You can ignore it for routine runs.
 
 Main-pipeline scripts now use stable, versionless import targets:
 
@@ -244,7 +274,7 @@ Matching and mismatch optimization now use `modules.match_utils` as the single s
 
 `modules.functions_v3` remains a compatibility wrapper to preserve legacy imports.
 
-Legacy/versioned implementations are kept under `modules/legacy/` and should be imported explicitly as `modules.legacy.*` when needed.
+Legacy/versioned implementations are kept under `legacy/modules/` and should be imported explicitly from `legacy.modules.*` when needed.
 
 ### Repo Naming Style
 

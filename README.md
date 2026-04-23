@@ -30,12 +30,14 @@ Core Python libraries used by the main pipeline:
 ## Documentation Guide
 
 Detailed usage documentation is centralized under `docs/`.
+If you are new to the repository, start with the scripts guide, then jump to the pipeline guide that matches the parameter sweep you want to run.
 
-- `docs/SCRIPTS_PIPELINES_GUIDE.md`: Script inventory and task-based usage across all `scripts/` workflows.
-- `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`: Stage-by-stage `(td, mcz)` mismatch pipeline details.
+- `docs/SCRIPTS_PIPELINES_GUIDE.md`: Start here for the script inventory and for choosing the right workflow folder.
+- `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`: Stage-by-stage guide for the production `(td, mcz)` mismatch pipeline.
+- `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md`: Stage-by-stage guide for the production `(td, I)` mismatch pipeline at fixed `mcz`.
+- `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata schema conventions.
 - `docs/DATA_LFS.md`: Data organization, Git LFS workflow, checksums, size guard, and optional history cleanup.
 - `docs/STOCKYARD.md`: Shared STOCKYARD workflow and symlink patterns on TACC.
-- `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata schema conventions.
 
 ## Authors
 * Tien Nguyen
