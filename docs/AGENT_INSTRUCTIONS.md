@@ -59,6 +59,21 @@ Guidelines for AI agents working in this repository.
   `init_mismatch_worker`. Do not restructure them into a dataclass or a
   separate module unless asked.
 
+## Process
+
+- **Read before writing.** Always read the relevant file sections before editing.
+  Never assume a function signature, return shape, or call convention — look it up.
+- **Minimal scope.** Fix what was asked. If you notice an unrelated issue, report
+  it but do not fix it unless instructed.
+- **Verify meaningfully.** A check that cannot catch the actual failure is noise.
+  Prefer `git diff` to confirm behavioral intent; prefer a targeted runtime
+  assertion over a module-level smoke test.
+- **Parallel edits need a dependency check.** Before batching multi-file changes,
+  confirm they are truly independent. Apply sequentially if one change affects
+  the context of another.
+- **Be brief.** State what was done and why if non-obvious. Do not narrate
+  steps, announce intentions, or repeat the task back.
+
 ## What Not To Do
 
 - Do not create new files unless absolutely necessary.
