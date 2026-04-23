@@ -5,8 +5,10 @@ Guidelines for AI agents working in this repository.
 ## Code Style
 
 - **Lean and direct.** Implement the straightforward solution. Do not add
-  abstractions, helpers, or indirection unless they are used in three or more
-  places with a real reduction in complexity.
+  abstractions, helpers, or indirection unless they reduce real complexity.
+  Default threshold: 3+ uses for simple/short repetition; 2+ uses for
+  non-trivial blocks (5+ lines of real logic). Trivial repetition stays inline
+  even at 3+ sites if naming it adds more confusion than clarity.
 - **DRY, but not over-DRY.** Extract a shared helper only when the alternative
   is duplicating non-trivial logic. A thin wrapper that merely forwards
   arguments with the same signature provides no net value — leave it inline.

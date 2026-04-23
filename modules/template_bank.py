@@ -37,6 +37,11 @@ from modules.bank_io import (
 )
 
 
+# ============================================================================
+# Grid And Worker Helpers
+# ============================================================================
+
+
 def _grid_arrays(
     omega_min: float,
     omega_max: float,
@@ -55,6 +60,11 @@ def _grid_arrays(
     theta_arr = np.linspace(float(theta_min), float(theta_max), int(theta_pts))
     gamma_arr = np.linspace(0.0, 2.0 * np.pi, int(gamma_pts), endpoint=False)
     return omega_arr, theta_arr, gamma_arr
+
+
+# ============================================================================
+# In-Memory Build
+# ============================================================================
 
 
 def _template_job(args: tuple) -> tuple:
@@ -155,6 +165,11 @@ def build_bank_for_mcz(
     return omega_arr, theta_arr, gamma_arr, bank, delta_f_actual
 
 
+# ============================================================================
+# HDF5 I/O
+# ============================================================================
+
+
 def save_bank_hdf5(
     filepath: str,
     omega_arr: np.ndarray,
@@ -232,7 +247,9 @@ def load_bank_hdf5(
     return omega, theta, gamma, bank, attrs
 
 
-# bank_filename now imported from modules.filenames
+# ============================================================================
+# Streaming Build
+# ============================================================================
 
 
 def build_and_save_bank(
@@ -358,30 +375,22 @@ def build_and_save_bank(
         h5.attrs["theta_min"] = float(theta_arr.min()) if theta_arr.size else np.nan
         h5.attrs["theta_max"] = float(theta_arr.max()) if theta_arr.size else np.nan
 
-        # Lazy job iterator to avoid materializing a huge job list
-        def _job_iter():
-            for r in range(theta_pts):
-                for c in range(omega_pts):
-                    for k in range(gamma_pts):
-                        yield (
-                            r,
-                            c,
-                            k,
-                            omega_arr[c],
-                            theta_arr[r],
-                            gamma_arr[k],
-                            params,
-                            f_min,
-                            delta_f,
-                        )
-
-        total_jobs = int(theta_pts) * int(omega_pts) * int(gamma_pts)
-        workers = n_workers if n_workers is not None else min(cpu_count(), total_jobs)
+        workers = (
+            n_workers
+            if n_workers is not None
+            else min(cpu_count(), theta_pts * omega_pts * gamma_pts)
+        )
+        jobs = (
+            (r, c, k, omega_arr[c], theta_arr[r], gamma_arr[k], params, f_min, delta_f)
+            for r in range(theta_pts)
+            for c in range(omega_pts)
+            for k in range(gamma_pts)
+        )
 
         # Stream results as they complete; write each directly into HDF5
         with Pool(workers, maxtasksperchild=256) as pool:
             for (r, c, k), strain in pool.imap_unordered(
-                _template_job, _job_iter(), chunksize=1
+                _template_job, jobs, chunksize=1
             ):
                 arr = np.asarray(strain, dtype=target_dtype)
                 if arr.shape[0] != n_freq:
