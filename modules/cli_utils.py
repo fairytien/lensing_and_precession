@@ -75,14 +75,13 @@ def _add_chunking_args(
     parser: ArgumentParser,
     *,
     axis_name: str,
-    axis_label: str,
 ) -> ArgumentParser:
     parser.add_argument(
         f"--{axis_name}_chunk_index",
         type=int,
         default=None,
         help=(
-            f"Chunk index for {axis_label} splitting (0-based). "
+            f"Chunk index for {axis_name} splitting (0-based). "
             "Defaults to SLURM_ARRAY_TASK_ID if set."
         ),
     )
@@ -91,7 +90,7 @@ def _add_chunking_args(
         type=int,
         default=None,
         help=(
-            f"Total chunks for {axis_label} splitting. "
+            f"Total chunks for {axis_name} splitting. "
             "Defaults to SLURM_ARRAY_TASK_COUNT if set."
         ),
     )
@@ -273,7 +272,6 @@ def add_mcz_chunking_args(parser: ArgumentParser) -> ArgumentParser:
     return _add_chunking_args(
         parser,
         axis_name="mcz",
-        axis_label="mcz",
     )
 
 
@@ -282,5 +280,4 @@ def add_I_chunking_args(parser: ArgumentParser) -> ArgumentParser:
     return _add_chunking_args(
         parser,
         axis_name="I",
-        axis_label="I",
     )

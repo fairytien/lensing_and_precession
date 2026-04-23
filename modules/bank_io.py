@@ -2,9 +2,12 @@
 
 Sections:
 - Shared metadata and dataset helpers
-- Template-bank readers/writers
 - `mcz_td` pipeline helpers
 - `I_td` pipeline helpers
+- Best-match contour readers
+- Template-bank readers/writers
+- Shared mismatch-cube builders
+- Artifact mismatch-cube writers
 
 Provides:
 - open_bank_readonly(path) -> (h5, omega, theta, gamma, bank, attrs)
@@ -73,10 +76,6 @@ _MISMATCH_CHUNK_LIMIT = 16
 # ==============================================================================
 # Shared Metadata and Dataset Helpers
 # ==============================================================================
-
-
-def _is_scalar_metadata_value(value: Any) -> bool:
-    return np.isscalar(value) or isinstance(value, (str, bytes))
 
 
 def _normalize_attr_value(value: Any, *, none_as_nan: bool = False) -> Any:
@@ -226,7 +225,7 @@ def write_parameter_attrs(
 ) -> None:
     """Write scalar parameter snapshot into file attrs with optional unit attrs."""
     for key, value in params.items():
-        if not _is_scalar_metadata_value(value):
+        if not (np.isscalar(value) or isinstance(value, (str, bytes))):
             continue
         attr_key = f"{prefix}{key}"
         _write_attrs(h5, {attr_key: value}, none_as_nan=True)
@@ -394,10 +393,18 @@ def read_missing_I_td_metadata(h5: h5py.File) -> Dict[str, Any]:
 # ==============================================================================
 
 
-def _decode_string_attr(value: Any) -> str:
-    if isinstance(value, bytes):
-        return value.decode("utf-8")
-    return str(value)
+def _read_required_orientation_tag(h5: h5py.File, input_path: str) -> str:
+    if "orientation_tag" not in h5.attrs:
+        raise ValueError(
+            f"Missing required attribute 'orientation_tag' in {input_path}."
+        )
+    raw = h5.attrs["orientation_tag"]
+    orientation_tag = (
+        raw.decode("utf-8") if isinstance(raw, bytes) else str(raw)
+    ).strip()
+    if not orientation_tag:
+        raise ValueError(f"Attribute 'orientation_tag' is empty in {input_path}.")
+    return orientation_tag
 
 
 def _read_optional_float_attr(attrs: Any, key: str) -> Optional[float]:
@@ -462,17 +469,6 @@ def _read_required_scalar_dataset(h5: h5py.File, input_path: str, key: str) -> f
     if raw.size != 1:
         raise ValueError(f"Dataset '{key}' must be scalar in {input_path}.")
     return float(raw.reshape(-1)[0])
-
-
-def _read_required_orientation_tag(h5: h5py.File, input_path: str) -> str:
-    if "orientation_tag" not in h5.attrs:
-        raise ValueError(
-            f"Missing required attribute 'orientation_tag' in {input_path}."
-        )
-    orientation_tag = _decode_string_attr(h5.attrs["orientation_tag"]).strip()
-    if not orientation_tag:
-        raise ValueError(f"Attribute 'orientation_tag' is empty in {input_path}.")
-    return orientation_tag
 
 
 def read_best_match_mcz_td_contour_data(
