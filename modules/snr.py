@@ -42,7 +42,7 @@ def SNR(
     params: dict,
     f_min: float = 20,
     delta_f: float = 0.25,
-    psd: FrequencySeries = None,
+    psd: FrequencySeries | None = None,
     lens_Class=LensingGeo,
     prec_Class=Precessing,
 ) -> float:
@@ -54,12 +54,11 @@ def SNR(
 
     f_cut = gw_inst.f_cut()
     f_arr = np.arange(f_min, f_cut, delta_f)
-    if psd is None:
-        psd = Sn(f_arr, f_min=f_min, delta_f=delta_f)
+    _psd = psd if psd is not None else Sn(f_arr, f_min=f_min, delta_f=delta_f)
     h = gw_inst.strain(f_arr, delta_f=delta_f)
 
-    integrand = np.abs(h) ** 2 / psd
+    integrand = np.abs(h) ** 2 / _psd
     integrated_inner_product = simpson(integrand, x=f_arr)
     snr = np.sqrt(4 * np.real(integrated_inner_product))
 
-    return snr
+    return float(snr)

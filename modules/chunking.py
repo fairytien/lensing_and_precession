@@ -19,9 +19,8 @@ def choose_bank_chunks(
     # We typically read all gamma and a slice of frequency for a fixed (r, c)
     theta_chunk = 1
     omega_chunk = 1
-    gamma_chunk = int(min(8, max(1, gamma_pts)))
-    # Keep frequency chunks moderate to balance I/O and memory
-    freq_chunk = int(min(4096, max(1, n_freq)))
+    gamma_chunk = min(8, max(1, gamma_pts))
+    freq_chunk = min(4096, max(1, n_freq))
     return theta_chunk, omega_chunk, gamma_chunk, freq_chunk
 
 

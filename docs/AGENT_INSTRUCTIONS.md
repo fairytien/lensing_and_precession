@@ -35,7 +35,10 @@ Guidelines for AI agents working in this repository.
   - `snr.py` — `Sn` (noise PSD)
   - `match_utils.py` — matched filtering, mismatch computation, multiprocessing workers
   - `filenames.py` — canonical filename builders (use these; do not hand-roll paths)
-  - `functions.py`, `plot_utils.py` — shared physics helpers and plotting
+  - `geometry.py` — orientation geometry helpers (`calculate_cosJN`, etc.)
+  - `plot_utils.py` — shared plotting utilities
+- `functions.py` is a wrapper that re-exports from the specialized modules above.
+  Do not import from it in new code; import from the specialized modules directly.
 - Versioned compatibility shims (`Classes_v2`, `functions_v3`, etc.) re-export
   the canonical modules. Do not import from them in new code.
 - Dependency injection in `match_utils` uses `_resolve_deps(**overrides)`.
