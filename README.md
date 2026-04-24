@@ -29,19 +29,20 @@ Core Python libraries used by the main pipeline:
 
 ## Documentation Guide
 
-Detailed usage documentation is centralized under `docs/`.
-If you are new to the repository, start with the scripts guide, then jump to the pipeline guide that matches the parameter sweep you want to run.
+Repository documentation is centralized under `docs/`.
+If you are new to the repository, read in this order:
 
-- `docs/SCRIPTS_PIPELINES_GUIDE.md`: Start here for the script inventory and for choosing the right workflow folder.
-- `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`: Stage-by-stage guide for the production `(td, mcz)` mismatch pipeline.
-- `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md`: Stage-by-stage guide for the production `(td, I)` mismatch pipeline at fixed `mcz`.
-- `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata schema conventions.
-- `docs/DATA_LFS.md`: Data organization, Git LFS workflow, checksums, size guard, and optional history cleanup.
-- `docs/STOCKYARD.md`: Shared STOCKYARD workflow and symlink patterns on TACC.
+- `docs/SCRIPTS_PIPELINES_GUIDE.md`: Canonical index of workflow folders and entry points.
+- `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md`: Runbook for the production `(td, mcz)` mismatch pipeline.
+- `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md`: Runbook for the production `(td, I)` mismatch pipeline at fixed `mcz`.
+- `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata and dataset conventions.
+- `docs/DATA_LFS.md`: Data layout, Git LFS workflow, checksums, and large-file safeguards.
+- `docs/STOCKYARD.md`: Shared-storage workflow and symlink patterns on TACC.
 
 ## Authors
 * Tien Nguyen
 * Tamanjyot Singh
+* Benjamin McKallip
 * Michael Kesden
 * Lindsay King
 

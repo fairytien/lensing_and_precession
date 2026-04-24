@@ -6,7 +6,7 @@ Use it to answer two questions quickly:
 - which workflow folder owns the task you want to run
 - which document to open next for step-by-step instructions
 
-This guide complements the pipeline runbooks rather than replacing them:
+For the two production mismatch pipelines, use the comparison table below and then open the matching runbook:
 
 - `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` for the production `(td, mcz)` pipeline
 - `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md` for the production `(td, I)` pipeline
@@ -22,8 +22,6 @@ Use this guide when you need to:
 - generate super contours and parameter sweeps
 - run one-off or test contours
 - use utility scripts for conversion, diagnostics, and plotting
-
-If you are running a full production pipeline, jump from here to the matching pipeline guide above.
 
 ## Directory Overview
 
@@ -50,13 +48,30 @@ If you are running a full production pipeline, jump from here to the matching pi
 | Generate a one-off contour for debugging | `scripts/contour_omega_theta/v4_indiv_contour_otf.py` |
 | Convert or inspect stored outputs | scripts in `scripts/utils/` |
 
+## Production Pipeline Comparison
+
+Use this table when you already know you want the production mismatch workflow and just need to choose the sweep.
+High-level pipeline choice belongs here; detailed commands, HDF5 layouts, and naming rules stay in the pipeline runbooks.
+
+| Question | `(td, mcz)` pipeline | `(td, I)` pipeline |
+|---|---|---|
+| When should I use it? | When you want mismatch trends across chirp mass at a fixed flux ratio. | When you want mismatch trends across flux ratio at a fixed chirp mass. |
+| Sweep variable | `mcz` | `I` |
+| Fixed parameter | `I` | `mcz` |
+| Template bank strategy | Build one bank per `mcz` value in the sweep. | Build one shared bank for the fixed `mcz` value. |
+| Natural array-job split | `--mcz_chunk_index/count` | `--I_chunk_index/count` |
+| Final aggregate grid | `(mcz, td)` | `(I, td)` |
+| Main batch entry point | `batch_scripts/compute_mismatch_mcz_td_cubes.sbatch` | `batch_scripts/compute_mismatch_I_td_cubes.sbatch` |
+| Runbook | `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` | `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md` |
+
 ## Common Runtime Notes
 
 - Run Python modules from repository root with `python -m ...` to avoid path issues.
 - Keep naming and discovery canonical via helpers in `modules/filenames.py`.
 - Follow the repo naming grammar in `README.md` for the rule, token order, and examples.
-- Main-pipeline scripts should import canonical modules: `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
-- Canonical modules are the source of truth for production code.
+- Existing production entry points use stable, versionless imports such as `modules.Classes`, `modules.default_params`, `modules.functions`, and `modules.plot_utils`.
+- Canonical modules remain the source of truth for production code.
+- For new code, prefer the specialized modules directly when they expose the needed functionality, rather than adding new imports to `modules.functions`.
 - Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export canonical modules.
 - The old monolithic `functions_v3` implementation is split; source-of-truth function logic now lives in `modules.waveform`, `modules.numerics`, `modules.geometry`, and `modules.snr`.
 - Matching/mismatch logic has one source of truth in `modules.match_utils`.
@@ -253,14 +268,16 @@ Deprecated batch scripts (for older workflows) are in `legacy/batch_scripts/`.
 
 Use this section when naming new scripts, outputs, or filename helpers. You can ignore it for routine runs.
 
-Main-pipeline scripts now use stable, versionless import targets:
+Existing main-pipeline scripts use stable, versionless import targets:
 
 - `modules.Classes`
 - `modules.default_params`
 - `modules.functions`
 - `modules.plot_utils`
 
-These canonical modules are now the source of truth for production code.
+Treat these as compatibility-stable targets for existing production code.
+For new code, prefer the more specific modules below when they expose the functionality directly.
+
 Versioned compatibility modules (`Classes_v2`, `default_params_v3`, `functions_v3`, `plot_utils_v3`) are wrappers that re-export from canonical modules.
 
 `modules.functions` is now a facade over specialized source modules:

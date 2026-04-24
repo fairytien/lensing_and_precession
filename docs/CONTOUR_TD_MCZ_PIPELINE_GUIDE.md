@@ -1,10 +1,13 @@
 # Contour (td, mcz) Pipeline Guide
 
-This document describes the four-stage modular pipeline for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the (time delay, chirp mass) parameter space.
+This document describes the production workflow for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the `(td, mcz)` parameter space.
+
+Use this pipeline when you want mismatch trends across chirp mass `mcz` at a fixed flux ratio `I`.
+For a side-by-side comparison with the `(td, I)` workflow, see [SCRIPTS_PIPELINES_GUIDE.md](SCRIPTS_PIPELINES_GUIDE.md#production-pipeline-comparison).
 
 ## Pipeline Overview
 
-**Three stages with single responsibilities:**
+**Four steps with clear responsibilities:**
 
 1. **Build per-mcz template banks** (`python -m scripts.template_banks.build_template_banks`)
 2. **Compute per-mcz mismatch cubes** (`python -m scripts.mismatch_mcz_td.compute_mismatch_cubes`)
@@ -50,44 +53,11 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --output_dir ./figures/mismatch
 ```
 
-## HDF5 File Structure
-
-### Per-mcz Mismatch Cube (`run_dir/mismatch_cubes/*.h5`)
-
-**Datasets:**
-- `mcz`: Scalar chirp mass value (Msun)
-- `td`: Time delay array (seconds)
-- `theta`, `omega`, `gamma`: Template parameter arrays
-- `epsilon_min_grid`: (td, theta, omega) - minimum mismatch over gamma
-- `gamma_best_grid`: (td, theta, omega) - gamma value achieving minimum
-- `mismatch` (optional): (td, theta, omega, gamma) - full mismatch array if `--save_full_mismatch`
-
-**File Attributes:**
-- `I`: Flux ratio
-- `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
-- `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
-- `mcz_min`, `mcz_max`, `mcz_pts`: Intended mcz grid from Stage 1 compute settings
-
-### Best-Match File (`run_dir/best_match/*.h5`)
-
-**Datasets:**
-- `mcz`: Expected chirp mass grid for plotting (missing internal rows are kept)
-- `td`: Time delay array (seconds)
-- `epsilon_min`: (mcz, td) - global minimum mismatch
-- `omega_best`, `theta_best`, `gamma_best`: (mcz, td) - best-fit template parameters
-- `expected_mcz`: Expected mcz grid used by Stage 2
-- `missing_mcz` (optional): Missing internal mcz values detected during aggregation
-
-**File Attributes:**
-- `I`, `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
-- `orientation_tag`, `z`: Used by Stage 3 for automatic figure naming
-- `missing_mcz_count`: Number of missing internal mcz rows detected by Stage 2
-
 ## Stage 0: Build Template Banks
 
 **Script:** `python -m scripts.template_banks.build_template_banks`
 
-Builds one HDF5 template bank per `mcz` value. The mismatch stage streams from these banks and expects the same orientation tag and grid definition.
+Build one HDF5 template bank per `mcz` value in the sweep. Stage 1 reads these banks and expects the same orientation tag and grid definition.
 
 **Example:**
 ```bash
@@ -105,7 +75,7 @@ python -m scripts.template_banks.build_template_banks \
 
 **Script:** `python -m scripts.mismatch_mcz_td.compute_mismatch_cubes`
 
-Streams templates from prebuilt banks and evaluates mismatches across (td, theta, omega, gamma) parameter space. Supports SLURM array job chunking for parallelization.
+Read the prebuilt banks and evaluate mismatches across `(td, theta, omega, gamma)` for each `mcz` value. Supports SLURM array-job chunking.
 
 **Example:**
 ```bash
@@ -137,8 +107,8 @@ python -m scripts.mismatch_mcz_td.compute_mismatch_cubes \
 
 **Script:** `python -m scripts.mismatch_mcz_td.aggregate_best_match`
 
-Finds global minimum across (theta, omega) for each (mcz, td) and consolidates into a single best-match HDF5 file.
-If internal mcz rows are missing, Stage 2 keeps those rows as NaNs so the contour plot shows explicit gaps.
+Reduce each cube to the best `(theta, omega)` match at each `(mcz, td)` point and write one best-match HDF5 file.
+Missing internal `mcz` rows stay as NaNs so the contour plot shows gaps explicitly.
 
 **Example:**
 ```bash
@@ -155,15 +125,14 @@ python -m scripts.mismatch_mcz_td.aggregate_best_match \
 
 **Script:** `python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match`
 
-Generates publication-quality contour plot of mismatch vs (td, mcz) from the best-match file.
-This stage now requires an exact best-match `--input_path`; all run tokens are inferred from file metadata.
+Plot mismatch over `(td, mcz)` from the best-match file.
+Requires an exact best-match `--input_path`; the other run tokens are inferred from file metadata.
 
 **Example:**
 ```bash
 python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
   --input_path ./data/mismatch_I0p5_z1_mcz10-90_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
   --output_dir ./figures/mismatch
-
 ```
 
 ## Batch Script Configuration
@@ -214,13 +183,41 @@ Notes:
 - Numeric tokens use minimal precision with `p` as decimal separator (e.g., `0p2`).
 - Gamma naming is fixed to radians over `[0, 2pi]` and encoded as `gamma0-2pix{gamma_pts}`.
 
-## Key Benefits
+## Stage Outputs
 
-1. **Single Plotting Script** - No duplicate plotting code
-2. **Full Metadata Chain** - Source parameters preserved throughout
-3. **Clear Responsibilities** - Each script does exactly one thing
-4. **Safer Parallelization** - No race conditions when chunking
-5. **Reproducible** - Best-match files contain all necessary metadata
+Use this section as a quick reference for the HDF5 artifacts written by Stages 1 and 2.
+For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCHEMA_V1.md).
+
+### Stage 1 Output: Per-mcz Mismatch Cube (`run_dir/mismatch_cubes/*.h5`)
+
+**Datasets:**
+- `mcz`: Scalar chirp mass value (Msun)
+- `td`: Time delay array (seconds)
+- `theta`, `omega`, `gamma`: Template parameter arrays
+- `epsilon_min_grid`: (td, theta, omega) - minimum mismatch over gamma
+- `gamma_best_grid`: (td, theta, omega) - gamma value achieving minimum
+- `mismatch` (optional): (td, theta, omega, gamma) - full mismatch array if `--save_full_mismatch`
+
+**File Attributes:**
+- `I`: Flux ratio
+- `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
+- `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
+- `mcz_min`, `mcz_max`, `mcz_pts`: Intended mcz grid from Stage 1 compute settings
+
+### Stage 2 Output: Best-Match File (`run_dir/best_match/*.h5`)
+
+**Datasets:**
+- `mcz`: Expected chirp mass grid for plotting (missing internal rows are kept)
+- `td`: Time delay array (seconds)
+- `epsilon_min`: (mcz, td) - global minimum mismatch
+- `omega_best`, `theta_best`, `gamma_best`: (mcz, td) - best-fit template parameters
+- `expected_mcz`: Expected mcz grid used by Stage 2
+- `missing_mcz` (optional): Missing internal mcz values detected during aggregation
+
+**File Attributes:**
+- `I`, `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
+- `orientation_tag`, `z`: Used by Stage 3 for automatic figure naming
+- `missing_mcz_count`: Number of missing internal mcz rows detected by Stage 2
 
 ## Testing Checklist
 
@@ -232,23 +229,3 @@ Verify the pipeline works correctly:
 - [ ] Plotting script can read and plot from best-match file
 - [ ] Batch scripts call correct Python scripts
 - [ ] File naming conventions allow automatic file discovery
-
-## Prerequisites
-
-Build template banks before running this pipeline:
-
-```bash
-python -m scripts.template_banks.build_template_banks \
-  --orient_preset Taman_edgeon \
-  --mcz_min 10 --mcz_max 90 --mcz_pts 81 \
-  --omega_min 0 --omega_max 6 --omega_pts 61 \
-  --theta_min 0 --theta_max 15 --theta_pts 151 \
-  --gamma_pts 51 \
-  --z 1 \
-  --bank_dir ./data/template_banks
-```
-
-Or use the SLURM batch script:
-```bash
-sbatch batch_scripts/build_template_banks.sbatch
-```

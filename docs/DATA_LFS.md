@@ -1,6 +1,6 @@
 # Data and Large File Workflow
 
-This is the canonical guide for managing generated outputs under `data/` and large binary artifacts tracked with Git LFS.
+Use this guide for generated outputs under `data/` and large binary artifacts tracked with Git LFS.
 
 ## 1. Data Layout
 
@@ -15,7 +15,7 @@ Generated artifacts are organized under `data/`.
 | `data/contour_omega_theta/` | Individual omega-theta contour outputs |
 | `data/contours/` | Reserved for future derived contour products |
 
-### Typical filename tokens
+### Common filename tokens
 
 `mcz20`, `mcz30`, `mcz40` · `L_NP`, `L_RP` · `td22ms`, `td10_100` · `I0.5`, `I0.6` · `res_omega101_theta401` · `v2_`, `v3_`, `v4_`
 
@@ -75,9 +75,9 @@ git add lfs/checksums/manifest.sha256
 1. `TACC_` → `data/TACC/`
 2. `indiv_contour` or `indiv_mismatch` → `data/contour_omega_theta/`
 3. `super_contour` → `data/contour_mcz_td/`
-4. `mismatch_contour` or `mismatch_contours`
-5. plural `contours`
-6. `mismatch_` dictionary-style outputs
+4. `mismatch_contour` or `mismatch_contours` → `data/contour_mcz_td/`
+5. Remaining filenames containing plural `contours` → `data/contour_mcz_td/`
+6. `mismatch_*.pkl` dictionary-style outputs → `data/contour_mcz_td/`
 
 The organizer skips files already inside classified destination folders and never moves destination folders themselves.
 

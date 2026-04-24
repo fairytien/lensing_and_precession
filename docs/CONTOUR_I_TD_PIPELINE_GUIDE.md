@@ -1,14 +1,13 @@
 # Contour (td, I) Pipeline Guide
 
-This document describes the three-stage modular pipeline for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the (time delay, flux ratio) parameter space.
+This document describes the production workflow for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the `(td, I)` parameter space.
+
+Use this pipeline when you want mismatch trends across flux ratio `I` at a fixed chirp mass `mcz`.
+For a side-by-side comparison with the `(td, mcz)` workflow, see [SCRIPTS_PIPELINES_GUIDE.md](SCRIPTS_PIPELINES_GUIDE.md#production-pipeline-comparison).
 
 ## Pipeline Overview
 
-**Key Difference from mcz_td Pipeline:**
-- The **mcz_td pipeline** varies chirp mass `mcz` at fixed flux ratio `I`. Each `mcz` requires a different template bank.
-- The **I_td pipeline** varies flux ratio `I` at fixed chirp mass `mcz`. Since template banks depend only on `mcz` (not `I`), **all I values share the SAME template bank**.
-
-**Three stages with single responsibilities:**
+**Four steps with clear responsibilities:**
 
 1. **Build template bank for fixed mcz** (`python -m scripts.template_banks.build_template_banks`)
 2. **Compute per-I mismatch cubes** (`python -m scripts.mismatch_I_td.compute_mismatch_cubes`)
@@ -33,7 +32,7 @@ The production batch scripts are configured for the following default run:
 ## Quick Start
 
 ```bash
-# Stage 0: Build ONE template bank for the fixed mcz value
+# Stage 0: Build one template bank for the fixed mcz value
 python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
   --mcz_min 20 --mcz_max 20 --mcz_pts 1 \
@@ -61,46 +60,11 @@ python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match \
   --output_dir ./figures/mismatch
 ```
 
-## HDF5 File Structure
-
-### Per-I Mismatch Cube (`run_dir/mismatch_cubes/*.h5`)
-
-**Datasets:**
-- `I`: Scalar flux ratio value (dimensionless)
-- `mcz`: Scalar chirp mass value (Msun)
-- `td`: Time delay array (seconds)
-- `theta`, `omega`, `gamma`: Template parameter arrays
-- `epsilon_min_grid`: (td, theta, omega) - minimum mismatch over gamma
-- `gamma_best_grid`: (td, theta, omega) - gamma value achieving minimum
-- `mismatch` (optional): (td, theta, omega, gamma) - full mismatch array if `--save_full_mismatch`
-
-**File Attributes:**
-- `I_min`, `I_max`, `I_pts`: Intended I grid from Stage 1 compute settings
-- `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
-- `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
-- `orientation_tag`: Orientation preset used
-
-### Best-Match File (`run_dir/best_match/*.h5`)
-
-**Datasets:**
-- `I`: Expected flux ratio grid for plotting (missing internal rows are kept)
-- `mcz`: Scalar chirp mass value (Msun)
-- `td`: Time delay array (seconds)
-- `epsilon_min`: (I, td) - global minimum mismatch
-- `omega_best`, `theta_best`, `gamma_best`: (I, td) - best-fit template parameters
-- `expected_I`: Expected I grid used by Stage 2
-- `missing_I` (optional): Missing internal I values detected during aggregation
-
-**File Attributes:**
-- `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
-- `orientation_tag`, `z`: Used by Stage 3 for automatic figure naming
-- `missing_I_count`: Number of missing internal I rows detected by Stage 2
-
 ## Stage 0: Build Template Bank
 
 **Script:** `python -m scripts.template_banks.build_template_banks`
 
-Builds ONE HDF5 template bank at the fixed `mcz` value. Unlike the mcz_td pipeline which needs multiple banks, the I_td pipeline reuses this single bank for all I values.
+Build one HDF5 template bank for the fixed `mcz` used by the sweep. Stage 1 reuses this bank for every `I` value.
 
 **Example:**
 ```bash
@@ -118,7 +82,7 @@ python -m scripts.template_banks.build_template_banks \
 
 **Script:** `python -m scripts.mismatch_I_td.compute_mismatch_cubes`
 
-Streams templates from the prebuilt bank and evaluates mismatches across (td, theta, omega, gamma) parameter space for each I value. Supports SLURM array job chunking for parallelization across I values.
+Read the prebuilt bank and evaluate mismatches across `(td, theta, omega, gamma)` for each `I` value. Supports SLURM array-job chunking.
 
 **Example:**
 ```bash
@@ -150,8 +114,8 @@ python -m scripts.mismatch_I_td.compute_mismatch_cubes \
 
 **Script:** `python -m scripts.mismatch_I_td.aggregate_best_match`
 
-Finds global minimum across (theta, omega) for each (I, td) and consolidates into a single best-match HDF5 file.
-If internal I rows are missing, Stage 2 keeps those rows as NaNs so the contour plot shows explicit gaps.
+Reduce each cube to the best `(theta, omega)` match at each `(I, td)` point and write one best-match HDF5 file.
+Missing internal `I` rows stay as NaNs so the contour plot shows gaps explicitly.
 
 **Example:**
 ```bash
@@ -168,8 +132,8 @@ python -m scripts.mismatch_I_td.aggregate_best_match \
 
 **Script:** `python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match`
 
-Generates publication-quality contour plot of mismatch vs (td, I) from the best-match file.
-This stage requires an exact best-match `--input_path`; all run tokens are inferred from file metadata.
+Plot mismatch over `(td, I)` from the best-match file.
+Requires an exact best-match `--input_path`; the other run tokens are inferred from file metadata.
 
 **Example:**
 ```bash
@@ -223,60 +187,43 @@ Notes:
 - Numeric tokens use minimal precision with `p` as decimal separator (e.g., `0p2`).
 - Gamma naming is fixed to radians over `[0, 2pi]` and encoded as `gamma0-2pix{gamma_pts}`.
 
-## Function Reference
+## Stage Outputs
 
-### filenames.py (I_td pipeline functions)
+Use this section as a quick reference for the HDF5 artifacts written by Stages 1 and 2.
+For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCHEMA_V1.md).
 
-| Function | Description |
-|----------|-------------|
-| `contour_I_td_run_dir()` | Return run directory tagged by mcz, I range, z, td range |
-| `mismatch_I_cube_filename()` | Build HDF5 path for per-I mismatch cube outputs |
-| `parse_I_from_mismatch_I_cube_path()` | Extract I value from canonical mismatch I-cube filenames |
-| `best_match_I_td_filename()` | Build HDF5 path for aggregated best-match outputs across all I |
-| `contour_I_td_filename()` | Build figure path for the final mismatch contour over (td, I) |
-| `find_mismatch_I_cube_files()` | Return mismatch I-cube files matching the requested I-td contour run |
-| `parse_I_range_from_best_match_I_td_path()` | Extract (I_min, I_max) from canonical I-td best-match filenames |
-| `find_best_match_I_td_file()` | Return the newest best-match file for the requested I-td contour run |
+### Stage 1 Output: Per-I Mismatch Cube (`run_dir/mismatch_cubes/*.h5`)
 
-### bank_io.py (I_td pipeline functions)
+**Datasets:**
+- `I`: Scalar flux ratio value (dimensionless)
+- `mcz`: Scalar chirp mass value (Msun)
+- `td`: Time delay array (seconds)
+- `theta`, `omega`, `gamma`: Template parameter arrays
+- `epsilon_min_grid`: (td, theta, omega) - minimum mismatch over gamma
+- `gamma_best_grid`: (td, theta, omega) - gamma value achieving minimum
+- `mismatch` (optional): (td, theta, omega, gamma) - full mismatch array if `--save_full_mismatch`
 
-| Function | Description |
-|----------|-------------|
-| `write_I_td_grid_attrs()` | Write intended Stage 1 I grid metadata for the `I_td` pipeline |
-| `read_I_td_grid_attrs()` | Read `I_td` I grid metadata from an open HDF5 file if present |
-| `I_td_grid_meta_consistent()` | Return True when two `I_td` I grid metadata dicts match |
-| `write_missing_I_td_metadata()` | Write aggregation completeness metadata for the `I_td` pipeline |
-| `read_missing_I_td_metadata()` | Read aggregation completeness metadata for the `I_td` pipeline |
-| `create_I_mismatch_cube()` | Create HDF5 file with per-I mismatch cube datasets |
-| `read_best_match_I_td_contour_data()` | Load one best-match I-td contour dataset and infer plotting metadata |
+**File Attributes:**
+- `I_min`, `I_max`, `I_pts`: Intended I grid from Stage 1 compute settings
+- `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
+- `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
+- `orientation_tag`: Orientation preset used
 
-### cli_utils.py (I_td pipeline argument helpers)
+### Stage 2 Output: Best-Match File (`run_dir/best_match/*.h5`)
 
-| Function | Description |
-|----------|-------------|
-| `add_I_grid_args()` | Add --I_min/max/pts/step arguments for flux ratio grid |
-| `add_I_chunking_args()` | Add --I_chunk_index/count arguments for array job chunking |
+**Datasets:**
+- `I`: Expected flux ratio grid for plotting (missing internal rows are kept)
+- `mcz`: Scalar chirp mass value (Msun)
+- `td`: Time delay array (seconds)
+- `epsilon_min`: (I, td) - global minimum mismatch
+- `omega_best`, `theta_best`, `gamma_best`: (I, td) - best-fit template parameters
+- `expected_I`: Expected I grid used by Stage 2
+- `missing_I` (optional): Missing internal I values detected during aggregation
 
-## Comparison: mcz_td vs I_td Pipelines
-
-| Aspect | mcz_td Pipeline | I_td Pipeline |
-|--------|-----------------|---------------|
-| **Varying parameter** | Chirp mass `mcz` | Flux ratio `I` |
-| **Fixed parameter** | Flux ratio `I = 0.5` | Chirp mass `mcz = 20` |
-| **Template banks needed** | One per mcz value (81 banks) | ONE bank (fixed mcz) |
-| **Outer loop** | mcz values | I values |
-| **Output shape** | (mcz, td) | (I, td) |
-| **SLURM chunking** | `--mcz_chunk_index/count` | `--I_chunk_index/count` |
-| **Run directory** | `_I{I}_z{z}_mcz{min}-{max}_td{min}-{max}` | `_mcz{mcz}_I{min}-{max}_z{z}_td{min}-{max}` |
-
-## Key Benefits
-
-1. **Efficient Bank Reuse** - Single template bank for all I values (no per-I bank generation)
-2. **Single Plotting Script** - No duplicate plotting code
-3. **Full Metadata Chain** - Source parameters preserved throughout
-4. **Clear Responsibilities** - Each script does exactly one thing
-5. **Safer Parallelization** - No race conditions when chunking
-6. **Reproducible** - Best-match files contain all necessary metadata
+**File Attributes:**
+- `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
+- `orientation_tag`, `z`: Used by Stage 3 for automatic figure naming
+- `missing_I_count`: Number of missing internal I rows detected by Stage 2
 
 ## Testing Checklist
 
@@ -288,18 +235,3 @@ Verify the pipeline works correctly:
 - [ ] Plotting script can read and plot from best-match file
 - [ ] Batch scripts call correct Python scripts
 - [ ] File naming conventions allow automatic file discovery
-
-## Prerequisites
-
-Build ONE template bank for the fixed mcz before running this pipeline:
-
-```bash
-python -m scripts.template_banks.build_template_banks \
-  --orient_preset Taman_edgeon \
-  --mcz_min 20 --mcz_max 20 --mcz_pts 1 \
-  --omega_min 0 --omega_max 6 --omega_pts 61 \
-  --theta_min 0 --theta_max 15 --theta_pts 151 \
-  --gamma_pts 51 \
-  --z 1 \
-  --bank_dir ./data/template_banks
-```
