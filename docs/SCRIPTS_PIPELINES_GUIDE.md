@@ -8,10 +8,10 @@ Use it to identify the workflow folder that owns a task and the next runbook or 
 | If you want to... | Open... |
 |---|---|
 | Build reusable template banks | `scripts/template_banks/build_template_banks.py` or `batch_scripts/build_template_banks.sbatch` |
-| Run the production `(td, mcz)` mismatch pipeline | [CONTOUR_TD_MCZ_PIPELINE_GUIDE.md](CONTOUR_TD_MCZ_PIPELINE_GUIDE.md) |
+| Run the production `(td, mcz)` mismatch pipeline | [CONTOUR_MCZ_TD_PIPELINE_GUIDE.md](CONTOUR_MCZ_TD_PIPELINE_GUIDE.md) |
 | Run the production `(td, I)` mismatch pipeline | [CONTOUR_I_TD_PIPELINE_GUIDE.md](CONTOUR_I_TD_PIPELINE_GUIDE.md) |
 | Produce Lindblom distinguishability contours | `scripts/lindblom/` |
-| Run broad parameter sweeps in `(mcz, td)` | `scripts/contour_mcz_td/` |
+| Run broad parameter sweeps in `(td, mcz)` | `scripts/contour_mcz_td/` |
 | Generate a one-off contour for debugging | `scripts/contour_omega_theta/v4_indiv_contour_otf.py` |
 | Convert or inspect stored outputs | `scripts/utils/` |
 
@@ -30,7 +30,16 @@ In both pipelines, source waveforms are evaluated over a two-parameter grid. The
 | Template bank strategy | Build one bank per `mcz` value in the sweep. | Build one shared bank for the fixed `mcz` value. |
 | Natural array-job split | `--mcz_chunk_index/count` | `--I_chunk_index/count` |
 | Final aggregate grid | `(mcz, td)` | `(I, td)` |
-| Runbook | `docs/CONTOUR_TD_MCZ_PIPELINE_GUIDE.md` | `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md` |
+| Runbook | [CONTOUR_MCZ_TD_PIPELINE_GUIDE.md](CONTOUR_MCZ_TD_PIPELINE_GUIDE.md) | [CONTOUR_I_TD_PIPELINE_GUIDE.md](CONTOUR_I_TD_PIPELINE_GUIDE.md) |
+
+## Parameter Order Convention
+
+Use the following order rules consistently throughout the docs.
+
+- Pipeline and workflow identifiers use `mcz_td` and `I_td`. Use these in folder names, script names, batch scripts, helper names, and runbook filenames because those tokens already match the repo's canonical code and filename surface.
+- Human-facing contour planes use `(td, mcz)` and `(td, I)`. Use these in titles, prose, tables, and plot descriptions because they describe the source-waveform parameter plane as readers encounter it.
+- HDF5, array, and aggregate-grid order use `(mcz, td)` and `(I, td)`. Use these only when describing dataset shapes, matrix layouts, or stored outputs because they should match stored axis order rather than plot wording.
+- Do not introduce new pipeline tokens such as `td_mcz` or `td_I` in new docs, helpers, or filenames because extra aliases make links, filenames, and helper names harder to scan and maintain.
 
 ## Template Banks (`scripts/template_banks/`)
 
@@ -41,8 +50,9 @@ In both pipelines, source waveforms are evaluated over a two-parameter grid. The
 
 ## Mismatch Pipeline over `(td, mcz)` (`scripts/mismatch_mcz_td/`)
 
+- Workflow token: `mcz_td`.
 - Use this folder for the production workflow that varies `(td, mcz)` at fixed `I`.
-- For all stage-by-stage commands, batch defaults, outputs, and naming, use [CONTOUR_TD_MCZ_PIPELINE_GUIDE.md](CONTOUR_TD_MCZ_PIPELINE_GUIDE.md).
+- For all stage-by-stage commands, batch defaults, outputs, and naming, use [CONTOUR_MCZ_TD_PIPELINE_GUIDE.md](CONTOUR_MCZ_TD_PIPELINE_GUIDE.md).
 - Folder-local helpers for existing outputs:
   - `visualize_mismatch_cube.py`
   - `visualize_mcz_sweep_at_td.py`
@@ -51,6 +61,7 @@ In both pipelines, source waveforms are evaluated over a two-parameter grid. The
 
 ## Mismatch Pipeline over `(td, I)` (`scripts/mismatch_I_td/`)
 
+- Workflow token: `I_td`.
 - Use this folder for the production workflow that varies `(td, I)` at fixed `mcz`.
 - For all stage-by-stage commands, batch defaults, outputs, and naming, use [CONTOUR_I_TD_PIPELINE_GUIDE.md](CONTOUR_I_TD_PIPELINE_GUIDE.md).
 
@@ -82,7 +93,7 @@ In both pipelines, source waveforms are evaluated over a two-parameter grid. The
 - `check_lindblom_progress.sh`
 - `complete_lindblom_pipeline.sh`
 
-## Contours over (mcz, td) (`scripts/contour_mcz_td/`)
+## Contours over `(td, mcz)` (`scripts/contour_mcz_td/`)
 
 ### Active scripts
 
@@ -142,11 +153,14 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 Production cluster jobs live in `batch_scripts/`.
 
 - Template banks: `batch_scripts/build_template_banks.sbatch`
-- Mismatch cubes (mcz-td): `batch_scripts/compute_mismatch_mcz_td_cubes.sbatch`
-- Mismatch cubes (I-td): `batch_scripts/compute_mismatch_I_td_cubes.sbatch`
+- Mismatch cubes (`mcz_td`): `batch_scripts/compute_mismatch_mcz_td_cubes.sbatch`
+- Mismatch cubes (`I_td`): `batch_scripts/compute_mismatch_I_td_cubes.sbatch`
 - Lindblom cubes: `batch_scripts/compute_lindblom_cubes.sbatch`
 
-Shared contour config defaults are centralized in `batch_scripts/_contour_mcz_td_config.sh`.
+Shared mismatch-pipeline config defaults live in:
+
+- `batch_scripts/_contour_mcz_td_config.sh` for `mcz_td`
+- `batch_scripts/_contour_I_td_config.sh` for `I_td`
 
 Deprecated batch scripts (for older workflows) are in `legacy/batch_scripts/`.
 
