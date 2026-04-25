@@ -2,9 +2,9 @@
 
 This document describes the production workflow for computing mismatch maps between lensed gravitational-wave sources and precessing template banks, then plotting contours across the `(td, mcz)` parameter space.
 
-Naming convention: this runbook belongs to the `mcz_td` workflow. Human-facing contour notation uses `(td, mcz)`, while stored aggregate-grid order uses `(mcz, td)`. See [SCRIPTS_PIPELINES_GUIDE.md](SCRIPTS_PIPELINES_GUIDE.md#parameter-order-convention).
+This runbook covers the `mcz_td` workflow. Use `(td, mcz)` for the contour plane and `(mcz, td)` for stored aggregate grids. For the full naming convention, see [SCRIPTS_PIPELINES_GUIDE.md](SCRIPTS_PIPELINES_GUIDE.md#parameter-order-convention).
 
-Use this pipeline when you want mismatch trends across chirp mass `mcz` at a fixed flux ratio `I`.
+Use this pipeline when you want mismatch trends across chirp mass `mcz` at fixed flux ratio `I`.
 For a side-by-side comparison with the `(td, I)` workflow, see [SCRIPTS_PIPELINES_GUIDE.md](SCRIPTS_PIPELINES_GUIDE.md#production-pipeline-comparison).
 
 ## Pipeline Overview
