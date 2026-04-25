@@ -45,6 +45,7 @@ from modules.bank_io import (
     safe_open_bank_readonly,
     create_mcz_mismatch_cube,
     write_source_attrs,
+    write_match_provenance_attrs,
     write_mcz_td_grid_attrs,
     write_orientation_attr,
     write_scalar_attr_with_unit,
@@ -322,6 +323,11 @@ def main(
                 # from the actual compute configuration (not inferred from filenames).
                 write_mcz_td_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts_eff)
                 write_scalar_attr_with_unit(mmh5, "z", z_val, none_as_nan=True)
+                write_match_provenance_attrs(
+                    mmh5,
+                    compare_both=compare_both,
+                    use_opt_match=use_opt_match,
+                )
                 mmh5.create_dataset("MLz", data=mlz_arr)
                 write_dataset_units(mmh5, {"MLz": "s"})
 

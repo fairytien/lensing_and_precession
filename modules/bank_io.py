@@ -274,9 +274,31 @@ def write_source_attrs(
     )
 
 
+def write_match_provenance_attrs(
+    h5: h5py.File,
+    *,
+    compare_both: bool,
+    use_opt_match: bool,
+) -> None:
+    """Write match method/minimizer provenance attrs for mismatch outputs."""
+    if compare_both:
+        _write_attrs(
+            h5,
+            {"match_method": "compare_both", "minimizer": "bounded_and_discrete"},
+        )
+    elif use_opt_match:
+        _write_attrs(
+            h5,
+            {"match_method": "optimized_match_bounded", "minimizer": "bounded"},
+        )
+    else:
+        _write_attrs(h5, {"match_method": "match", "minimizer": "none"})
+
+
 def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:
     """Read source metadata attributes from an open HDF5 file if present."""
     attrs = _read_named_attrs(h5.attrs, ("I", "theta_J", "phi_J", "theta_S", "phi_S"))
+    attrs.update(_read_named_attrs(h5.attrs, ("match_method", "minimizer")))
     # Propagate orientation and any source/template parameter snapshots.
     if "orientation_tag" in h5.attrs:
         attrs["orientation_tag"] = h5.attrs["orientation_tag"]
