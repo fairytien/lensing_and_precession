@@ -1,12 +1,6 @@
 # Project Guidelines
 
-Instructions for AI coding agents working in this repository.
-
-## Scope
-
-- Applies to code, docs, and notebook edits in this repo.
-- Keep changes minimal and task-focused. If you notice an unrelated issue, report it but do not fix it unless asked.
-- Prefer updating existing docs over creating new ones. Keep shared workflow-selection guidance in `docs/SCRIPTS_PIPELINES_GUIDE.md` and pipeline-specific execution details in the pipeline runbooks.
+Instructions for AI coding agents working in this repository. These guidelines apply to code, docs, and notebook edits in this repo.
 
 ## Code Style
 
@@ -47,12 +41,10 @@ Instructions for AI coding agents working in this repository.
 
 - Read before writing. Never assume function signatures, return shapes, or call conventions.
 - Keep scope minimal. Report unrelated problems instead of fixing them silently.
+- Prefer updating existing docs over creating new ones. Keep shared workflow-selection guidance in `docs/SCRIPTS_PIPELINES_GUIDE.md` and pipeline-specific execution details in the pipeline runbooks.
 - Parallelize only truly independent edits.
 - Worker globals such as `_S_STRAIN` and `_PSD` are initialized by `init_mismatch_worker`. Do not restructure them into dataclasses or separate modules unless asked.
 - Be brief in explanations and summaries.
-
-## What Not To Do
-
 - Do not create new files unless they are necessary.
 - Do not add comments or docstrings to code you did not change.
 - Do not refactor code that was not part of the request.
