@@ -10,7 +10,7 @@ from typing import Optional
 import numpy as np
 
 from modules.template_bank import build_and_save_bank
-from modules.filenames import template_bank_run_dir
+from modules.filenames import template_bank_run_dir, default_template_bank_base_dir
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.default_params import RP_params_1
 from modules.functions import timer_decorator
@@ -153,11 +153,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--bank_dir",
         type=str,
-        default=os.path.join(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-            "data",
-            "template_banks",
-        ),
+        default=default_template_bank_base_dir(),
     )
     p.add_argument("--bank_prefix", type=str, default="rp_bank")
     p.add_argument("--n_workers", type=int, default=None)

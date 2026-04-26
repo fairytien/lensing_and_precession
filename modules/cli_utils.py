@@ -38,7 +38,7 @@ def resolve_grid_array(
         pts = None
     if step is not None:
         n = int(np.floor((max_val - min_val) / step + 1e-10)) + 1
-        arr = min_val + step * np.arange(n)
+        arr = np.round(min_val + step * np.arange(n), decimals=15)
         if label:
             print(
                 f"[step-mode] {label}: min={min_val}, max={max_val}, step={step} "

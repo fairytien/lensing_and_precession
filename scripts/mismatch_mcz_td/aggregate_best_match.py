@@ -17,6 +17,7 @@ from typing import Optional
 from modules.filenames import (
     best_match_mcz_td_filename,
     contour_run_dir,
+    default_mismatch_base_dir,
     find_mismatch_mcz_cube_files,
     get_mismatch_cube_resolution,
 )
@@ -304,7 +305,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--run_dir",
         type=str,
-        required=True,
+        default=default_mismatch_base_dir(),
         help=(
             "Base contour run directory used to read mismatch_cubes/ and write best_match/. "
             "Final tagged run directory is auto-derived if needed."

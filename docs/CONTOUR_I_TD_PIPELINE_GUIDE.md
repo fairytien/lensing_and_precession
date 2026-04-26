@@ -31,9 +31,13 @@ The production batch scripts are configured for the following default run:
 - Theta grid: `theta = 0..15` with `151` points
 - Gamma grid: `[0, 2pi)` with `51` points
 
+By default, the batch configs and Python CLIs now resolve shared HDF5 artifacts under `/work/10000/fairytien33/gw_shared_data`. Set `SHARED_DATA_ROOT` to override that root.
+
 ## Quick Start
 
 ```bash
+export SHARED_DATA_ROOT="${SHARED_DATA_ROOT:-/work/10000/fairytien33/gw_shared_data}"
+
 # Stage 0: Build one template bank for the fixed mcz value
 python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
@@ -42,14 +46,14 @@ python -m scripts.template_banks.build_template_banks \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
   --z 1 \
-  --bank_dir ./data/template_banks
+  --bank_dir "${SHARED_DATA_ROOT}/template_banks"
 
 # Stage 1: Compute mismatch cubes (array job across I values)
 sbatch batch_scripts/compute_mismatch_I_td_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
 python -m scripts.mismatch_I_td.aggregate_best_match \
-  --run_dir ./data/mismatch \
+  --run_dir "${SHARED_DATA_ROOT}/mismatch" \
   --mcz 20 \
   --td_min_ms 20 --td_max_ms 70 \
   --I_min 0.1 --I_max 0.9 \
@@ -58,7 +62,7 @@ python -m scripts.mismatch_I_td.aggregate_best_match \
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match \
-  --input_path ./data/mismatch_mcz20_I0p1-0p9_z1_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --input_path "${SHARED_DATA_ROOT}/mismatch_mcz20_I0p1-0p9_z1_td20-70_Taman_edgeon/best_match/<best_match_file>.h5" \
   --output_dir ./figures/mismatch
 ```
 
@@ -77,7 +81,7 @@ python -m scripts.template_banks.build_template_banks \
   --theta_min 0 --theta_max 15 --theta_pts 151 \
   --gamma_pts 51 \
   --z 1 \
-  --bank_dir ./data/template_banks
+  --bank_dir "${SHARED_DATA_ROOT}/template_banks"
 ```
 
 ## Stage 1: Compute Mismatch Cubes
@@ -99,8 +103,8 @@ python -m scripts.mismatch_I_td.compute_mismatch_cubes \
   --z 1 \
   --n_workers 8 \
   --use_opt_match \
-  --bank_dir ./data/template_banks \
-  --run_dir ./data/mismatch
+  --bank_dir "${SHARED_DATA_ROOT}/template_banks" \
+  --run_dir "${SHARED_DATA_ROOT}/mismatch"
 ```
 
 **Key arguments:**
@@ -122,7 +126,7 @@ Missing internal `I` rows stay as NaNs so the contour plot shows gaps explicitly
 **Example:**
 ```bash
 python -m scripts.mismatch_I_td.aggregate_best_match \
-  --run_dir ./data/mismatch \
+  --run_dir "${SHARED_DATA_ROOT}/mismatch" \
   --mcz 20 \
   --td_min_ms 20 --td_max_ms 70 \
   --I_min 0.1 --I_max 0.9 \
@@ -140,7 +144,7 @@ Requires an exact best-match `--input_path`; the other run tokens are inferred f
 **Example:**
 ```bash
 python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match \
-  --input_path ./data/mismatch_mcz20_I0p1-0p9_z1_td20-70_Taman_edgeon/best_match/<best_match_file>.h5 \
+  --input_path "${SHARED_DATA_ROOT}/mismatch_mcz20_I0p1-0p9_z1_td20-70_Taman_edgeon/best_match/<best_match_file>.h5" \
   --output_dir ./figures/mismatch
 ```
 
@@ -159,8 +163,9 @@ Important exported variables used by Stage 1:
 - `OMEGA_MIN`, `OMEGA_MAX`, `OMEGA_PTS` (defaults `0`, `6`, `61`)
 - `THETA_MIN`, `THETA_MAX`, `THETA_PTS` (defaults `0`, `15`, `151`)
 - `GAMMA_PTS` (default `51`, interpreted as `[0, 2pi)`)
-- `BANK_DIR` (default `./data/template_banks`)
-- `RUN_DIR` (default `./data/mismatch`)
+- `SHARED_DATA_ROOT` (default `/work/10000/fairytien33/gw_shared_data`)
+- `BANK_DIR` (default `${SHARED_DATA_ROOT}/template_banks`)
+- `RUN_DIR` (default `${SHARED_DATA_ROOT}/mismatch`)
 - `Z` (default `1`, propagated to Python scripts as `--z`)
 
 ## Directory and File Naming Conventions
@@ -168,9 +173,9 @@ Important exported variables used by Stage 1:
 ### Run directories (resolved from base dirs)
 
 - **Template banks:** `{bank_dir_base}_z{z}`
-  - Example: `./data/template_banks_z1`
+  - Example: `${SHARED_DATA_ROOT}/template_banks_z1`
 - **Contour results (cubes + best_match):** `{run_dir_base}_mcz{mcz}_I{I_min}-{I_max}_z{z}_td{td_min}-{td_max}`
-  - Example: `./data/mismatch_mcz20_I0p1-0p9_z1_td20-70`
+  - Example: `${SHARED_DATA_ROOT}/mismatch_mcz20_I0p1-0p9_z1_td20-70`
 - **Contour figures:** `{fig_dir_base}_mcz{mcz}_I{I_min}-{I_max}_z{z}_td{td_min}-{td_max}`
   - Example: `./figures/mismatch_mcz20_I0p1-0p9_z1_td20-70`
 

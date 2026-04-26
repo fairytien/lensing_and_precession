@@ -24,5 +24,6 @@ export THETA_PTS="${THETA_PTS:-151}"
 
 export GAMMA_PTS="${GAMMA_PTS:-51}"
 
-export BANK_DIR="${BANK_DIR:-./data/template_banks}"
-export RUN_DIR="${RUN_DIR:-./data/mismatch}"
+export SHARED_DATA_ROOT="${SHARED_DATA_ROOT:-/work/10000/fairytien33/gw_shared_data}"
+export BANK_DIR="${BANK_DIR:-${SHARED_DATA_ROOT}/template_banks}"
+export RUN_DIR="${RUN_DIR:-${SHARED_DATA_ROOT}/mismatch}"

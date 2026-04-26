@@ -32,6 +32,7 @@ import numpy as np
 
 # Omitted redshift is encoded explicitly via this token.
 _Z_NONE_TOKEN = "NaN"
+_DEFAULT_SHARED_ROOT = "/work/10000/fairytien33/gw_shared_data"
 
 _TEMPLATE_GRID_TOKEN_RE = re.compile(
     r"_omega([^_]+)-([^x_]+)x(\d+)_theta([^_]+)-([^x_]+)x(\d+)_gamma0-2pix(\d+)_"
@@ -57,19 +58,7 @@ def _format_min_precision(
     if decimal_style not in {"p", "dot"}:
         raise ValueError("decimal_style must be 'p' or 'dot'")
 
-    # Convert to string to preserve input precision
-    s = str(value)
-
-    # If it's already an integer string (no decimal point), return as-is
-    if "." not in s:
-        return f"{prefix}{s}{suffix}"
-
-    # Remove trailing zeros after decimal point, but keep at least one digit if all zeros
-    s = s.rstrip("0")
-
-    # If we stripped everything after the decimal, remove the decimal point too
-    if s.endswith("."):
-        s = s[:-1]
+    s = format(float(value), ".15g")
 
     if decimal_style == "p":
         s = s.replace(".", "p")
@@ -162,6 +151,21 @@ def _ensure_dir(path: str) -> str:
     """Create a directory when needed and return it for inline use."""
     os.makedirs(path, exist_ok=True)
     return path
+
+
+def default_shared_data_root() -> str:
+    """Return the shared cluster data root, overridable via env var."""
+    return _normalize_dir_path(os.environ.get("SHARED_DATA_ROOT", _DEFAULT_SHARED_ROOT))
+
+
+def default_template_bank_base_dir() -> str:
+    """Return the shared base directory used for template-bank runs."""
+    return os.path.join(default_shared_data_root(), "template_banks")
+
+
+def default_mismatch_base_dir() -> str:
+    """Return the shared base directory used for mismatch runs."""
+    return os.path.join(default_shared_data_root(), "mismatch")
 
 
 def _range_token(

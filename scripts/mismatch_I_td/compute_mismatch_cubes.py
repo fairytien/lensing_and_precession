@@ -37,6 +37,8 @@ from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.filenames import (
     bank_filename,
+    default_mismatch_base_dir,
+    default_template_bank_base_dir,
     mismatch_I_cube_filename,
     template_bank_run_dir,
     contour_I_td_run_dir,
@@ -462,13 +464,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--bank_dir",
         type=str,
-        default=os.path.join(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            ),
-            "data",
-            "template_banks",
-        ),
+        default=default_template_bank_base_dir(),
     )
     p.add_argument("--bank_prefix", type=str, default="rp_bank")
     p.add_argument("--n_workers", type=int, default=None)
@@ -478,13 +474,7 @@ if __name__ == "__main__":
     p.add_argument(
         "--run_dir",
         type=str,
-        default=os.path.join(
-            os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            ),
-            "data",
-            "mismatch",
-        ),
+        default=default_mismatch_base_dir(),
         help=(
             "Base contour run directory used to write mismatch_cubes/. "
             "Final tagged run directory is auto-derived if needed."
