@@ -163,7 +163,7 @@ def add_redshift_arg(
 
 
 def add_chunking_args(parser: ArgumentParser) -> ArgumentParser:
-    """Attach common mcz chunking arguments used by array jobs."""
+    """Attach common mcz chunking arguments used by array and multi-node jobs."""
     parser.add_argument(
         "--mcz_chunk_index",
         type=int,
@@ -175,5 +175,23 @@ def add_chunking_args(parser: ArgumentParser) -> ArgumentParser:
         type=int,
         default=None,
         help="Total chunks for mcz splitting. Defaults to SLURM_ARRAY_TASK_COUNT if set.",
+    )
+    parser.add_argument(
+        "--node_chunk_index",
+        type=int,
+        default=None,
+        help=(
+            "Node/rank index for intra-job mcz splitting (0-based). "
+            "Defaults to SLURM_PROCID or SLURM_NODEID if set."
+        ),
+    )
+    parser.add_argument(
+        "--node_chunk_count",
+        type=int,
+        default=None,
+        help=(
+            "Total node/rank chunks for intra-job mcz splitting. "
+            "Defaults to SLURM_NTASKS or SLURM_JOB_NUM_NODES if set."
+        ),
     )
     return parser

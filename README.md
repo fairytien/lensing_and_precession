@@ -26,6 +26,21 @@ Core Python libraries used by the main pipeline:
 - `astropy`
 - `lalsuite`
 - `pycbc`
+- `numba`
+
+### HPC process placement
+
+Multiprocessing worker counts now prefer scheduler allocations when `--n_workers`
+or `--n_processes` are not provided:
+
+- `SLURM_CPUS_PER_TASK`
+- `SLURM_CPUS_ON_NODE`
+- `PBS_NP`
+- `NSLOTS`
+- `OMP_NUM_THREADS`
+
+This helps parameter sweeps saturate allocated cores while staying within
+scheduler constraints on shared clusters.
 
 ## Pipeline Workflow
 

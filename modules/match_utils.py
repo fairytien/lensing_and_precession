@@ -13,6 +13,12 @@ from pycbc.filter.matchedfilter import (
 )
 from pycbc.types import FrequencySeries
 
+try:
+    import numba  # type: ignore
+    HAS_NUMBA = True
+except ImportError:
+    HAS_NUMBA = False
+
 
 #############################
 # Section 1: Core Match API #
@@ -707,6 +713,8 @@ def find_optimized_coalescence_params(
 
 def cast_to_match_precision(arr: np.ndarray) -> np.ndarray:
     """Cast arrays to complex128 for stable matched filtering with PyCBC."""
+    if arr.dtype == np.complex128:
+        return arr
     return np.asarray(arr, dtype=np.complex128)
 
 
@@ -755,6 +763,7 @@ def build_source_strain_for_td(
 
 # Globals for worker processes (used by init_mismatch_worker/mismatch_gamma_job)
 _S_STRAIN = None
+_S_STRAINS_TD = None
 _PSD = None
 _DELTA_F = None
 _COMPARE_BOTH = False
@@ -766,7 +775,7 @@ _GAMMA_CHUNK = None
 
 
 def init_mismatch_worker(
-    s_strain,
+    s_strains_td,
     psd,
     delta_f,
     compare_both,
@@ -778,11 +787,16 @@ def init_mismatch_worker(
     """Initializer for multiprocessing workers used in mismatch computation.
 
     Sets module-level globals for the worker process, opens the HDF5 bank
-    read-only, and registers an atexit handler to close the file. The source
-    strain is cast to complex128 to harmonize precision with PSD and templates.
+    read-only, registers an atexit handler to close the file, and runs a
+    FFTW warmup call so that plan compilation happens at init time (in
+    parallel across workers) rather than on the first real mismatch job.
+
+    The per-td source strains are provided once at worker init so jobs can
+    pass only integer indices (r, c, td_idx) without repeatedly pickling the
+    source strain array.
 
     Args:
-        s_strain: Complex frequency-domain source strain array.
+        s_strains_td: Sequence of complex source strain arrays, one per td index.
         psd: Frequency-domain PSD array (compatible with delta_f and frequency grid).
         delta_f: Frequency spacing in Hz.
         compare_both: If True, compare both lensed parities when computing mismatch.
@@ -793,8 +807,9 @@ def init_mismatch_worker(
     """
     import atexit
 
-    global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
-    _S_STRAIN = cast_to_match_precision(s_strain)
+    global _S_STRAIN, _S_STRAINS_TD, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
+    _S_STRAIN = None
+    _S_STRAINS_TD = [cast_to_match_precision(s) for s in s_strains_td]
     _PSD = psd
     _DELTA_F = delta_f
     _COMPARE_BOTH = bool(compare_both)
@@ -805,6 +820,14 @@ def init_mismatch_worker(
     _GAMMA_CHUNK = int(gamma_chunk) if gamma_chunk is not None else None
     atexit.register(lambda: _BANK_H5.close())
 
+    # Warmup: trigger FFTW plan compilation for all plans used in the hot path
+    # (match/IFFT plan AND cyclic_time_shift's FFT plan) so the cost is paid
+    # once at init time, in parallel across workers, rather than on the first
+    # real job.  optimized_match_bounded exercises the full call graph.
+    _n = len(psd)
+    _dummy = FrequencySeries(np.ones(_n, dtype=np.complex128), delta_f=delta_f)
+    optimized_match_bounded(_dummy, _dummy, psd=psd, low_frequency_cutoff=20.0)
+
 
 def mismatch_gamma_job(args: tuple) -> tuple:
     """Compute mismatches for a single (theta=row=r, omega=col=c) across gamma.
@@ -813,7 +836,9 @@ def mismatch_gamma_job(args: tuple) -> tuple:
     globals: source strain, PSD, delta_f, bank handles, gamma chunk size, etc.
 
     Args:
-        args: Tuple (r, c) of integer indices into (theta, omega) axes.
+        args: Tuple (r, c, td_idx) where r/c are integer indices into the
+            (theta, omega) axes and td_idx selects the source strain from
+            worker-global `_S_STRAINS_TD`.
 
     Returns:
         Tuple (r, c, ep_vec, best_ep, best_gamma) where:
@@ -821,32 +846,42 @@ def mismatch_gamma_job(args: tuple) -> tuple:
             - best_ep: minimal mismatch value over gamma (float)
             - best_gamma: gamma value achieving minimal mismatch (float)
     """
-    r, c = args
-    n_gamma = _BANK_DSET.shape[2]
+    r, c, td_idx = args
+    s_strain = _S_STRAINS_TD[int(td_idx)]
+    n_gamma = int(_BANK_DSET.shape[2])
     ep_vec = np.empty(n_gamma, dtype=np.float32)
     best_ep = np.inf
     best_gamma = 0.0
+    psd = _PSD
+    delta_f = _DELTA_F
+    use_opt_match = _USE_OPT_MATCH
+    compare_both = _COMPARE_BOTH
+    gamma_arr = _GAMMA_ARR
+    bank_dset = _BANK_DSET
+    same_len = int(bank_dset.shape[3]) == int(s_strain.shape[0])
+    mismatch_fn = mismatch_from_strains
     chunk = _GAMMA_CHUNK or max(1, min(32, n_gamma))
     for k0 in range(0, n_gamma, chunk):
         k1 = min(n_gamma, k0 + chunk)
-        gamma_block = _BANK_DSET[int(r), int(c), k0:k1, :]  # shape (g, n_freq)
+        gamma_block = bank_dset[int(r), int(c), k0:k1, :]  # shape (g, n_freq)
         gamma_block = cast_to_match_precision(gamma_block)
         for local_idx in range(gamma_block.shape[0]):
             k = k0 + local_idx
             t_arr = gamma_block[local_idx]
-            t_arr, _ = ensure_same_length(t_arr, _S_STRAIN)
-            res = mismatch_from_strains(
+            if not same_len:
+                t_arr, _ = ensure_same_length(t_arr, s_strain)
+            res = mismatch_fn(
                 t_arr,
-                _S_STRAIN,
+                s_strain,
                 f_min=20.0,
-                delta_f=_DELTA_F,
-                psd=_PSD,
-                use_opt_match=_USE_OPT_MATCH,
-                compare_both=_COMPARE_BOTH,
+                delta_f=delta_f,
+                psd=psd,
+                use_opt_match=use_opt_match,
+                compare_both=compare_both,
             )
             ep = float(res["mismatch"])
             ep_vec[k] = ep
             if ep < best_ep:
                 best_ep = ep
-                best_gamma = float(_GAMMA_ARR[k])
+                best_gamma = float(gamma_arr[k])
     return int(r), int(c), ep_vec, float(best_ep), float(best_gamma)
