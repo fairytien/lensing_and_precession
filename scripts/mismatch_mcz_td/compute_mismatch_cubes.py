@@ -17,7 +17,7 @@ import os, argparse
 from typing import Optional
 
 import numpy as np
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
 from modules.functions import (
     get_gw,
@@ -38,6 +38,7 @@ from modules.filenames import (
 )
 from modules.match_utils import (
     build_source_strain_for_td,
+    cast_to_match_precision,
     init_mismatch_worker,
     mismatch_gamma_job,
 )
@@ -55,6 +56,7 @@ from modules.bank_io import (
 import logging
 from modules.cluster_utils import get_env_int, chunk_bounds
 from modules.chunking import choose_gamma_chunk
+from modules.runtime_helpers import effective_worker_count
 from modules.cli_utils import (
     add_orientation_args,
     add_mcz_grid_args,
@@ -104,6 +106,8 @@ def main(
     run_dir: str,
     mcz_chunk_index: Optional[int] = None,
     mcz_chunk_count: Optional[int] = None,
+    node_chunk_index: Optional[int] = None,
+    node_chunk_count: Optional[int] = None,
 ):
     z_val = None if z is None else float(z)
 
@@ -146,25 +150,56 @@ def main(
     mcz_pts_eff = len(mcz_src_msun_arr)
     td_pts_eff = len(td_arr_ms)
 
-    # Resolve chunking from CLI or SLURM env vars
+    # Resolve chunking from CLI or SLURM env vars.
+    # We apply chunking in two stages on mcz:
+    #   1) array-level chunking (across SLURM array tasks)
+    #   2) node/rank-level chunking within each array task
+    # This keeps each worker rank on a contiguous mcz block and avoids
+    # unnecessary FFTW re-planning churn from interleaving masses.
     env_idx = get_env_int("SLURM_ARRAY_TASK_ID")
     env_cnt = get_env_int("SLURM_ARRAY_TASK_COUNT")
     if mcz_chunk_index is None:
         mcz_chunk_index = env_idx
     if mcz_chunk_count is None:
         mcz_chunk_count = env_cnt
+
+    env_node_idx = get_env_int("SLURM_PROCID")
+    if env_node_idx is None:
+        env_node_idx = get_env_int("SLURM_NODEID")
+    env_node_cnt = get_env_int("SLURM_NTASKS")
+    if env_node_cnt is None:
+        env_node_cnt = get_env_int("SLURM_JOB_NUM_NODES")
+    if node_chunk_index is None:
+        node_chunk_index = env_node_idx
+    if node_chunk_count is None:
+        node_chunk_count = env_node_cnt
+
+    start, end = 0, mcz_pts_eff
     if (
         mcz_chunk_index is not None
         and mcz_chunk_count is not None
         and mcz_chunk_count > 1
     ):
         start, end = chunk_bounds(mcz_pts_eff, mcz_chunk_count, mcz_chunk_index)
-        sel = range(start, end)
         logging.info(
             f"Chunking mcz across {mcz_chunk_count} chunks: running indices [{start}:{end})"
         )
-    else:
-        sel = range(mcz_pts_eff)
+
+    if (
+        node_chunk_index is not None
+        and node_chunk_count is not None
+        and node_chunk_count > 1
+    ):
+        local_total = max(0, end - start)
+        nstart, nend = chunk_bounds(local_total, node_chunk_count, node_chunk_index)
+        start = start + nstart
+        end = start + (nend - nstart)
+        logging.info(
+            f"Node chunking mcz across {node_chunk_count} nodes/ranks: "
+            f"rank {node_chunk_index} running indices [{start}:{end})"
+        )
+
+    sel = range(start, end)
 
     y = float(get_y_from_I(I))
     z_str = "None" if z_val is None else f"{z_val:g}"
@@ -329,60 +364,73 @@ def main(
                 ep_min_grid_dset = dsets["epsilon_min_grid"]
                 g_best_grid_dset = dsets["gamma_best_grid"]
 
-                # Iterate over td values
+                # Precompute source strains for all td values once per mcz.
+                # These are passed to workers at init time so each job sends
+                # only (r, c, td_idx) integers.
+                s_strains_by_td = []
                 for j, td in enumerate(td_arr):
                     lens_params_j = dict(lens_params)
                     lens_params_j["MLz"] = float(mlz_arr[j])
-                    s_strain = build_source_strain_for_td(
-                        get_gw, lens_params_j, f_min=f_min, delta_f=delta_f
-                    )
-
-                    # Prepare jobs across (theta, omega) using indices only
-                    total_jobs = int(n_theta) * int(n_omega)
-                    n_workers_eff = (
-                        int(n_workers)
-                        if n_workers is not None
-                        else min(cpu_count(), total_jobs)
-                    )
-
-                    Zgrid = np.zeros((n_theta, n_omega), dtype=np.float32)
-                    Ggrid = np.zeros_like(Zgrid)
-
-                    # Stream results to reduce memory; open bank inside workers
-                    gamma_chunk = choose_gamma_chunk(int(n_gamma))
-                    try:
-                        with Pool(
-                            n_workers_eff,
-                            initializer=init_mismatch_worker,
-                            initargs=(
-                                s_strain,
-                                psd,
-                                delta_f,
-                                compare_both,
-                                use_opt_match,
-                                bank_path,
-                                gamma_arr,
-                                gamma_chunk,
-                            ),
-                            maxtasksperchild=256,
-                        ) as pool:
-                            job_iter = (
-                                (r, c) for r in range(n_theta) for c in range(n_omega)
+                    s_strains_by_td.append(
+                        cast_to_match_precision(
+                            build_source_strain_for_td(
+                                get_gw, lens_params_j, f_min=f_min, delta_f=delta_f
                             )
-                            for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
-                                mismatch_gamma_job, job_iter, chunksize=1
-                            ):
-                                if save_full_mismatch and mm_dset is not None:
-                                    mm_dset[j, r, c, :] = ep_vec
-                                Zgrid[r, c] = ep_min
-                                Ggrid[r, c] = g_best
-                    except Exception as exc:
-                        mcz_failed_exc = exc
-                        break
+                        )
+                    )
 
-                    # Save per-td min grids
-                    ep_min_grid_dset[j, :, :] = Zgrid
-                    g_best_grid_dset[j, :, :] = Ggrid
+                # Create one worker pool for all td iterations so that FFTW
+                # plan compilation (and the cold-start penalty per worker)
+                # is paid only once per mcz rather than once per td.
+                total_jobs = int(n_theta) * int(n_omega)
+                n_workers_eff = effective_worker_count(total_jobs, requested=n_workers)
+                gamma_chunk = choose_gamma_chunk(int(n_gamma))
+
+                try:
+                    with Pool(
+                        n_workers_eff,
+                        initializer=init_mismatch_worker,
+                        initargs=(
+                            s_strains_by_td,
+                            psd,
+                            delta_f,
+                            compare_both,
+                            use_opt_match,
+                            bank_path,
+                            gamma_arr,
+                            gamma_chunk,
+                        ),
+                        maxtasksperchild=256,
+                    ) as pool:
+                        # Iterate over td values, dispatching jobs to the
+                        # already-warm pool each time.
+                        for j, td in enumerate(td_arr):
+                            Zgrid = np.zeros((n_theta, n_omega), dtype=np.float32)
+                            Ggrid = np.zeros_like(Zgrid)
+
+                            try:
+                                job_iter = (
+                                    (r, c, j)
+                                    for r in range(n_theta)
+                                    for c in range(n_omega)
+                                )
+                                for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
+                                    mismatch_gamma_job, job_iter, chunksize=1
+                                ):
+                                    if save_full_mismatch and mm_dset is not None:
+                                        mm_dset[j, r, c, :] = ep_vec
+                                    Zgrid[r, c] = ep_min
+                                    Ggrid[r, c] = g_best
+                            except Exception as exc:
+                                mcz_failed_exc = exc
+                                break
+
+                            # Save per-td min grids
+                            ep_min_grid_dset[j, :, :] = Zgrid
+                            g_best_grid_dset[j, :, :] = Ggrid
+                except Exception as exc:
+                    if mcz_failed_exc is None:
+                        mcz_failed_exc = exc
 
             if mcz_failed_exc is not None:
                 if mm_out_path is not None and os.path.isfile(mm_out_path):
@@ -507,4 +555,6 @@ if __name__ == "__main__":
         run_dir=args.run_dir,
         mcz_chunk_index=args.mcz_chunk_index,
         mcz_chunk_count=args.mcz_chunk_count,
+        node_chunk_index=args.node_chunk_index,
+        node_chunk_count=args.node_chunk_count,
     )

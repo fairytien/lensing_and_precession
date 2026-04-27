@@ -1,6 +1,6 @@
 import sys, os, argparse
 from typing import Tuple, Dict, Any, List
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
 import numpy as np
 import copy
@@ -25,6 +25,7 @@ from modules.default_params import (
     SOLMASS2SEC,
 )
 from modules.Classes import Precessing as P2
+from modules.runtime_helpers import effective_worker_count, recommended_chunksize
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -200,13 +201,14 @@ def main(
                 )
             )
 
-    if n_workers is None:
-        n_workers = min(cpu_count(), len(jobs))
+    n_workers = effective_worker_count(len(jobs), n_workers)
+    chunksize = recommended_chunksize(len(jobs), n_workers)
     print(f"Using {n_workers} workers over a {omega_points}x{theta_points} grid")
 
     # Parallel compute
     with Pool(n_workers) as pool:
-        results = pool.map(_compute_cell_min_ep, jobs)
+        results = pool.imap(_compute_cell_min_ep, jobs, chunksize=chunksize)
+        results = list(results)
 
     # Fill arrays
     Z = np.zeros_like(X, dtype=float)

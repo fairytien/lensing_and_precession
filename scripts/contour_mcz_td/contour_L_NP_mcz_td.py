@@ -1,6 +1,6 @@
 import sys, os, argparse
 from typing import Any, Optional, Tuple, cast
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 from datetime import datetime
 
 import numpy as np
@@ -33,6 +33,7 @@ from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
 from modules.cli_utils import resolve_grid_array
+from modules.runtime_helpers import effective_worker_count, recommended_chunksize
 
 apply_physics_paper_style()
 
@@ -240,10 +241,8 @@ def main(
     y = get_y_from_I(I)
 
     # Determine number of processes
-    if n_processes is None:
-        n_processes = min(cpu_count(), len(mcz_arr))
-    else:
-        n_processes = min(n_processes, len(mcz_arr))
+    n_processes = effective_worker_count(len(mcz_arr), n_processes)
+    chunksize = recommended_chunksize(len(mcz_arr), n_processes)
 
     print(f"Using {n_processes} processes for computation")
     if z is not None:
@@ -273,7 +272,8 @@ def main(
 
     # Compute epsilon grid in parallel
     with Pool(n_processes) as pool:
-        results = pool.map(_compute_mismatch_row, args_list)
+        results = pool.imap(_compute_mismatch_row, args_list, chunksize=chunksize)
+        results = list(results)
 
     # Convert results to numpy array
     Z = np.array(results)
