@@ -71,6 +71,7 @@ python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match \
 **Script:** `python -m scripts.template_banks.build_template_banks`
 
 Build one HDF5 template bank for the fixed `mcz` used by the sweep. Stage 1 reuses this bank for every `I` value.
+Schema: [HDF5_SCHEMA.md](HDF5_SCHEMA.md#2-stage-0-template-bank-file).
 
 **Example:**
 ```bash
@@ -89,6 +90,7 @@ python -m scripts.template_banks.build_template_banks \
 **Script:** `python -m scripts.mismatch_I_td.compute_mismatch_cubes`
 
 Read the prebuilt bank and evaluate mismatches across `(td, theta, omega, gamma)` for each `I` value. Supports SLURM array-job chunking.
+Schema: [HDF5_SCHEMA.md](HDF5_SCHEMA.md#3-stage-1-mismatch-cube-files).
 
 **Example:**
 ```bash
@@ -122,6 +124,7 @@ python -m scripts.mismatch_I_td.compute_mismatch_cubes \
 
 Reduce each cube to the best `(theta, omega)` match at each `(I, td)` point and write one best-match HDF5 file.
 Missing internal `I` rows stay as NaNs so the contour plot shows gaps explicitly.
+Schema: [HDF5_SCHEMA.md](HDF5_SCHEMA.md#4-stage-2-best-match-aggregate-files).
 
 **Example:**
 ```bash
@@ -140,6 +143,7 @@ python -m scripts.mismatch_I_td.aggregate_best_match \
 
 Plot mismatch over `(td, I)` from the best-match file.
 Requires an exact best-match `--input_path`; the other run tokens are inferred from file metadata.
+Input schema: [HDF5_SCHEMA.md](HDF5_SCHEMA.md#4-stage-2-best-match-aggregate-files). Stage 3 writes figures rather than HDF5 artifacts.
 
 **Example:**
 ```bash
@@ -193,48 +197,6 @@ Important exported variables used by Stage 1:
 Notes:
 - Numeric tokens use minimal precision with `p` as decimal separator (e.g., `0p2`).
 - Gamma naming is fixed to radians over `[0, 2pi]` and encoded as `gamma0-2pix{gamma_pts}`.
-
-## Stage Outputs
-
-Use this section as a quick reference for the HDF5 artifacts written by Stages 1 and 2.
-For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCHEMA_V1.md).
-
-### Stage 1 Output: Per-I Mismatch Cube (`run_dir/mismatch_cubes/*.h5`)
-
-**Datasets:**
-- `I`: Scalar flux ratio value (dimensionless)
-- `mcz`: Scalar chirp mass value (Msun)
-- `td`: Time delay array (seconds)
-- `theta`, `omega`: Template-bank coordinate arrays (dimensionless)
-- `gamma`: Template-bank phase array (radians)
-- `epsilon_min_grid`: (td, theta, omega) - minimum mismatch over gamma
-- `gamma_best_grid`: (td, theta, omega) - gamma value achieving minimum
-- `mismatch` (optional): (td, theta, omega, gamma) - full mismatch array if `--save_full_mismatch`
-
-**File Attributes:**
-- `I_min`, `I_max`: Intended I grid bounds from Stage 1 compute settings (dimensionless)
-- `I_pts`: Intended I grid size from Stage 1 compute settings
-- `theta_J`, `phi_J`: Detector orientation angles (radians, or NaN if using preset)
-- `theta_S`, `phi_S`: Source orientation angles (radians, or NaN if using preset)
-- `orientation_tag`: Orientation preset used
-- `z`: Redshift metadata (dimensionless)
-- `mcz_source_msun`: Fixed source-frame chirp mass metadata (Msun)
-
-### Stage 2 Output: Best-Match File (`run_dir/best_match/*.h5`)
-
-**Datasets:**
-- `I`: Expected flux ratio grid for plotting (missing internal rows are kept)
-- `mcz`: Scalar chirp mass value (Msun)
-- `td`: Time delay array (seconds)
-- `epsilon_min`: (I, td) - global minimum mismatch
-- `omega_best`, `theta_best`, `gamma_best`: (I, td) - best-fit template parameters
-- `expected_I`: Expected I grid used by Stage 2
-- `missing_I` (optional): Missing internal I values detected during aggregation
-
-**File Attributes:**
-- `theta_J`, `phi_J`, `theta_S`, `phi_S`: Propagated from cubes
-- `orientation_tag`, `z`: Used by Stage 3 for automatic figure naming
-- `missing_I_count`: Number of missing internal I rows detected by Stage 2
 
 ## Testing Checklist
 

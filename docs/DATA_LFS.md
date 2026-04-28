@@ -126,7 +126,7 @@ export MAX_SIZE_MB=15
 
 - Pickle files can be Python-version sensitive.
 - For long-term portability, export summary metadata alongside pickles (CSV, JSON, or HDF5).
-- Keep HDF5 schema expectations aligned with `docs/HDF5_SCHEMA_V1.md`.
+- Keep HDF5 schema expectations aligned with `docs/HDF5_SCHEMA.md`.
 
 ## 10. Shared Filesystem Workflow (TACC)
 

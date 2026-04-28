@@ -1,4 +1,4 @@
-# HDF5 Artifact Schema v1
+# HDF5 Artifact Schema
 
 This document describes the HDF5 files currently written by the production
 `mcz_td` and `I_td` pipelines.
@@ -205,14 +205,14 @@ write one best-match HDF5 file.
 | Field | Type | Notes |
 |---|---|---|
 | `orientation_tag` | string | Required by downstream readers. |
-| `z` | float or NaN | Redshift metadata written explicitly by the aggregator. |
+| `z` | float or NaN | Redshift metadata written explicitly by the aggregator, dimensionless. |
 | `unit_z` | string | Unit companion for `z`. |
 | `match_method` | string | Propagated from Stage 1 through `read_source_attrs`. |
 | `minimizer` | string | Propagated from Stage 1 through `read_source_attrs`. |
-| `theta_J` | float or NaN | Propagated source metadata. |
-| `phi_J` | float or NaN | Propagated source metadata. |
-| `theta_S` | float or NaN | Propagated source metadata. |
-| `phi_S` | float or NaN | Propagated source metadata. |
+| `theta_J` | float or NaN | Propagated source metadata in `rad`. |
+| `phi_J` | float or NaN | Propagated source metadata in `rad`. |
+| `theta_S` | float or NaN | Propagated source metadata in `rad`. |
+| `phi_S` | float or NaN | Propagated source metadata in `rad`. |
 | `source_param_*` | scalar attrs | Propagated source parameter snapshot. |
 | `source_param_unit_*` | string attrs | Units for known source params. |
 | `template_param_*` | scalar attrs | Propagated template parameter snapshot. |
@@ -222,10 +222,10 @@ write one best-match HDF5 file.
 
 | Pipeline | Field | Type | Notes |
 |---|---|---|---|
-| `mcz_td` | `I` | float | Fixed source flux ratio for the sweep. |
+| `mcz_td` | `I` | float | Fixed source flux ratio for the sweep, dimensionless. |
 | `mcz_td` | `missing_mcz_count` | int | Count corresponding to optional dataset `missing_mcz`. |
 | `I_td` | `mcz_source_msun` | float | Fixed source-frame chirp mass for the sweep. |
-| `I_td` | `unit_mcz_source_msun` | string | Unit companion for `mcz_source_msun`. |
+| `I_td` | `unit_mcz_source_msun` | string | Unit companion for `mcz_source_msun` (`Msun`). |
 | `I_td` | `missing_I_count` | int | Count corresponding to optional dataset `missing_I`. |
 
 Notes:

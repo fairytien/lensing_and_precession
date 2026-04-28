@@ -35,7 +35,7 @@ If you are new to the repository, read in this order:
 - `docs/SCRIPTS_PIPELINES_GUIDE.md`: Canonical index of workflow folders and entry points.
 - `docs/CONTOUR_MCZ_TD_PIPELINE_GUIDE.md`: Runbook for the production `(td, mcz)` mismatch pipeline.
 - `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md`: Runbook for the production `(td, I)` mismatch pipeline at fixed `mcz`.
-- `docs/HDF5_SCHEMA_V1.md`: HDF5 metadata and dataset conventions.
+- `docs/HDF5_SCHEMA.md`: HDF5 metadata and dataset conventions.
 - `docs/DATA_LFS.md`: Data layout, Git LFS workflow, checksums, and large-file safeguards.
 - `docs/STOCKYARD.md`: Shared-storage workflow and symlink patterns on TACC.
 
