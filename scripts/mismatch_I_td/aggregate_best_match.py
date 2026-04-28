@@ -282,6 +282,8 @@ def main(
         )
         # Save source parameters as attributes if available
         for key, val in source_attrs.items():
+            if key == "I":
+                continue
             h5.attrs[key] = val
         write_scalar_attr_with_unit(h5, "z", z_val, none_as_nan=True)
         write_scalar_attr_with_unit(h5, "mcz_source_msun", mcz_msun)

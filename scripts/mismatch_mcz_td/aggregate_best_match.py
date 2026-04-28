@@ -170,12 +170,12 @@ def main(
 
     # Warn about missing rows (discovered vs expected).
     tol_base = max(tol, 1e-3)
-    missing = [
+    missing_mcz = [
         x for x in expected_mcz_msun if np.min(np.abs(discovered_mcz - x)) > tol_base
     ]
-    if missing:
+    if missing_mcz:
         print(
-            f"Warning: {len(missing)} missing mcz rows: {missing[:5]}{'...' if len(missing) > 5 else ''}"
+            f"Warning: {len(missing_mcz)} missing mcz rows: {missing_mcz[:5]}{'...' if len(missing_mcz) > 5 else ''}"
         )
 
     # Build output grids with NaN placeholders for missing rows.
@@ -285,7 +285,7 @@ def main(
         write_missing_mcz_td_metadata(
             h5,
             expected_mcz=np.array(expected_mcz_msun, dtype=np.float64),
-            missing_mcz=np.array(missing_mcz_msun, dtype=np.float64),
+            missing_mcz=np.array(missing_mcz, dtype=np.float64),
         )
         # Save source parameters as attributes if available
         for key, val in source_attrs.items():

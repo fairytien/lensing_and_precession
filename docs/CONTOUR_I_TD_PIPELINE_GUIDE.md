@@ -112,7 +112,7 @@ python -m scripts.mismatch_I_td.compute_mismatch_cubes \
 - `--orient_preset`: Orientation preset (e.g., `Taman_edgeon`)
 - `--I_min/max/pts`: Flux ratio grid
 - `--td_min_ms/max_ms/pts`: Time delay grid (milliseconds)
-- `--omega/theta/gamma`: Template parameter grids
+- `--omega/theta/gamma`: Template parameter grids; `omega` and `theta` are dimensionless, and `gamma` is sampled in radians over `[0, 2pi)`
 - `--I_chunk_index/count`: For SLURM array job chunking
 - `--run_dir` is a base root; final run directory is auto-derived
 
@@ -205,16 +205,20 @@ For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCH
 - `I`: Scalar flux ratio value (dimensionless)
 - `mcz`: Scalar chirp mass value (Msun)
 - `td`: Time delay array (seconds)
-- `theta`, `omega`, `gamma`: Template parameter arrays
+- `theta`, `omega`: Template-bank coordinate arrays (dimensionless)
+- `gamma`: Template-bank phase array (radians)
 - `epsilon_min_grid`: (td, theta, omega) - minimum mismatch over gamma
 - `gamma_best_grid`: (td, theta, omega) - gamma value achieving minimum
 - `mismatch` (optional): (td, theta, omega, gamma) - full mismatch array if `--save_full_mismatch`
 
 **File Attributes:**
-- `I_min`, `I_max`, `I_pts`: Intended I grid from Stage 1 compute settings
-- `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
-- `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
+- `I_min`, `I_max`: Intended I grid bounds from Stage 1 compute settings (dimensionless)
+- `I_pts`: Intended I grid size from Stage 1 compute settings
+- `theta_J`, `phi_J`: Detector orientation angles (radians, or NaN if using preset)
+- `theta_S`, `phi_S`: Source orientation angles (radians, or NaN if using preset)
 - `orientation_tag`: Orientation preset used
+- `z`: Redshift metadata (dimensionless)
+- `mcz_source_msun`: Fixed source-frame chirp mass metadata (Msun)
 
 ### Stage 2 Output: Best-Match File (`run_dir/best_match/*.h5`)
 

@@ -196,7 +196,7 @@ def save_bank_hdf5(
             {
                 "omega": "dimensionless",
                 "theta": "dimensionless",
-                "gamma": "dimensionless",
+                "gamma": "rad",
             },
         )
         dset = h5.create_dataset(
@@ -355,7 +355,7 @@ def build_and_save_bank(
             {
                 "omega": "dimensionless",
                 "theta": "dimensionless",
-                "gamma": "dimensionless",
+                "gamma": "rad",
             },
         )
         dset.attrs["axis_order"] = "theta,omega,gamma,freq"

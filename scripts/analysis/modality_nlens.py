@@ -105,7 +105,18 @@ def load_best_match(path):
         omega_best = f["omega_best"][:]
         theta_best = f["theta_best"][:]
         gamma_best = f["gamma_best"][:]
-        I = float(f.attrs["I"])
+        if "expected_I" in f:
+            raise ValueError(
+                "modality_nlens expects an mcz_td best-match file with an mcz sweep and fixed scalar I; aggregated I_td best-match files are not supported."
+            )
+        if "I" in f.attrs:
+            I = float(f.attrs["I"])
+        elif "source_param_I" in f.attrs:
+            I = float(f.attrs["source_param_I"])
+        else:
+            raise KeyError(
+                "Missing fixed source flux ratio metadata on best-match file."
+            )
         z = float(f.attrs.get("z", f.attrs.get("source_param_z", 0)))
     return dict(
         mcz=mcz_msun,
