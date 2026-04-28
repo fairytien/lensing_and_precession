@@ -38,7 +38,7 @@ By default, the batch configs and Python CLIs now resolve shared HDF5 artifacts 
 ```bash
 export SHARED_DATA_ROOT="${SHARED_DATA_ROOT:-/work/10000/fairytien33/gw_shared_data}"
 
-# Stage 0: Build one template bank for the fixed mcz value
+# Stage 0: Build the fixed-mcz template bank
 python -m scripts.template_banks.build_template_banks \
   --orient_preset Taman_edgeon \
   --mcz_min 20 --mcz_max 20 --mcz_pts 1 \
@@ -237,7 +237,7 @@ For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCH
 Verify the pipeline works correctly:
 
 - [ ] Template bank exists for the requested `mcz` value and orientation tag
-- [ ] Mismatch cubes contain source attributes (`I_min`, `I_max`, orientation angles)
+- [ ] Mismatch cubes contain source attributes (`I_min`, `I_max`, `orientation_tag`, orientation angles)
 - [ ] Best-match file contains propagated attributes
 - [ ] Plotting script can read and plot from best-match file
 - [ ] Batch scripts call correct Python scripts

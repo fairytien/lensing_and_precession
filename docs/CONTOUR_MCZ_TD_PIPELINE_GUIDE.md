@@ -38,10 +38,10 @@ By default, the batch configs and Python CLIs now resolve shared HDF5 artifacts 
 ```bash
 export SHARED_DATA_ROOT="${SHARED_DATA_ROOT:-/work/10000/fairytien33/gw_shared_data}"
 
-# Stage 0: Build banks first (can be chunked across mcz with SLURM arrays)
+# Stage 0: Build template banks (array job across mcz values)
 sbatch batch_scripts/build_template_banks.sbatch
 
-# Stage 1: Compute mismatch cubes
+# Stage 1: Compute mismatch cubes (array job across mcz values)
 sbatch batch_scripts/compute_mismatch_mcz_td_cubes.sbatch
 
 # Stage 2: Aggregate (run once after all chunks complete)
@@ -63,7 +63,7 @@ python -m scripts.mismatch_mcz_td.plot_contour_mcz_td_from_best_match \
 
 **Script:** `python -m scripts.template_banks.build_template_banks`
 
-Build one HDF5 template bank per `mcz` value in the sweep. Stage 1 reads these banks and expects the same orientation tag and grid definition.
+Build one HDF5 template bank per `mcz` value in the sweep. Stage 1 reuses these banks and expects the same orientation tag and grid definition.
 
 **Example:**
 ```bash
@@ -209,6 +209,7 @@ For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCH
 - `I`: Flux ratio
 - `theta_J`, `phi_J`: Detector orientation angles (or NaN if using preset)
 - `theta_S`, `phi_S`: Source orientation angles (or NaN if using preset)
+- `orientation_tag`: Orientation preset used
 - `mcz_min`, `mcz_max`, `mcz_pts`: Intended mcz grid from Stage 1 compute settings
 
 ### Stage 2 Output: Best-Match File (`run_dir/best_match/*.h5`)
@@ -231,7 +232,7 @@ For shared schema conventions across pipelines, see [HDF5_SCHEMA_V1.md](HDF5_SCH
 Verify the pipeline works correctly:
 
 - [ ] Template banks exist for the requested `mcz` range and orientation tag
-- [ ] Mismatch cubes contain source attributes (`I`, orientation angles)
+- [ ] Mismatch cubes contain source attributes (`I`, `orientation_tag`, orientation angles)
 - [ ] Best-match file contains propagated attributes
 - [ ] Plotting script can read and plot from best-match file
 - [ ] Batch scripts call correct Python scripts
