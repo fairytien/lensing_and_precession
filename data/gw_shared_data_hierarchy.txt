@@ -1,0 +1,55 @@
+/work/10000/fairytien33/gw_shared_data
+├── mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon
+│   ├── best_match
+│   │   └── best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5
+│   └── mismatch_cubes
+│       ├── mismatch_cubes_z1_mcz5_..._Taman_faceon.h5
+│       ├── mismatch_cubes_z1_mcz5p5_..._Taman_faceon.h5
+│       ├── mismatch_cubes_z1_mcz6_..._Taman_faceon.h5
+│       ├── ...
+│       └── mismatch_cubes_z1_mcz45_..._Taman_faceon.h5
+├── mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random
+│   ├── best_match
+│   │   └── best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5
+│   └── mismatch_cubes
+│       ├── mismatch_cubes_z1_mcz5_..._Taman_random.h5
+│       ├── mismatch_cubes_z1_mcz5p5_..._Taman_random.h5
+│       ├── mismatch_cubes_z1_mcz6_..._Taman_random.h5
+│       ├── ...
+│       └── mismatch_cubes_z1_mcz45_..._Taman_random.h5
+├── mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon
+│   ├── best_match
+│   │   ├── best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+│   │   └── best_match_I0p5_z1e-08_mcz10-90x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
+│   └── mismatch_cubes
+│       ├── mismatch_cubes_z1e-08_mcz10_..._Taman_edgeon.h5
+│       ├── mismatch_cubes_z1e-08_mcz11_..._Taman_edgeon.h5
+│       ├── mismatch_cubes_z1e-08_mcz12_..._Taman_edgeon.h5
+│       ├── ...
+│       └── mismatch_cubes_z1e-08_mcz90_..._Taman_edgeon.h5
+├── template_banks_z1_Taman_faceon
+│   ├── rp_bank_z1_mcz5_..._Taman_faceon.h5
+│   ├── rp_bank_z1_mcz5p5_..._Taman_faceon.h5
+│   ├── rp_bank_z1_mcz6_..._Taman_faceon.h5
+│   ├── ...
+│   └── rp_bank_z1_mcz45_..._Taman_faceon.h5
+├── template_banks_z1_Taman_random
+│   ├── rp_bank_z1_mcz5_..._Taman_random.h5
+│   ├── rp_bank_z1_mcz5p5_..._Taman_random.h5
+│   ├── rp_bank_z1_mcz6_..._Taman_random.h5
+│   ├── ...
+│   └── rp_bank_z1_mcz45_..._Taman_random.h5
+└── template_banks_z1e-08_Taman_edgeon
+    ├── rp_bank_z1e-08_mcz10_..._Taman_edgeon.h5
+    ├── rp_bank_z1e-08_mcz11_..._Taman_edgeon.h5
+    ├── rp_bank_z1e-08_mcz12_..._Taman_edgeon.h5
+    ├── ...
+    └── rp_bank_z1e-08_mcz90_..._Taman_edgeon.h5
+
+Counts:
+- mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon: 82 files
+- mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random: 82 files
+- mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon: 83 files
+- template_banks_z1_Taman_faceon: 81 files
+- template_banks_z1_Taman_random: 81 files
+- template_banks_z1e-08_Taman_edgeon: 81 files
