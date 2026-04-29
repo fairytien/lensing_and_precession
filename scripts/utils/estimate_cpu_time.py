@@ -1,4 +1,4 @@
-"""Estimate CPU time for template bank builds and mismatch calculations based on job_summary.csv"""
+"""Estimate CPU time for template bank builds and mismatch calculations based on runlog_mcz_td.csv."""
 
 import csv
 import sys
@@ -48,10 +48,10 @@ def estimate_template_bank_time():
 
     # Extract build times from CSV
     build_times = []
-    with open("data/run_logs/job_summary.csv", "r") as f:
+    with open("data/run_logs/runlog_mcz_td.csv", "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row["type"] == "build" and row["total_time"]:
+            if row.get("stage") == "build" and row["total_time"]:
                 time_sec = parse_time(row["total_time"])
                 if time_sec:
                     omega = int(row.get("omega_pts", 0) or 61)
@@ -125,10 +125,10 @@ def estimate_mismatch_time():
 
     # Extract mismatch computation times from CSV
     mismatch_times = []
-    with open("data/run_logs/job_summary.csv", "r") as f:
+    with open("data/run_logs/runlog_mcz_td.csv", "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
-            if row["type"] == "contour" and row["total_time"]:
+            if row.get("stage") == "mismatch" and row["total_time"]:
                 time_sec = parse_time(row["total_time"])
                 if time_sec:
                     # Extract job parameters

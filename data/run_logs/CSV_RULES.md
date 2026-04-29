@@ -2,6 +2,15 @@
 
 This document is the source of truth for parsing/writing CSV files in `data/run_logs`.
 
+## File naming
+
+One CSV file per `{z}_{orientation}_{pipeline}` slice, for example:
+
+- `runlog_z1_Taman_faceon_mcz_td.csv`
+- `runlog_z1_Taman_edgeon_I_td.csv`
+
+Use `runlog_mcz_td.csv` only for mixed slices that do not fit a single `z`/orientation bucket.
+
 ## Scope
 
 - Keep a single CSV per run log context (do not split by stage).
