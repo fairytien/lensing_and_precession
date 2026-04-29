@@ -29,7 +29,6 @@ from typing import List, Optional, Tuple, cast
 import h5py
 import numpy as np
 
-
 # Omitted redshift is encoded explicitly via this token.
 _Z_NONE_TOKEN = "NaN"
 _DEFAULT_SHARED_ROOT = "/work/10000/fairytien33/gw_shared_data"
@@ -738,19 +737,19 @@ def contour_I_td_run_dir(
     z: Optional[float],
     orientation_tag: Optional[str] = None,
 ) -> str:
-    """Return run directory tagged by mcz, I range, z, td range for I-td pipeline.
+    """Return run directory tagged by z, mcz, I range, td range for I-td pipeline.
 
     Appends orientation tag suffix when provided.
 
-    If base_dir already appears to include mcz/I/z/td tokens, it is returned unchanged.
+    If base_dir already appears to include z/mcz/I/td tokens, it is returned unchanged.
     """
     return _build_run_dir(
         base_dir,
-        ("_mcz", "_I", "_z", "_td"),
+        ("_z", "_mcz", "_I", "_td"),
         [
+            _z_dir_token(z),
             f"mcz{_canonical_token(float(mcz))}",
             f"I{_range_token(float(I_min), float(I_max))}",
-            _z_dir_token(z),
             f"td{_range_token(float(td_min_ms), float(td_max_ms))}",
         ],
         orientation_tag,
@@ -777,7 +776,7 @@ def mismatch_I_cube_filename(
     """Build the HDF5 path for per-I mismatch cube outputs (I-td pipeline).
 
     Returns a path under results_dir/mismatch_cubes; creates directories.
-    Order: mismatch family, z, I, mcz, td range, grid resolution, orientation tag.
+    Order: mismatch family, z, mcz, I, td range, grid resolution, orientation tag.
     """
     z_token = _canonical_z_token(z)
     return _build_named_path(
@@ -785,8 +784,8 @@ def mismatch_I_cube_filename(
         [
             "mismatch_cubes",
             f"z{z_token}",
-            f"I{_format_min_precision(I)}",
             f"mcz{_format_min_precision(mcz_msun)}",
+            f"I{_format_min_precision(I)}",
             f"td{_range_token(td_min_ms, td_max_ms, td_pts)}",
             _template_grid_token(
                 omega_min,
@@ -829,14 +828,14 @@ def best_match_I_td_filename(
     """Build the HDF5 path for aggregated best-match outputs across all I (I-td pipeline).
 
     Returns a path under results_dir/best_match; creates directories.
-    Order: best_match family, mcz, I range, z, td range, optional grid, orientation tag.
+    Order: best_match family, z, mcz, I range, td range, optional grid, orientation tag.
     """
     z_token = _canonical_z_token(z)
     name_parts = [
         "best_match",
+        f"z{z_token}",
         f"mcz{_format_min_precision(mcz_msun)}",
         f"I{_range_token(I_min, I_max, I_pts)}",
-        f"z{z_token}",
         f"td{_range_token(td_min_ms, td_max_ms, td_pts)}",
     ]
     # Append full template-grid tokens when available.
@@ -876,16 +875,16 @@ def contour_I_td_filename(
     """Build the figure path for the final mismatch contour over (td, I).
 
     Returns a path under fig_dir; creates directories.
-    Order: contour family, mcz, I range, z, td range, product suffix, orientation tag.
+    Order: contour family, z, mcz, I range, td range, product suffix, orientation tag.
     """
     z_token = _canonical_z_token(z)
     return _build_named_path(
         fig_dir,
         [
             "contour",
+            f"z{z_token}",
             f"mcz{_format_min_precision(mcz_msun)}",
             f"I{_range_token(I_min, I_max, I_pts, coerce_int=True)}",
-            f"z{z_token}",
             f"td{_range_token(td_min_ms, td_max_ms, td_pts, coerce_int=True)}",
             "min_mismatch",
         ],
@@ -922,7 +921,7 @@ def find_mismatch_I_cube_files(
             results_dir,
             "mismatch_cubes",
             (
-                f"mismatch_cubes_z{z_token}_I*_{mcz_token}_{td_token}"
+                f"mismatch_cubes_z{z_token}_{mcz_token}_I*_{td_token}"
                 f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
             ),
         )
@@ -966,8 +965,8 @@ def find_best_match_I_td_file(
         results_dir,
         "best_match",
         (
-            f"best_match_mcz{_canonical_token(mcz_msun)}_I{_range_token(I_min, I_max)}x*"
-            f"_z{z_token}_td{_range_token(td_min_ms, td_max_ms)}x*"
+            f"best_match_z{z_token}_mcz{_canonical_token(mcz_msun)}"
+            f"_I{_range_token(I_min, I_max)}x*_td{_range_token(td_min_ms, td_max_ms)}x*"
             f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
         ),
     )

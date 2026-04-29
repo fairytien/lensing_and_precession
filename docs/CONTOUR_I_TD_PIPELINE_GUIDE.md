@@ -62,7 +62,7 @@ python -m scripts.mismatch_I_td.aggregate_best_match \
 
 # Stage 3: Plot (can be run multiple times with different settings)
 python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match \
-  --input_path "${SHARED_DATA_ROOT}/mismatch_mcz20_I0p1-0p9_z1_td20-70_Taman_edgeon/best_match/<best_match_file>.h5" \
+  --input_path "${SHARED_DATA_ROOT}/mismatch_z1_mcz20_I0p1-0p9_td20-70_Taman_edgeon/best_match/<best_match_file>.h5" \
   --output_dir ./figures/mismatch
 ```
 
@@ -148,7 +148,7 @@ Input schema: [HDF5_SCHEMA.md](HDF5_SCHEMA.md#4-stage-2-best-match-aggregate-fil
 **Example:**
 ```bash
 python -m scripts.mismatch_I_td.plot_contour_I_td_from_best_match \
-  --input_path "${SHARED_DATA_ROOT}/mismatch_mcz20_I0p1-0p9_z1_td20-70_Taman_edgeon/best_match/<best_match_file>.h5" \
+  --input_path "${SHARED_DATA_ROOT}/mismatch_z1_mcz20_I0p1-0p9_td20-70_Taman_edgeon/best_match/<best_match_file>.h5" \
   --output_dir ./figures/mismatch
 ```
 
@@ -178,21 +178,21 @@ Important exported variables used by Stage 1:
 
 - **Template banks:** `{bank_dir_base}_z{z}`
   - Example: `${SHARED_DATA_ROOT}/template_banks_z1`
-- **Contour results (cubes + best_match):** `{run_dir_base}_mcz{mcz}_I{I_min}-{I_max}_z{z}_td{td_min}-{td_max}`
-  - Example: `${SHARED_DATA_ROOT}/mismatch_mcz20_I0p1-0p9_z1_td20-70`
-- **Contour figures:** `{fig_dir_base}_mcz{mcz}_I{I_min}-{I_max}_z{z}_td{td_min}-{td_max}`
-  - Example: `./figures/mismatch_mcz20_I0p1-0p9_z1_td20-70`
+- **Contour results (cubes + best_match):** `{run_dir_base}_z{z}_mcz{mcz}_I{I_min}-{I_max}_td{td_min}-{td_max}`
+  - Example: `${SHARED_DATA_ROOT}/mismatch_z1_mcz20_I0p1-0p9_td20-70`
+- **Contour figures:** `{fig_dir_base}_z{z}_mcz{mcz}_I{I_min}-{I_max}_td{td_min}-{td_max}`
+  - Example: `./figures/mismatch_z1_mcz20_I0p1-0p9_td20-70`
 
 ### Canonical file names
 
 - **Template banks:**
   - `rp_bank_z{z}_mcz{mcz}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
 - **Mismatch cubes (under `mismatch_cubes/`):**
-  - `mismatch_cubes_z{z}_I{I}_mcz{mcz}_td{tdmin}-{tdmax}x{td_pts}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
+  - `mismatch_cubes_z{z}_mcz{mcz}_I{I}_td{tdmin}-{tdmax}x{td_pts}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
 - **Best-match (under `best_match/`):**
-  - `best_match_mcz{mcz}_I{Imin}-{Imax}x{I_pts}_z{z}_td{tdmin}-{tdmax}x{td_pts}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
+  - `best_match_z{z}_mcz{mcz}_I{Imin}-{Imax}x{I_pts}_td{tdmin}-{tdmax}x{td_pts}_omega{omin}-{omax}x{omega_pts}_theta{tmin}-{tmax}x{theta_pts}_gamma0-2pix{gamma_pts}_{tag}.h5`
 - **Contour figure:**
-  - `contour_mcz{mcz}_I{Imin}-{Imax}x{I_pts}_z{z}_td{tdmin}-{tdmax}x{td_pts}_min_mismatch_{tag}.pdf`
+  - `contour_z{z}_mcz{mcz}_I{Imin}-{Imax}x{I_pts}_td{tdmin}-{tdmax}x{td_pts}_min_mismatch_{tag}.pdf`
 
 Notes:
 - Numeric tokens use minimal precision with `p` as decimal separator (e.g., `0p2`).
