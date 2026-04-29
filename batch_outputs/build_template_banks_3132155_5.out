@@ -1,5 +1,0 @@
-[INFO] Resolved bank output directory: /work/10000/fairytien33/gw_shared_data/template_banks_z1_Taman_edgeon
-[INFO] Chunking mcz across 81 chunks: running indices [5:6)
-[INFO] [6/81] Building bank for mcz=7.5 Msun with omega 0.0-6.0 o61, theta 0.0-15.0 t151, gamma g51
-[INFO] Saved: /work/10000/fairytien33/gw_shared_data/template_banks_z1_Taman_edgeon/rp_bank_z1_mcz7p5_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5
-Total time to run the script: 0:3:26.32 (h:m:s)
