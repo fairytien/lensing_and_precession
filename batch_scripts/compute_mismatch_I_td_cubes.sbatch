@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1 # Single task (not MPI)
 #SBATCH --cpus-per-task=128 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
-#SBATCH -t 00:07:00 # Walltime
+#SBATCH -t 00:09:00 # Walltime
 #SBATCH -p normal # Queue name where job is submitted
 #SBATCH --array=0-80
 #SBATCH -o batch_outputs/compute_mismatch_I_td_cubes_%A_%a.out # Output file
@@ -16,7 +16,7 @@ SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_I_td_config.sh"
 
-MCZ=15
+MCZ=5
 
 python -m scripts.mismatch_I_td.compute_mismatch_cubes \
   --mcz "${MCZ}" \
