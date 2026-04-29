@@ -96,7 +96,7 @@ def main(
     cbar = plt.colorbar(cf)
     cbar.set_label(var_info["label"])
     plt.xlabel(r"$\Delta t_d$ [ms]")
-    plt.ylabel(r"$I$ (flux ratio)")
+    plt.ylabel(r"$I$")
     plt.title(
         rf"$\mathcal{{M}}_s = {best_match['mcz']:.1f}\ M_\odot$, $z = {best_match['z']:.2g}$"
     )

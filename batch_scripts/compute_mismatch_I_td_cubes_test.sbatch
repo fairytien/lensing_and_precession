@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1 # Single task (not MPI)
 #SBATCH --cpus-per-task=128 # Use all CPUs on node
 #SBATCH --mem=0 # Use all available memory on node
-#SBATCH -t 00:05:00 # Walltime
+#SBATCH -t 02:00:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
 #SBATCH --array=0 # Single job (no array)
 #SBATCH -o batch_outputs/compute_mismatch_I_td_cubes_test_%A_%a.out # Output file
@@ -18,9 +18,9 @@ source "$SCRIPT_DIR/_contour_I_td_config.sh"
 
 ORIENT_PRESET=Taman_edgeon
 MCZ=25
-I_MIN=0.5
-I_MAX=0.5
-I_PTS=1
+I_MIN=0.3
+I_MAX=0.49
+I_PTS=20
 
 python -m scripts.mismatch_I_td.compute_mismatch_cubes \
   --mcz "${MCZ}" \
