@@ -23,7 +23,7 @@ Use these canonical names:
 - `log_file`
 - `pipeline` (`mcz_td` or `I_td`)
 - `stage` (`build` or `mismatch`)
-- existing parameter/grid columns already used by this repo (for example `mcz`, `I`, `td_*`, `omega_*`, `theta_*`, `gamma_pts`)
+- existing parameter/grid columns already used by this repo (for example `mcz`, `I`, `I_min`, `I_max`, `I_pts`, `td_*`, `omega_*`, `theta_*`, `gamma_pts`)
 - `orientation`
 - `date`
 - `status`
