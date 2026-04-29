@@ -1,12 +1,12 @@
 import os, argparse, pickle
-from typing import Tuple, Optional
+from typing import Optional, Sequence, Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from modules.cosmology import source_mass_redshift_scale
 from modules.default_params import SOLMASS2SEC
-from modules.functions import mcz_for_n_lens_cycles
+from modules.waveform import get_fcut_from_mcz, mcz_for_n_lens_cycles
 from modules.filenames import contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
 
@@ -201,6 +201,87 @@ def plot_cycle_lines(
         mcz_cyc = mcz_for_n_lens_cycles(n_cyc, td_arr, f_min=f_min, eta=eta) * mcz_scale
         label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
         ax.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
+
+
+def fixed_mcz_cycle_positions_ms(
+    mcz_msun: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    *,
+    eta: float = 0.25,
+    f_min: float = 20.0,
+    cycle_counts: Sequence[int] = (1, 2, 3),
+) -> dict[int, float]:
+    """Return visible fixed-mass lensing-cycle positions on a td axis."""
+    f_cut = float(get_fcut_from_mcz(float(mcz_msun), eta=eta))
+    delta_f = f_cut - float(f_min)
+    if delta_f <= 0:
+        return {}
+
+    positions: dict[int, float] = {}
+    for cycle_count in cycle_counts:
+        td_ms = 1e3 * float(cycle_count) / delta_f
+        if td_min_ms <= td_ms <= td_max_ms:
+            positions[int(cycle_count)] = td_ms
+    return positions
+
+
+def _fixed_mcz_extrema_positions_ms(
+    mcz_msun: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    *,
+    eta: float,
+    n_start: float,
+) -> np.ndarray:
+    f_cut = float(get_fcut_from_mcz(float(mcz_msun), eta=eta))
+    if f_cut <= 0:
+        return np.array([], dtype=float)
+
+    positions_ms = []
+    n_value = float(n_start)
+    while True:
+        td_ms = 1e3 * n_value / f_cut
+        if td_ms > td_max_ms:
+            break
+        if td_ms >= td_min_ms:
+            positions_ms.append(td_ms)
+        n_value += 1.0
+    return np.asarray(positions_ms, dtype=float)
+
+
+def fixed_mcz_peak_positions_ms(
+    mcz_msun: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    *,
+    eta: float = 0.25,
+) -> np.ndarray:
+    """Return visible fixed-mass peak positions on a td axis."""
+    return _fixed_mcz_extrema_positions_ms(
+        mcz_msun,
+        td_min_ms,
+        td_max_ms,
+        eta=eta,
+        n_start=1.0,
+    )
+
+
+def fixed_mcz_trough_positions_ms(
+    mcz_msun: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    *,
+    eta: float = 0.25,
+) -> np.ndarray:
+    """Return visible fixed-mass trough positions on a td axis."""
+    return _fixed_mcz_extrema_positions_ms(
+        mcz_msun,
+        td_min_ms,
+        td_max_ms,
+        eta=eta,
+        n_start=0.5,
+    )
 
 
 def _load_data(
