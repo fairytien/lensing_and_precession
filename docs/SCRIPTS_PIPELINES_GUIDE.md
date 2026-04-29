@@ -211,6 +211,26 @@ Patterns:
 - Pipeline family or product: `<family>_<pipeline>`
 - Pipeline helper or entrypoint: `<verb>_<family>_<pipeline>[_artifact]` or `<verb>_<pipeline>_<concept>`
 
+### Output Filename Order
+
+For canonical run directories and output filenames, list fixed-value tokens before swept or range tokens.
+
+- Keep `z` immediately before `mcz` when both appear.
+- Put the `td` range token after the other source-parameter tokens rather than mixing it into the fixed-value block.
+- When filenames also include template-grid tokens such as `omega`, `theta`, and `gamma`, place those grid tokens after the `td` range token.
+- Use the same token order in filename builders and discovery helpers in `modules/filenames.py`.
+
+In the production mismatch pipelines, this means:
+
+- `mcz_td`: fixed `I`, then fixed `z`, then swept `mcz`, then `td`.
+- `I_td`: fixed `z`, then fixed `mcz`, then swept `I`, then `td`.
+- For per-sweep mismatch cube filenames, both pipelines use the same token order: `z`, then `mcz`, then `I`, then `td`.
+
+Examples:
+
+- `mcz_td` run directory: `mismatch_I0p5_z1_mcz10-90_td20-70`
+- `I_td` run directory: `mismatch_z1_mcz20_I0p1-0p9_td20-70`
+
 Order:
 
 - Put local qualifiers such as `mcz`, `I`, and `td` before the artifact noun.
