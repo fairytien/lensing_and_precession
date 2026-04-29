@@ -1,13 +1,13 @@
 #!/bin/bash
 # Configuration for the I-td mismatch pipeline (fixed mcz, varying I and td)
 
-export MCZ="${MCZ:-20}"
+export MCZ="${MCZ:-10}"
 export ORIENT_PRESET="${ORIENT_PRESET:-Taman_edgeon}"
 export Z="${Z:-1}"
 
 export I_MIN="${I_MIN:-0.1}"
 export I_MAX="${I_MAX:-0.9}"
-export I_PTS="${I_PTS:-41}"
+export I_PTS="${I_PTS:-81}"
 export I_STEP="${I_STEP:-}"  # If set, overrides I_PTS (arange-style)
 
 export TD_MIN_MS="${TD_MIN_MS:-20}"
