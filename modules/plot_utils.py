@@ -210,23 +210,26 @@ def plot_standalone_waveform_comparison(
     # customize strain plot
     axes[0].set_yscale("log")
     axes[0].legend(fontsize=20)
-    axes[0].set_xlabel("f (Hz)", fontsize=24)
+    axes[0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
     axes[0].set_ylabel(r"$|\~{h}|$", fontsize=24)
     axes[0].tick_params(axis="both", which="major", labelsize=18)
     axes[0].grid()
     axes[0].set_title("Strain", fontsize=24)
 
     # customize phase difference plot
-    axes[1].set_xlabel("f (Hz)", fontsize=24)
-    axes[1].set_ylabel(r"$\Phi_{\rm s} - \Phi_{\rm t}$ (rad)", fontsize=24)
+    axes[1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
+    axes[1].set_ylabel(
+        r"$\Phi_{\mathrm{s}} - \Phi_{\mathrm{t}}\,[\mathrm{rad}]$",
+        fontsize=24,
+    )
     axes[1].tick_params(axis="both", which="major", labelsize=18)
     axes[1].grid()
     axes[1].set_title("Phase Difference", fontsize=24)
 
     # customize suptitle
     fig.suptitle(
-        r"{} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}, $\~\Omega$ = {:.3g}, $\~\theta$ = {:.3g}, $\gamma_P$ = {:.3g}, $\epsilon = {:.3g}$".format(
-            r"$\mathcal{M}_{\rm s}$",
+        r"{} = {:.3g} {}, $\Delta t_{\mathrm{d}}$ = {:.3g} $\mathrm{{ms}}$, $I$ = {:.3g}, $\~\Omega$ = {:.3g}, $\~\theta$ = {:.3g}, $\gamma_{\mathrm{P}}$ = {:.3g}, $\epsilon = {:.3g}$".format(
+            r"$\mathcal{M}_{\mathrm{s}}$",
             s_params_copy["mcz"] / SOLMASS2SEC,
             r"$M_{\odot}$",
             td * 1e3,
@@ -429,7 +432,7 @@ def plot_waveform_panels(
 
 def customize_2x1_axes(axes: AxesArray) -> None:
     # customize strain plot
-    axes[0].set_xlabel("f (Hz)", fontsize=24)
+    axes[0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
     axes[0].set_ylabel(r"$|\~{h}|$", fontsize=24)
     axes[0].tick_params(axis="both", which="major", labelsize=18)
     axes[0].grid()
@@ -437,8 +440,11 @@ def customize_2x1_axes(axes: AxesArray) -> None:
     axes[0].legend(fontsize=20)
 
     # customize phase difference plot
-    axes[1].set_xlabel("f (Hz)", fontsize=24)
-    axes[1].set_ylabel(r"$\Phi_{\rm s} - \Phi_{\rm t}$ (rad)", fontsize=24)
+    axes[1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
+    axes[1].set_ylabel(
+        r"$\Phi_{\mathrm{s}} - \Phi_{\mathrm{t}}\,[\mathrm{rad}]$",
+        fontsize=24,
+    )
     axes[1].tick_params(axis="both", which="major", labelsize=18)
     axes[1].grid()
     # handles, labels = axes[0].get_legend_handles_labels()
@@ -536,15 +542,18 @@ def customize_3x2_axes_ratio(axes: AxesArray) -> None:
 
 
 def customize_2x1_axes_ratio(axes: AxesArray) -> None:
-    axes[0].set_xlabel("f (Hz)", fontsize=24)
-    axes[0].set_ylabel(r"$\left(B/B_{\rm unlensed}\right) - 1$", fontsize=24)
+    axes[0].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
+    axes[0].set_ylabel(r"$\left(B / B_{\mathrm{UL}}\right) - 1$", fontsize=24)
     axes[0].tick_params(axis="both", which="major", labelsize=18)
     axes[0].grid()
     axes[0].set_yscale("linear")
     axes[0].legend(fontsize=20)
 
-    axes[1].set_xlabel("f (Hz)", fontsize=24)
-    axes[1].set_ylabel(r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{RP}}$ (rad)", fontsize=24)
+    axes[1].set_xlabel(r"$f\,[\mathrm{Hz}]$", fontsize=24)
+    axes[1].set_ylabel(
+        r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{RP}}\,[\mathrm{rad}]$",
+        fontsize=24,
+    )
     axes[1].tick_params(axis="both", which="major", labelsize=18)
     axes[1].grid()
 
@@ -560,7 +569,7 @@ def _draw_mismatch_contour(X, Y, Z, n_levels):
     plt.xlabel(r"$\~\Omega$", fontsize=14)
     plt.ylabel(r"$\~\theta$", fontsize=14)
     plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\rm L}, \~h_{\rm P})$", size=14
+        label=r"$\epsilon(\~h_{\mathrm{L}}, \~h_{\mathrm{P}})$", size=14
     )
 
 
@@ -577,12 +586,12 @@ def _mark_contour_minima(X, Y, Z, n_minima):
 def _add_contour_title(src_params, td, I):
     """Add standard physics annotation title to the current contour plot."""
     plt.title(
-        r"$\theta_S$ = {}, $\phi_S$ = {}, $\theta_J$ = {}, $\phi_J$ = {}, {} = {:.3g} {}, $\Delta t_d$ = {:.3g} ms, $I$ = {:.3g}".format(
+        r"$\theta_{\mathrm{S}}$ = {}, $\phi_{\mathrm{S}}$ = {}, $\theta_{\mathrm{J}}$ = {}, $\phi_{\mathrm{J}}$ = {}, {} = {:.3g} {}, $\Delta t_{\mathrm{d}}$ = {:.3g} $\mathrm{{ms}}$, $I$ = {:.3g}".format(
             angle_to_pi_string(src_params["theta_S"]),
             angle_to_pi_string(src_params["phi_S"]),
             angle_to_pi_string(src_params["theta_J"]),
             angle_to_pi_string(src_params["phi_J"]),
-            r"$\mathcal{M}_{\rm s}$",
+            r"$\mathcal{M}_{\mathrm{s}}$",
             src_params["mcz"] / SOLMASS2SEC,
             r"$M_{\odot}$",
             td * 1e3,

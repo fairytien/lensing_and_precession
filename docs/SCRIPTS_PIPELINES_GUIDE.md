@@ -178,6 +178,15 @@ Deprecated batch scripts (for older workflows) are in `legacy/batch_scripts/`.
 - If historical files use legacy names, migrate them with `python -m scripts.utils.rename_legacy_filenames` and then `python -m scripts.utils.rename_legacy_filenames --apply`.
 - Redshift-aware scripts use detector-frame mass scaling: `mcz_det = mcz * (1 + z)`.
 
+## Figure Typography
+
+Publication-facing figures should follow APS/REVTeX math typography.
+
+- Set physical variables in italic and descriptive labels in upright roman.
+- In this repo, italic variables include `$I$`, `$z$`, `$\theta$`, `$\omega$`, `$\mathcal{M}$`, and `$t$` in `$\Delta t_{\mathrm{d}}$`. Upright descriptors include `$\mathrm{s}$`, `$\mathrm{t}$`, `$\mathrm{NP}$`, `$\mathrm{RP}$`, `$\mathrm{P}$`, `$\mathrm{L}$`, `$\mathrm{UL}$`, `$\mathrm{d}$`, and units such as `$\mathrm{Hz}$` and `$\mathrm{ms}$`.
+- Keep true running indices italic. In this repo, most figure subscripts are descriptive labels, so prefer forms such as `$\Phi_{\mathrm{s}} - \Phi_{\mathrm{t}}$`, `$\mathcal{M}_{\mathrm{s}}$`, `$\gamma_{\mathrm{P}}$`, `$\theta_{\mathrm{S}}$`, `$\phi_{\mathrm{J}}$`, `$\Delta t_{\mathrm{d}}$`, and `$\epsilon(\~h_{\mathrm{L}}, \~h_{\mathrm{P}})$`.
+- In matplotlib mathtext, prefer `\mathrm{...}` over legacy `\rm`. `modules.plot_utils.apply_physics_paper_style()` sets defaults only; plotting scripts must still format labels, titles, legends, and colorbar labels explicitly, and touched figures should be normalized to this convention.
+
 ## Contributor Notes
 
 ### Maintaining This Guide
@@ -228,8 +237,8 @@ In the production mismatch pipelines, this means:
 
 Examples:
 
-- `mcz_td` run directory: `mismatch_I0p5_z1_mcz10-90_td20-70`
-- `I_td` run directory: `mismatch_z1_mcz20_I0p1-0p9_td20-70`
+- `mcz_td` run directory: `mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon`
+- `I_td` run directory: `mismatch_z1_mcz15_I0p1-0p9_td20-70_Taman_edgeon`
 
 Order:
 
