@@ -1,13 +1,13 @@
 """Create a 3-panel publication-style td-I mismatch comparison for Taman system 2.
 
 This script expects three aggregated best-match HDF5 files produced by
-``python -m scripts.mismatch_I_td.aggregate_best_match``. For the intended
-non-precessing comparison, those inputs should come from the existing I_td
-pipeline run with a degenerate one-template bank:
+``python -m scripts.mismatch_I_td.aggregate_best_match`` (RP templates) or
+the legacy single-template NP runs in ``data/contour_I_td/``. The template
+family is auto-detected per file and validated to match across panels:
 
-- omega = 0 with omega_pts = 1
-- theta = 0 with theta_pts = 1
-- gamma_P = 0 with gamma_pts = 1
+- NP: degenerate bank (no ``omega_best``/``theta_best``/``gamma_best``
+  datasets, or ``template_family='NP'`` attribute).
+- RP: full ``omega x theta x gamma`` bank with per-cell best-fit datasets.
 
 The three panels are sorted by source-frame chirp mass and rendered with a
 shared color scale. Each panel overlays:
@@ -24,6 +24,7 @@ import os
 import sys
 from typing import Sequence
 
+import h5py
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
@@ -42,13 +43,17 @@ from scripts.utils.plot_cycles_and_extrema_mcz import (
     fixed_mcz_trough_positions_ms,
 )
 
-DEFAULT_OUTPUT = "figures/contour_I_td/" "compare_LensingvsNP_sys2_z1_mcz5_15_25.pdf"
+DEFAULT_OUTPUT_TEMPLATE = (
+    "figures/contour_I_td/compare_Lensingvs{family}_sys2_z1_mcz5_15_25.pdf"
+)
 
 X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
 Y_AXIS_LABEL = r"$I$"
-COLORBAR_LABEL = (
-    r"$\epsilon\left(\tilde{h}_{\mathrm{L}},\,\tilde{h}_{\mathrm{NP}}\right)$"
+COLORBAR_LABEL_TEMPLATE = (
+    r"$\epsilon\left(\tilde{{h}}_{{\mathrm{{L}}}},\,"
+    r"\tilde{{h}}_{{\mathrm{{{family}}}}}\right)$"
 )
+TEMPLATE_FAMILIES = ("NP", "RP")
 
 _CYCLE_STYLES = {1: "-", 2: "--", 3: ":"}
 
@@ -62,10 +67,24 @@ def _validate_paths(paths: Sequence[str]) -> list[str]:
     return list(paths)
 
 
+def _detect_template_family(path: str) -> str:
+    with h5py.File(path, "r") as h5:
+        raw = h5.attrs.get("template_family")
+        if raw is not None:
+            tag = raw.decode() if isinstance(raw, bytes) else str(raw)
+            tag = tag.strip().upper()
+            if tag in TEMPLATE_FAMILIES:
+                return tag
+        bank_keys = ("omega_best", "theta_best", "gamma_best")
+        return "RP" if all(k in h5 for k in bank_keys) else "NP"
+
+
 def _sort_datasets(paths: Sequence[str]) -> list[dict]:
-    datasets = [
-        read_best_match_I_td_contour_data(path, "epsilon_min") for path in paths
-    ]
+    datasets = []
+    for path in paths:
+        dataset = read_best_match_I_td_contour_data(path, "epsilon_min")
+        dataset["template_family"] = _detect_template_family(path)
+        datasets.append(dataset)
     return sorted(datasets, key=lambda dataset: float(dataset["mcz"]))
 
 
@@ -75,6 +94,7 @@ def _validate_shared_metadata(datasets: Sequence[dict]) -> None:
     i_ref = np.asarray(reference["I"], dtype=float)
     orientation_ref = str(reference["orientation_tag"])
     z_ref = reference["z"]
+    family_ref = str(reference["template_family"])
 
     for dataset in datasets[1:]:
         if not np.allclose(
@@ -87,6 +107,11 @@ def _validate_shared_metadata(datasets: Sequence[dict]) -> None:
             raise ValueError("All inputs must share the same I grid.")
         if str(dataset["orientation_tag"]) != orientation_ref:
             raise ValueError("All inputs must share the same orientation_tag.")
+        if str(dataset["template_family"]) != family_ref:
+            raise ValueError(
+                "All inputs must share the same template family "
+                f"(got {family_ref!r} and {dataset['template_family']!r})."
+            )
 
         z_val = dataset["z"]
         if z_ref is None and z_val is None:
@@ -190,39 +215,44 @@ def _add_mass_box(ax, mcz_source_msun: float) -> None:
     legend.get_frame().set_alpha(0.4)
 
 
-def _add_overlay_legend(fig) -> None:
+def _add_overlay_legend(fig, *, include_extrema: bool) -> None:
     overlay_handles = [
         Line2D([0], [0], color="black", lw=1, ls="-", label=r"$N_{\mathrm{lensed}}=1$"),
         Line2D(
             [0], [0], color="black", lw=1, ls="--", label=r"$N_{\mathrm{lensed}}=2$"
         ),
         Line2D([0], [0], color="black", lw=1, ls=":", label=r"$N_{\mathrm{lensed}}=3$"),
-        Line2D(
-            [0],
-            [0],
-            linestyle="None",
-            marker="o",
-            markersize=6,
-            markerfacecolor="magenta",
-            markeredgecolor="magenta",
-            label="peak",
-        ),
-        Line2D(
-            [0],
-            [0],
-            linestyle="None",
-            marker="o",
-            markersize=6,
-            markerfacecolor="white",
-            markeredgecolor="black",
-            label="trough",
-        ),
     ]
+    if include_extrema:
+        overlay_handles.extend(
+            [
+                Line2D(
+                    [0],
+                    [0],
+                    linestyle="None",
+                    marker="o",
+                    markersize=6,
+                    markerfacecolor="magenta",
+                    markeredgecolor="magenta",
+                    label="peak",
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    linestyle="None",
+                    marker="o",
+                    markersize=6,
+                    markerfacecolor="white",
+                    markeredgecolor="black",
+                    label="trough",
+                ),
+            ]
+        )
     overlay_legend = fig.legend(
         handles=overlay_handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.02),
-        ncol=5,
+        ncol=len(overlay_handles),
         frameon=True,
         fontsize=11,
     )
@@ -231,16 +261,29 @@ def _add_overlay_legend(fig) -> None:
 
 def create_figure(
     paths: Sequence[str],
-    output_path: str,
+    output_path: str | None,
     levels_count: int,
     dpi: int,
     cmap: str,
     f_min: float,
     eta: float,
+    template_family: str | None,
 ) -> None:
     paths = _validate_paths(paths)
     datasets = _sort_datasets(paths)
+    if template_family is not None:
+        family = template_family.strip().upper()
+        if family not in TEMPLATE_FAMILIES:
+            raise ValueError(
+                f"--template_family must be one of {TEMPLATE_FAMILIES}, got {template_family!r}."
+            )
+        for dataset in datasets:
+            dataset["template_family"] = family
     _validate_shared_metadata(datasets)
+    family = str(datasets[0]["template_family"])
+    if output_path is None:
+        output_path = DEFAULT_OUTPUT_TEMPLATE.format(family=family)
+    colorbar_label = COLORBAR_LABEL_TEMPLATE.format(family=family)
 
     masked_values = [
         np.ma.masked_invalid(np.asarray(dataset["values"], dtype=float))
@@ -281,7 +324,8 @@ def create_figure(
 
         mcz_source_msun = float(dataset["mcz"])
 
-        _draw_extrema_overlay(ax, mcz_source_msun, z_value, td_ms, eta)
+        if family != "RP":
+            _draw_extrema_overlay(ax, mcz_source_msun, z_value, td_ms, eta)
         _draw_cycle_overlay(
             ax,
             mcz_source_msun,
@@ -323,19 +367,11 @@ def create_figure(
     # Slimmer colorbar (was 0.022, now 0.016)
     cax = fig.add_axes([right_pos.x1 + 0.018, left_pos.y0, 0.016, left_pos.height])
     colorbar = fig.colorbar(contour_set, cax=cax)
-    colorbar.set_label(COLORBAR_LABEL)
-    tick_locator = mticker.MaxNLocator(nbins=8, steps=[1, 2, 2.5, 5, 10])
-    colorbar_ticks = tick_locator.tick_values(global_min, global_max)
-    colorbar_ticks = colorbar_ticks[
-        (colorbar_ticks >= global_min - 1e-12) & (colorbar_ticks <= global_max + 1e-12)
-    ]
-    colorbar_ticks = np.unique(
-        np.concatenate(([global_min], colorbar_ticks, [global_max]))
-    )
-    colorbar.set_ticks(colorbar_ticks)
+    colorbar.set_label(colorbar_label)
+    colorbar.set_ticks(np.linspace(global_min, global_max, 8))
     colorbar.ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
 
-    _add_overlay_legend(fig)
+    _add_overlay_legend(fig, include_extrema=family != "RP")
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
@@ -351,12 +387,31 @@ def _parse_args() -> argparse.Namespace:
         required=True,
         help="Three aggregated I_td best-match HDF5 files. Panels are sorted by source chirp mass.",
     )
-    parser.add_argument("--output", type=str, default=DEFAULT_OUTPUT)
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help=(
+            "Output figure path. Defaults to "
+            "figures/contour_I_td/compare_Lensingvs<family>_sys2_z1_mcz5_15_25.pdf "
+            "with <family> set from auto-detection or --template_family."
+        ),
+    )
     parser.add_argument("--levels", type=int, default=160)
     parser.add_argument("--dpi", type=int, default=400)
     parser.add_argument("--cmap", type=str, default="jet")
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--eta", type=float, default=0.25)
+    parser.add_argument(
+        "--template_family",
+        type=str,
+        choices=list(TEMPLATE_FAMILIES),
+        default=None,
+        help=(
+            "Override auto-detected template family used in the colorbar "
+            "label and default output filename."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -370,6 +425,7 @@ def main() -> None:
         cmap=args.cmap,
         f_min=args.f_min,
         eta=args.eta,
+        template_family=args.template_family,
     )
 
 

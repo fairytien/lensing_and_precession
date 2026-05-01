@@ -25,17 +25,17 @@ logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 VARIABLE_MAPPING = {
     "epsilon": {
         "dataset": "epsilon_min",
-        "label": r"$\min_{\~\Omega, \~\theta, \gamma_P}$ $\epsilon(\tilde{h}_L, \tilde{h}_P)$",
+        "label": r"$\min_{\~\Omega, \~\theta, \gamma_{\mathrm{P}}}$ $\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$",
         "suffix": "epsilon_min",
     },
     "omega": {
         "dataset": "omega_best",
-        "label": r"$\tilde{\Omega}_{\rm best}$",
+        "label": r"$\tilde{\Omega}_{\mathrm{best}}$",
         "suffix": "omega_best",
     },
     "theta": {
         "dataset": "theta_best",
-        "label": r"$\tilde{\theta}_{\rm best}$",
+        "label": r"$\tilde{\theta}_{\mathrm{best}}$",
         "suffix": "theta_best",
     },
 }
@@ -95,10 +95,10 @@ def main(
     cf = plt.contourf(TD, I_GRID, Zmap, levels=100, cmap="jet")
     cbar = plt.colorbar(cf)
     cbar.set_label(var_info["label"])
-    plt.xlabel(r"$\Delta t_d$ [ms]")
+    plt.xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
     plt.ylabel(r"$I$")
     plt.title(
-        rf"$\mathcal{{M}}_s = {best_match['mcz']:.1f}\ M_\odot$, $z = {best_match['z']:.2g}$"
+        rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {best_match['mcz']:.1f}\,\mathrm{{M}}_\odot$, $z = {best_match['z']:.2g}$"
     )
 
     plt.tight_layout()
