@@ -1,6 +1,6 @@
 """Visualize best-fit precession parameters on the (td, y) grid.
 
-Creates a 2xN panel figure for one to three systems:
+Creates a 2xN panel figure for any number of systems:
 - Top row: best-matching omega_tilde on the native best-match grid
 - Bottom row: best-matching theta_tilde on the native best-match grid
 
@@ -40,7 +40,7 @@ DEFAULT_PATHS = [
 
 DEFAULT_LABELS = ["System 2 (edge-on)"]
 
-DEFAULT_OUTPUT = "figures/contour_mcz_td/" "bestfit_omega_theta_sys2.pdf"
+DEFAULT_OUTPUT = "figures/contour_mcz_td/bestfit_prec_params_sys2.pdf"
 
 
 def _decode_attr_text(value: object) -> str:
@@ -55,6 +55,7 @@ def _load_best_match(path: str) -> Dict[str, np.ndarray]:
         omega_best = np.asarray(h5["omega_best"], dtype=float)
         theta_best = np.asarray(h5["theta_best"], dtype=float)
         z = float(h5.attrs.get("z", h5.attrs.get("source_param_z", 0.0)))
+        orientation = _decode_attr_text(h5.attrs.get("orientation_tag", ""))
         axis_order = _decode_attr_text(h5["omega_best"].attrs.get("axis_order", ""))
         axis_order = axis_order.replace(" ", "")
 
@@ -96,14 +97,15 @@ def _load_best_match(path: str) -> Dict[str, np.ndarray]:
         "theta_best": theta_best,
         "nlens": nlens,
         "z": z,
+        "orientation": orientation,
         "I_value": I_value,
         "mcz_value": mcz_value,
     }
 
 
 def _validate_inputs(paths: List[str], labels: List[str]) -> None:
-    if not 1 <= len(paths) <= 3:
-        raise ValueError(f"Expected 1 to 3 --paths, got {len(paths)}")
+    if len(paths) < 1:
+        raise ValueError("Expected at least 1 --path")
     if len(labels) != len(paths):
         raise ValueError(
             f"Expected --labels to match --paths ({len(paths)}), got {len(labels)}"
@@ -153,9 +155,7 @@ def _is_effectively_exact(
 
 def _uniq_sorted_field(datasets: List[Dict[str, np.ndarray]], key: str) -> str:
     return ", ".join(
-        sorted(
-            {f"{float(d[key]):g}" for d in datasets if np.isfinite(float(d[key]))}
-        )
+        sorted({f"{float(d[key]):g}" for d in datasets if np.isfinite(float(d[key]))})
     )
 
 
@@ -237,7 +237,9 @@ def _slice_line_figure(
         theta_ys = [d["theta_best"][r, :] for d, r in zip(datasets, idxs)]
         xlabel = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
         rel = "=" if _is_effectively_exact(selected, mcz_row) else r"\approx"
-        details = [rf"$\mathcal{{M}}_{{\mathrm{{s}}}}{rel} {mcz_row:g}\,\mathrm{{M}}_\odot$"]
+        details = [
+            rf"$\mathcal{{M}}_{{\mathrm{{s}}}}{rel} {mcz_row:g}\,\mathrm{{M}}_\odot$"
+        ]
         _extend_z(details, datasets)
         if u := _uniq_sorted_field(datasets, "I_value"):
             details.append(rf"$I={u}$")
@@ -283,7 +285,7 @@ def _slice_line_figure(
             )
         logs = [f"Using td={v:.8g} ms for {lab}" for lab, v in zip(labels, selected)]
 
-    suptitle = head + "\n(" + ", ".join(details) + ")"
+    suptitle = head + "\n" + ", ".join(details)
     _plot_line_pair_figure(
         xs, omega_ys, theta_ys, labels, xlabel, suptitle, output_path, dpi, logs
     )
@@ -399,12 +401,9 @@ def create_figure(
         if u := _uniq_sorted_field(datasets, "mcz_value"):
             details.append(rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={u}\,\mathrm{{M}}_\odot$")
     _extend_z(details, datasets)
-
-    title_prefix = (
-        None
-        if ncols == 1
-        else "Best-matching precession parameters across selected systems"
-    )
+    ori_tags = ", ".join(sorted({d["orientation"] for d in datasets if d["orientation"]}))
+    if ori_tags:
+        details.append(ori_tags)
 
     fig.subplots_adjust(
         left=0.12 if ncols == 1 else 0.10,
@@ -415,17 +414,8 @@ def create_figure(
         hspace=0.08,
     )
 
-    if title_prefix and details:
-        suptitle_text = title_prefix + "\n(" + ", ".join(details) + ")"
-    elif title_prefix:
-        suptitle_text = title_prefix
-    elif details:
-        suptitle_text = "(" + ", ".join(details) + ")"
-    else:
-        suptitle_text = None
-
-    if suptitle_text:
-        fig.suptitle(suptitle_text, fontsize=13)
+    if details:
+        fig.suptitle(", ".join(details), fontsize=13)
 
     fig.canvas.draw()
     ylab_omega = r"$\tilde{\Omega}_{\mathrm{best}}$"
@@ -448,7 +438,7 @@ def main() -> None:
         "--paths",
         nargs="+",
         default=DEFAULT_PATHS,
-        help="One to three best_match HDF5 paths",
+        help="One or more best_match HDF5 paths (one panel per path)",
     )
     parser.add_argument(
         "--labels",
