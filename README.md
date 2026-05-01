@@ -32,12 +32,13 @@ Core Python libraries used by the main pipeline:
 Repository documentation is centralized under `docs/`.
 If you are new to the repository, read in this order:
 
-- `docs/SCRIPTS_PIPELINES_GUIDE.md`: Canonical index of workflow folders and entry points.
-- `docs/CONTOUR_MCZ_TD_PIPELINE_GUIDE.md`: Runbook for the production `(td, mcz)` mismatch pipeline.
-- `docs/CONTOUR_I_TD_PIPELINE_GUIDE.md`: Runbook for the production `(td, I)` mismatch pipeline at fixed `mcz`.
-- `docs/HDF5_SCHEMA.md`: HDF5 metadata and dataset conventions.
-- `docs/DATA_LFS.md`: Data layout, Git LFS workflow, checksums, and large-file safeguards.
-- `docs/STOCKYARD.md`: Shared-storage workflow and symlink patterns on TACC.
+- [AGENTS.md](AGENTS.md): Code style, architecture, naming conventions, runtime rules, and figure typography for human contributors and AI agents.
+- [docs/SCRIPTS_PIPELINES_GUIDE.md](docs/SCRIPTS_PIPELINES_GUIDE.md): Canonical index of workflow folders and entry points.
+- [docs/CONTOUR_MCZ_TD_PIPELINE_GUIDE.md](docs/CONTOUR_MCZ_TD_PIPELINE_GUIDE.md): Runbook for the production `(td, mcz)` mismatch pipeline.
+- [docs/CONTOUR_I_TD_PIPELINE_GUIDE.md](docs/CONTOUR_I_TD_PIPELINE_GUIDE.md): Runbook for the production `(td, I)` mismatch pipeline at fixed `mcz`.
+- [docs/HDF5_SCHEMA.md](docs/HDF5_SCHEMA.md): HDF5 metadata and dataset conventions.
+- [docs/DATA_LFS.md](docs/DATA_LFS.md): Data layout, Git LFS workflow, checksums, and large-file safeguards.
+- [docs/STOCKYARD.md](docs/STOCKYARD.md): Shared-storage workflow and symlink patterns on TACC.
 
 ## Authors
 * Tien Nguyen
