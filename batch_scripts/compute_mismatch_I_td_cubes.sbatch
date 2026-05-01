@@ -16,7 +16,8 @@ SCRIPT_DIR="${SLURM_SUBMIT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 source "$SCRIPT_DIR/_common.sh"
 source "$SCRIPT_DIR/_contour_I_td_config.sh"
 
-MCZ=20
+ORIENT_PRESET = Taman_faceon
+MCZ=15
 
 python -m scripts.mismatch_I_td.compute_mismatch_cubes \
   --mcz "${MCZ}" \
