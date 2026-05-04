@@ -10,18 +10,27 @@ One row = one stage execution event. Do not split a run log by stage.
 
 ## Columns
 
-Canonical names and conventions, in column order:
+All canonical columns, in order. Columns marked *(I_td only)* are absent from `mcz_td` files; columns marked *(optional)* may be absent from any file.
 
 - `log_file`
 - `pipeline`: `mcz_td` or `I_td`.
 - `stage`: `build` or `mismatch`.
-- parameter/grid columns used by this repo (e.g. `mcz`, `I`, `I_min`, `I_max`, `I_pts`, `td_*`, `omega_*`, `theta_*`, `gamma_pts`)
+- `total_time`
+- `z` *(absent from `runlog_mcz_td.csv`)*
+- `mcz`, `mcz_min`, `mcz_max`, `mcz_pts`
+- `I`: `0.5` for `mcz_td` mismatch rows; swept value for `I_td` rows; blank for `build` stage rows.
+- `I_min`, `I_max`, `I_pts` *(I_td only)*
+- `td_min_ms`, `td_max_ms`, `td_pts`
+- `omega_min`, `omega_max`, `omega_pts`
+- `theta_min`, `theta_max`, `theta_pts`
+- `gamma_pts`
+- `dtype`
 - `orientation`: e.g. `Taman_faceon`, `Taman_edgeon`, `Taman_random`, `Tien_faceon`, `Tien_edgeon`, `Tien_random`, `Ben_random` (blank if unknown).
 - `save_dir`: path to the output directory relative to `/work/10000/fairytien33/gw_shared_data/`. Use the nearest enclosing directory that groups the artifacts. Blank when no artifact exists or context is insufficient.
 - `save_file`: basename of the saved HDF5 file. Blank when the row represents multiple files or no file exists.
 - `date`: `YYYY-MM-DD` only.
 - `status`: `ok`, `partial`, or `failed`.
-- `Note` (if present)
+- `Note` *(optional)*
 
 Do not introduce extra operational metadata columns (e.g. job IDs) unless explicitly requested.
 
