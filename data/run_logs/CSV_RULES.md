@@ -25,18 +25,20 @@ Use these canonical names:
 - `stage` (`build` or `mismatch`)
 - existing parameter/grid columns already used by this repo (for example `mcz`, `I`, `I_min`, `I_max`, `I_pts`, `td_*`, `omega_*`, `theta_*`, `gamma_pts`)
 - `orientation`
+- `save_path`
 - `date`
 - `status`
 - `Note` (if present in that file)
 
 Column tail order must be:
 
-- `orientation` -> `date` -> `status` -> `Note` (if `Note` exists)
+- `orientation` -> `save_path` -> `date` -> `status` -> `Note` (if `Note` exists)
 
 ## Field conventions
 
 - `date`: `YYYY-MM-DD` only (no time-of-day).
 - `orientation`: for example, `Taman_faceon`, `Taman_edgeon`, `Taman_random`, `Tien_faceon`, `Tien_edgeon`, `Tien_random`, `Ben_random`, etc. (or blank if unknown).
+- `save_path`: absolute path under `/work/10000/fairytien33/gw_shared_data`. Use the exact HDF5 path when one row represents one saved artifact; use the containing shared-data output directory when one row represents multiple saved artifacts. Leave blank when no saved artifact exists or the row lacks enough context.
 - `status`: one of `ok`, `partial`, `failed`.
 - `pipeline`: one of `mcz_td`, `I_td`.
 - `stage`: one of `build`, `mismatch`.
