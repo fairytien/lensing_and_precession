@@ -21,7 +21,6 @@ from modules.plot_utils import (
     customize_3x2_axes_ratio,
 )
 
-
 # ============================================================================
 # Utilities And Plot Helpers
 # ============================================================================
@@ -693,4 +692,5 @@ def plot_best_match_overlay_from_contour(
         "mcz_msun": mcz_msun,
         "td_ms": td_ms,
         "I": I_val,
+        "f_cut": float(f_cut),
     }
