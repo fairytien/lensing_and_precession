@@ -24,14 +24,14 @@ from typing import Optional
 import numpy as np
 from multiprocessing import Pool, cpu_count
 
-from modules.functions import (
+from modules.waveform import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
-    Sn,
-    timer_decorator,
     get_fcut_from_mcz,
 )
+from modules.snr import Sn
+from modules.runtime_helpers import timer_decorator
 from modules.cosmology import apply_z
 from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets

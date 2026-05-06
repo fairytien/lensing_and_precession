@@ -22,7 +22,7 @@ from modules.filenames import (
     get_mismatch_cube_resolution,
     parse_I_from_mismatch_I_cube_path,
 )
-from modules.functions import timer_decorator
+from modules.runtime_helpers import timer_decorator
 from modules.bank_io import (
     read_source_attrs,
     read_I_td_grid_attrs,

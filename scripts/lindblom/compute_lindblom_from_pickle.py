@@ -14,14 +14,14 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.functions import (
+from modules.waveform import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
-    Sn,
     get_fcut_from_mcz,
-    timer_decorator,
 )
+from modules.snr import Sn
+from modules.runtime_helpers import timer_decorator
 from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation
 from pycbc.types import FrequencySeries

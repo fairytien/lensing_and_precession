@@ -16,7 +16,7 @@ import h5py
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from modules.filenames import _format_min_precision
-from modules.functions import timer_decorator
+from modules.runtime_helpers import timer_decorator
 
 import logging
 

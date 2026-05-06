@@ -30,14 +30,14 @@ sys.path.insert(
 )
 
 from modules.Classes import Precessing
-from modules.functions import (
+from modules.waveform import (
     get_gw,
     get_y_from_I,
     get_MLz_from_td,
-    Sn,
     get_fcut_from_mcz,
-    timer_decorator,
 )
+from modules.snr import Sn
+from modules.runtime_helpers import timer_decorator
 from modules.default_params import SOLMASS2SEC, lens_params_1, orient_params
 from modules.orientation import resolve_orientation, allowed_orient_presets
 from modules.filenames import mismatch_mcz_cube_filename, bank_filename

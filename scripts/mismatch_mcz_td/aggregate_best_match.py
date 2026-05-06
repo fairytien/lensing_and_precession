@@ -21,7 +21,7 @@ from modules.filenames import (
     find_mismatch_mcz_cube_files,
     get_mismatch_cube_resolution,
 )
-from modules.functions import timer_decorator
+from modules.runtime_helpers import timer_decorator
 from modules.bank_io import (
     read_source_attrs,
     read_mcz_td_grid_attrs,

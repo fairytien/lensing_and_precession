@@ -6,14 +6,33 @@ Use this guide for generated outputs under `data/` and large binary artifacts tr
 
 Generated artifacts are organized under `data/`.
 
-### Canonical subdirectories
+### Per-run artifacts
+
+Per-run artifacts live in canonical run directories at the top of `data/`, named with the full sweep tokens. Examples:
+
+- `data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon/` (`mcz_td` pipeline)
+- `data/mismatch_z1_mcz15_I0p1-0p9_td20-70_Taman_edgeon/` (`I_td` pipeline)
+
+See [AGENTS.md — Output Filename Order](../AGENTS.md#output-filename-order) for the token grammar.
+
+### Cross-run aggregates and grouped subdirectories
 
 | Directory | Contents |
 |---|---|
 | `data/TACC/` | Outputs produced on TACC (filename prefix `TACC_`) |
-| `data/contour_mcz_td/` | Super contour and multi-system aggregate outputs |
+| `data/contour_mcz_td/` | Final `(td, mcz)` contour HDF5/PDF artifacts and super-contour aggregates |
+| `data/contour_I_td/` | Final `(td, I)` contour HDF5 artifacts |
 | `data/contour_omega_theta/` | Individual omega-theta contour outputs |
-| `data/contours/` | Reserved for future derived contour products |
+| `data/run_logs/` | Per-pipeline run-log CSVs (see [`data/run_logs/CSV_RULES.md`](../data/run_logs/CSV_RULES.md)) |
+
+`figures/` mirrors the same shape: top-level run-dirs (`figures/mismatch_*`) for per-run plots, plus pipeline-grouped subdirs (`contour_mcz_td/`, `contour_I_td/`, `contour_omega_theta/`, `lindblom/`, `mismatch_cubes/`, `mismatch_cubes_mcz_sweep/`, `modality_nlens/`, `waveforms/`, `utils/`).
+
+### Legacy artifacts
+
+Pre-canonical data outputs and figures retained for reference live under `legacy/`:
+
+- `legacy/data/` — pre-canonical data outputs
+- `legacy/figures/` — pre-canonical figures
 
 ### Common filename tokens
 

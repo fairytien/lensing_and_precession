@@ -13,16 +13,15 @@ sys.path.insert(
 )
 
 # Reuse utilities and defaults (explicit imports only)
-from modules.functions import (
+from modules.waveform import (
     set_orientation,
     get_fcut_from_mcz,
-    Sn,
     get_MLz_from_td,
-    mismatch_from_params,
-    optimize_mismatch_mcz,
-    timer_decorator,
     get_y_from_I,
 )
+from modules.snr import Sn
+from modules.match_utils import mismatch_from_params, optimize_mismatch_mcz
+from modules.runtime_helpers import timer_decorator
 from modules.default_params import (
     SOLMASS2SEC,
     lens_params_1,

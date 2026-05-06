@@ -20,7 +20,7 @@ from modules.filenames import (
     get_mismatch_cube_resolution,
     mismatch_mcz_cube_filename,
 )
-from modules.functions import timer_decorator
+from modules.runtime_helpers import timer_decorator
 
 
 @timer_decorator

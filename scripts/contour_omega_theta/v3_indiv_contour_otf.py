@@ -10,15 +10,14 @@ sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.functions import (
+from modules.waveform import (
     get_gw,
-    Sn,
-    optimize_mismatch_gammaP,
     get_y_from_I,
     get_MLz_from_td,
-    pickle_data,
-    timer_decorator,
 )
+from modules.snr import Sn
+from modules.match_utils import optimize_mismatch_gammaP
+from modules.runtime_helpers import pickle_data, timer_decorator
 from modules.default_params import (
     lens_params_1,
     RP_params_1,
