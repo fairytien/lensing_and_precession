@@ -7,7 +7,7 @@
 #SBATCH --mem=0 # Use all available memory on node
 #SBATCH -t 00:10:00 # Walltime
 #SBATCH -p development # Queue name where job is submitted
-#SBATCH --array=31,47,62 # Resubmit failed original I-grid indices
+#SBATCH --array=31,47,62 # Resubmit failed original I-grid indices using original I-grid metadata
 #SBATCH -o batch_outputs/compute_mismatch_I_td_cubes_test_%A_%a.out # Output file
 #SBATCH --mail-type=FAIL # Mail events (NONE, BEGIN, END, FAIL, ARRAY_TASKS, ALL)
 #SBATCH --mail-user=tvn6@cornell.edu
