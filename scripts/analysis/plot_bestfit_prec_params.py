@@ -29,6 +29,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import apply_physics_paper_style
 from modules.waveform import number_of_lens_cycles
 
@@ -40,7 +41,7 @@ DEFAULT_PATHS = [
 
 DEFAULT_LABELS = ["System 2 (edge-on)"]
 
-DEFAULT_OUTPUT = "figures/contour_mcz_td/bestfit_prec_params_sys2.pdf"
+DEFAULT_OUTPUT = "figures/contour_mcz_td/bestfit_prec_params.pdf"
 
 
 def _decode_attr_text(value: object) -> str:
@@ -175,13 +176,24 @@ def _axis_colors(n: int) -> List[str | None]:
     return [colors[i % len(colors)] if colors else None for i in range(n)]
 
 
+def _format_mcz_title(mcz_value: float) -> str:
+    return rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_value:g}\,\mathrm{{M}}_\odot$"
+
+
+def _panel_title(label: str, dataset: Dict[str, np.ndarray], axis_kind: str) -> str:
+    if axis_kind == "I":
+        mcz_value = float(dataset["mcz_value"])
+        if np.isfinite(mcz_value):
+            return _format_mcz_title(mcz_value)
+    return label
+
+
 def _plot_line_pair_figure(
     xs: List[np.ndarray],
     omega_ys: List[np.ndarray],
     theta_ys: List[np.ndarray],
     labels: List[str],
     xlabel: str,
-    suptitle: str,
     output_path: str,
     dpi: int,
     selection_lines: List[str],
@@ -204,7 +216,6 @@ def _plot_line_pair_figure(
     axes[0].legend(loc="best", frameon=True)
 
     fig.subplots_adjust(left=0.12, right=0.97, top=0.89, bottom=0.11, hspace=0.08)
-    fig.suptitle(suptitle, fontsize=13)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
@@ -285,9 +296,8 @@ def _slice_line_figure(
             )
         logs = [f"Using td={v:.8g} ms for {lab}" for lab, v in zip(labels, selected)]
 
-    suptitle = head + "\n" + ", ".join(details)
     _plot_line_pair_figure(
-        xs, omega_ys, theta_ys, labels, xlabel, suptitle, output_path, dpi, logs
+        xs, omega_ys, theta_ys, labels, xlabel, output_path, dpi, logs
     )
 
 
@@ -302,7 +312,7 @@ def _levels_for_field(
 def create_figure(
     paths: List[str],
     labels: List[str],
-    output_path: str,
+    output_path: str | None,
     levels_count: int,
     dpi: int,
     cmap: str,
@@ -332,6 +342,21 @@ def create_figure(
     if slice_td_ms is not None:
         _slice_line_figure(datasets, labels, output_path, dpi, td_column_ms=slice_td_ms)
         return
+
+    if output_path is None:
+        if axis_kind == "I":
+            output_path = bestfit_prec_params_I_td_figure_filename(
+                fig_dir="figures/contour_I_td",
+                mcz_values=[float(d["mcz_value"]) for d in datasets],
+                I_min=float(np.nanmin(datasets[0]["axis_values"])),
+                I_max=float(np.nanmax(datasets[0]["axis_values"])),
+                td_min_ms=float(np.nanmin(datasets[0]["td_ms"])),
+                td_max_ms=float(np.nanmax(datasets[0]["td_ms"])),
+                orientation_tag=str(datasets[0]["orientation"]),
+                z=datasets[0]["z"],
+            )
+        else:
+            output_path = DEFAULT_OUTPUT
 
     omega_levels = _levels_for_field(datasets, "omega_best", levels_count)
     theta_levels = _levels_for_field(datasets, "theta_best", levels_count)
@@ -386,24 +411,12 @@ def create_figure(
                 ax.set_box_aspect(1)
             ax.tick_params(direction="in", top=True, right=True)
 
-        ax_top.set_title(label)
+        ax_top.set_title(_panel_title(label, d, axis_kind))
 
     for ax in axes[1, :]:
         ax.set_xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
     for ax in axes[:, 0]:
         ax.set_ylabel(axis_label)
-
-    details: List[str] = []
-    if axis_kind == "mcz":
-        if u := _uniq_sorted_field(datasets, "I_value"):
-            details.append(rf"$I={u}$")
-    else:
-        if u := _uniq_sorted_field(datasets, "mcz_value"):
-            details.append(rf"$\mathcal{{M}}_{{\mathrm{{s}}}}={u}\,\mathrm{{M}}_\odot$")
-    _extend_z(details, datasets)
-    ori_tags = ", ".join(sorted({d["orientation"] for d in datasets if d["orientation"]}))
-    if ori_tags:
-        details.append(ori_tags)
 
     fig.subplots_adjust(
         left=0.12 if ncols == 1 else 0.10,
@@ -413,9 +426,6 @@ def create_figure(
         wspace=0.05,
         hspace=0.08,
     )
-
-    if details:
-        fig.suptitle(", ".join(details), fontsize=13)
 
     fig.canvas.draw()
     ylab_omega = r"$\tilde{\Omega}_{\mathrm{best}}$"
@@ -448,8 +458,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default=DEFAULT_OUTPUT,
-        help="Output figure path",
+        default=None,
+        help=(
+            "Output figure path. Defaults to an orientation-based name for I-td figures, "
+            "or figures/contour_mcz_td/bestfit_prec_params.pdf otherwise."
+        ),
     )
     parser.add_argument(
         "--levels",

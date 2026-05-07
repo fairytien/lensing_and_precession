@@ -893,6 +893,61 @@ def contour_I_td_filename(
     )
 
 
+def compare_I_td_figure_filename(
+    fig_dir: str,
+    template_family: str,
+    mcz_values: List[float],
+    orientation_tag: str,
+    z: Optional[float] = None,
+    ext: str = "pdf",
+) -> str:
+    """Build the figure path for compare_Lensingvs<family> outputs over (td, I).
+
+    The orientation tag is inserted before the z/mcz parameter tokens.
+    Extrema-overlay style is intentionally not encoded in the filename.
+    """
+    orientation_token = str(orientation_tag).strip() or "orientation"
+    z_token = _canonical_z_token(z)
+    mcz_token = "_".join(_format_min_precision(float(value)) for value in mcz_values)
+    stem = "_".join(
+        [
+            f"compare_Lensingvs{str(template_family).strip().upper()}",
+            orientation_token,
+            f"z{z_token}",
+            f"mcz{mcz_token}",
+        ]
+    )
+    return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")
+
+
+def bestfit_prec_params_I_td_figure_filename(
+    fig_dir: str,
+    mcz_values: List[float],
+    I_min: float,
+    I_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    orientation_tag: str,
+    z: Optional[float] = None,
+    ext: str = "pdf",
+) -> str:
+    """Build the figure path for bestfit precession-parameter outputs over (td, I)."""
+    orientation_token = str(orientation_tag).strip() or "orientation"
+    z_token = _canonical_z_token(z)
+    mcz_token = "-".join(_format_min_precision(float(value)) for value in mcz_values)
+    stem = "_".join(
+        [
+            "bestfit_prec_params",
+            orientation_token,
+            f"z{z_token}",
+            f"mcz{mcz_token}",
+            f"I{_range_token(I_min, I_max)}",
+            f"td{_range_token(td_min_ms, td_max_ms)}",
+        ]
+    )
+    return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")
+
+
 # ==============================================================================
 # (td, I) Inspection And Discovery Helpers
 # ==============================================================================

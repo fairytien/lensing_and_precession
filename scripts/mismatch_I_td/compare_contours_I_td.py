@@ -1,6 +1,6 @@
-"""Create a 3-panel publication-style td-I mismatch comparison for Taman system 2.
+"""Create a publication-style td-I mismatch comparison for one Taman orientation.
 
-This script expects three aggregated best-match HDF5 files produced by
+This script expects one or more aggregated best-match HDF5 files produced by
 ``python -m scripts.mismatch_I_td.aggregate_best_match`` (RP templates) or
 the legacy single-template NP runs in ``data/contour_I_td/``. The template
 family is auto-detected per file and validated to match across panels:
@@ -9,7 +9,7 @@ family is auto-detected per file and validated to match across panels:
   datasets, or ``template_family='NP'`` attribute).
 - RP: full ``omega x theta x gamma`` bank with per-cell best-fit datasets.
 
-The three panels are sorted by source-frame chirp mass and rendered with a
+The panels are sorted by source-frame chirp mass and rendered with a
 shared color scale. Each panel overlays:
 
 - visible N_lensed = 1, 2, 3 lines
@@ -35,16 +35,14 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.bank_io import read_best_match_I_td_contour_data
+from modules.cli_utils import add_cycle_extrema_overlay_args
+from modules.filenames import compare_I_td_figure_filename
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils.plot_cycles_and_extrema_mcz import (
     fixed_mcz_cycle_positions_ms,
     fixed_mcz_peak_positions_ms,
     fixed_mcz_trough_positions_ms,
-)
-
-DEFAULT_OUTPUT_TEMPLATE = (
-    "figures/contour_I_td/compare_Lensingvs{family}_sys2_z1_mcz5_15_25.pdf"
 )
 
 X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
@@ -59,8 +57,8 @@ _CYCLE_STYLES = {1: "-", 2: "--", 3: ":"}
 
 
 def _validate_paths(paths: Sequence[str]) -> list[str]:
-    if len(paths) != 3:
-        raise ValueError(f"Expected exactly 3 input paths, got {len(paths)}")
+    if len(paths) < 1:
+        raise ValueError("Expected at least 1 input path")
     missing = [path for path in paths if not os.path.isfile(path)]
     if missing:
         raise FileNotFoundError(f"Missing input files: {missing}")
@@ -173,28 +171,41 @@ def _draw_cycle_overlay(ax, mcz_source_msun, z, td_ms_arr, f_min, eta):
         )
 
 
-def _draw_extrema_overlay(ax, mcz_source_msun, z, td_ms_arr, eta):
+def _draw_extrema_overlay(
+    ax,
+    mcz_source_msun,
+    z,
+    td_ms_arr,
+    eta,
+    *,
+    plot_peaks: bool,
+    plot_troughs: bool,
+):
+    if not plot_peaks and not plot_troughs:
+        return
     mcz_det = _detector_mcz(mcz_source_msun, z)
     td_min_ms = float(np.min(td_ms_arr))
     td_max_ms = float(np.max(td_ms_arr))
-    _draw_vertical_lines(
-        ax,
-        fixed_mcz_peak_positions_ms(mcz_det, td_min_ms, td_max_ms, eta=eta),
-        color="magenta",
-        ls=":",
-        lw=1.0,
-        alpha=0.9,
-        zorder=6,
-    )
-    _draw_vertical_lines(
-        ax,
-        fixed_mcz_trough_positions_ms(mcz_det, td_min_ms, td_max_ms, eta=eta),
-        color="white",
-        ls=":",
-        lw=1.0,
-        alpha=0.9,
-        zorder=6,
-    )
+    if plot_peaks:
+        _draw_vertical_lines(
+            ax,
+            fixed_mcz_peak_positions_ms(mcz_det, td_min_ms, td_max_ms, eta=eta),
+            color="magenta",
+            ls=":",
+            lw=1.0,
+            alpha=0.9,
+            zorder=6,
+        )
+    if plot_troughs:
+        _draw_vertical_lines(
+            ax,
+            fixed_mcz_trough_positions_ms(mcz_det, td_min_ms, td_max_ms, eta=eta),
+            color="white",
+            ls=":",
+            lw=1.0,
+            alpha=0.9,
+            zorder=6,
+        )
 
 
 def _add_mass_box(ax, mcz_source_msun: float) -> None:
@@ -215,43 +226,75 @@ def _add_mass_box(ax, mcz_source_msun: float) -> None:
     legend.get_frame().set_alpha(0.4)
 
 
-def _add_overlay_legend(fig, *, include_extrema: bool) -> None:
-    overlay_handles = [
-        Line2D([0], [0], color="black", lw=1, ls="-", label=r"$N_{\mathrm{lensed}}=1$"),
-        Line2D(
-            [0], [0], color="black", lw=1, ls="--", label=r"$N_{\mathrm{lensed}}=2$"
-        ),
-        Line2D([0], [0], color="black", lw=1, ls=":", label=r"$N_{\mathrm{lensed}}=3$"),
-    ]
-    if include_extrema:
+def _add_overlay_legend(
+    fig,
+    *,
+    include_cycles: bool,
+    include_peaks: bool,
+    include_troughs: bool,
+) -> None:
+    overlay_handles = []
+    if include_cycles:
         overlay_handles.extend(
             [
                 Line2D(
                     [0],
                     [0],
-                    linestyle="None",
-                    marker="o",
-                    markersize=6,
-                    markerfacecolor="magenta",
-                    markeredgecolor="magenta",
-                    label="peak",
+                    color="black",
+                    lw=2,
+                    ls="-",
+                    label=r"$N_{\mathrm{lensed}}=1$",
                 ),
                 Line2D(
                     [0],
                     [0],
-                    linestyle="None",
-                    marker="o",
-                    markersize=6,
-                    markerfacecolor="white",
-                    markeredgecolor="black",
-                    label="trough",
+                    color="black",
+                    lw=2,
+                    ls="--",
+                    label=r"$N_{\mathrm{lensed}}=2$",
+                ),
+                Line2D(
+                    [0],
+                    [0],
+                    color="black",
+                    lw=2,
+                    ls=":",
+                    label=r"$N_{\mathrm{lensed}}=3$",
                 ),
             ]
         )
+    if include_peaks:
+        overlay_handles.append(
+            Line2D(
+                [0],
+                [0],
+                linestyle="None",
+                marker="o",
+                markersize=6,
+                markerfacecolor="magenta",
+                markeredgecolor="magenta",
+                label="peak",
+            )
+        )
+    if include_troughs:
+        overlay_handles.append(
+            Line2D(
+                [0],
+                [0],
+                linestyle="None",
+                marker="o",
+                markersize=6,
+                markerfacecolor="white",
+                markeredgecolor="black",
+                label="trough",
+            )
+        )
+    if not overlay_handles:
+        return
     overlay_legend = fig.legend(
         handles=overlay_handles,
         loc="lower center",
-        bbox_to_anchor=(0.5, 0.02),
+        bbox_to_anchor=(0.5, 0.012),
         ncol=len(overlay_handles),
         frameon=True,
         fontsize=11,
@@ -268,6 +311,9 @@ def create_figure(
     f_min: float,
     eta: float,
     template_family: str | None,
+    overlay_cycles: bool,
+    overlay_peaks: bool,
+    overlay_troughs: bool,
 ) -> None:
     paths = _validate_paths(paths)
     datasets = _sort_datasets(paths)
@@ -281,8 +327,17 @@ def create_figure(
             dataset["template_family"] = family
     _validate_shared_metadata(datasets)
     family = str(datasets[0]["template_family"])
+    draw_cycles = overlay_cycles
+    draw_peaks = overlay_peaks
+    draw_troughs = overlay_troughs
     if output_path is None:
-        output_path = DEFAULT_OUTPUT_TEMPLATE.format(family=family)
+        output_path = compare_I_td_figure_filename(
+            fig_dir="figures/contour_I_td",
+            template_family=family,
+            mcz_values=[float(dataset["mcz"]) for dataset in datasets],
+            orientation_tag=str(datasets[0]["orientation_tag"]),
+            z=datasets[0]["z"],
+        )
     colorbar_label = COLORBAR_LABEL_TEMPLATE.format(family=family)
 
     masked_values = [
@@ -301,7 +356,16 @@ def create_figure(
 
     apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
 
-    fig, axes = plt.subplots(1, 3, figsize=(12.6, 4.3), sharex=True, sharey=True)
+    ncols = len(datasets)
+    fig, axes = plt.subplots(
+        1,
+        ncols,
+        figsize=(max(4.8, 4.0 * ncols + 0.6), 4.3),
+        sharex=True,
+        sharey=True,
+        squeeze=False,
+    )
+    axes = axes[0]
     levels = np.linspace(global_min, global_max, levels_count)
     contour_set = None
     # Ensure 20 ms is always included
@@ -324,16 +388,25 @@ def create_figure(
 
         mcz_source_msun = float(dataset["mcz"])
 
-        if family != "RP":
-            _draw_extrema_overlay(ax, mcz_source_msun, z_value, td_ms, eta)
-        _draw_cycle_overlay(
-            ax,
-            mcz_source_msun,
-            z_value,
-            td_ms,
-            f_min,
-            eta,
-        )
+        if draw_peaks or draw_troughs:
+            _draw_extrema_overlay(
+                ax,
+                mcz_source_msun,
+                z_value,
+                td_ms,
+                eta,
+                plot_peaks=draw_peaks,
+                plot_troughs=draw_troughs,
+            )
+        if draw_cycles:
+            _draw_cycle_overlay(
+                ax,
+                mcz_source_msun,
+                z_value,
+                td_ms,
+                f_min,
+                eta,
+            )
         _add_mass_box(ax, mcz_source_msun)
 
         ax.set_xlabel(X_AXIS_LABEL)
@@ -359,7 +432,13 @@ def create_figure(
 
     # No figure title per user request
 
-    fig.subplots_adjust(left=0.11, right=0.84, bottom=0.22, top=0.88, wspace=0.04)
+    fig.subplots_adjust(
+        left=0.11 if ncols > 1 else 0.14,
+        right=0.84 if ncols > 1 else 0.82,
+        bottom=0.22,
+        top=0.88,
+        wspace=0.04,
+    )
 
     fig.canvas.draw()
     right_pos = axes[-1].get_position()
@@ -371,7 +450,12 @@ def create_figure(
     colorbar.set_ticks(np.linspace(global_min, global_max, 8))
     colorbar.ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
 
-    _add_overlay_legend(fig, include_extrema=family != "RP")
+    _add_overlay_legend(
+        fig,
+        include_cycles=draw_cycles,
+        include_peaks=draw_peaks,
+        include_troughs=draw_troughs,
+    )
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
@@ -383,9 +467,12 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--paths",
-        nargs=3,
+        nargs="+",
         required=True,
-        help="Three aggregated I_td best-match HDF5 files. Panels are sorted by source chirp mass.",
+        help=(
+            "One or more aggregated I_td best-match HDF5 files. "
+            "Panels are sorted by source chirp mass."
+        ),
     )
     parser.add_argument(
         "--output",
@@ -393,15 +480,16 @@ def _parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Output figure path. Defaults to "
-            "figures/contour_I_td/compare_Lensingvs<family>_sys2_z1_mcz5_15_25.pdf "
-            "with <family> set from auto-detection or --template_family."
+            "figures/contour_I_td/compare_Lensingvs<family>_Taman_<orientation>_z<z>_mcz<mass-list>.pdf."
         ),
     )
     parser.add_argument("--levels", type=int, default=160)
     parser.add_argument("--dpi", type=int, default=400)
     parser.add_argument("--cmap", type=str, default="jet")
-    parser.add_argument("--f_min", type=float, default=20.0)
-    parser.add_argument("--eta", type=float, default=0.25)
+    add_cycle_extrema_overlay_args(
+        parser,
+        include_show_legend=False,
+    )
     parser.add_argument(
         "--template_family",
         type=str,
@@ -426,6 +514,9 @@ def main() -> None:
         f_min=args.f_min,
         eta=args.eta,
         template_family=args.template_family,
+        overlay_cycles=args.overlay_cycles,
+        overlay_peaks=args.overlay_peaks,
+        overlay_troughs=args.overlay_troughs,
     )
 
 
