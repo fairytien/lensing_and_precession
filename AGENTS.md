@@ -66,6 +66,16 @@ Use the following order rules consistently throughout the codebase and docs.
 - HDF5, array, and aggregate-grid order use `(mcz, td)` and `(I, td)`. Use these only when describing dataset shapes, matrix layouts, or stored outputs because they should match stored axis order rather than plot wording.
 - Do not introduce new pipeline tokens such as `td_mcz` or `td_I` in new docs, helpers, or filenames because extra aliases make links, filenames, and helper names harder to scan and maintain.
 
+## Orientation Tags
+
+Use the full orientation tag (e.g., `Taman_faceon`, `Taman_edgeon`, `Taman_random`) in filenames as the canonical identifier of the source/template orientation preset. Do not abbreviate it to a system number in filenames when the orientation tag is available.
+
+When a system number is used as a shorthand (in filenames or figure legends), use this fixed mapping:
+
+- System 1 = `Taman_faceon`
+- System 2 = `Taman_edgeon`
+- System 3 = `Taman_random`
+
 ## Naming
 
 Use this section when naming new scripts, outputs, or filename helpers. Routine runs can ignore it.
