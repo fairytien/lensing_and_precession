@@ -49,6 +49,7 @@ See [AGENTS.md — Parameter Order Convention](../AGENTS.md#parameter-order-conv
 - Use this folder for the production workflow that varies `(td, mcz)` at fixed `I`.
 - For all stage-by-stage commands, batch defaults, outputs, and naming, use [CONTOUR_MCZ_TD_PIPELINE_GUIDE.md](CONTOUR_MCZ_TD_PIPELINE_GUIDE.md).
 - Folder-local helpers for existing outputs:
+  - [`compare_contours_mcz_td.py`](../scripts/mismatch_mcz_td/compare_contours_mcz_td.py)
   - [`visualize_mismatch_cube.py`](../scripts/mismatch_mcz_td/visualize_mismatch_cube.py)
   - [`visualize_mcz_sweep_at_td.py`](../scripts/mismatch_mcz_td/visualize_mcz_sweep_at_td.py)
   - [`plot_omega_theta_from_cube.py`](../scripts/mismatch_mcz_td/plot_omega_theta_from_cube.py)
