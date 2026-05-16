@@ -50,7 +50,6 @@ See [AGENTS.md — Parameter Order Convention](../AGENTS.md#parameter-order-conv
 - For all stage-by-stage commands, batch defaults, outputs, and naming, use [CONTOUR_MCZ_TD_PIPELINE_GUIDE.md](CONTOUR_MCZ_TD_PIPELINE_GUIDE.md).
 - Folder-local helpers for existing outputs:
   - [`compare_contours_mcz_td.py`](../scripts/mismatch_mcz_td/compare_contours_mcz_td.py)
-  - [`visualize_mismatch_cube.py`](../scripts/mismatch_mcz_td/visualize_mismatch_cube.py)
   - [`visualize_mcz_sweep_at_td.py`](../scripts/mismatch_mcz_td/visualize_mcz_sweep_at_td.py)
   - [`plot_omega_theta_from_cube.py`](../scripts/mismatch_mcz_td/plot_omega_theta_from_cube.py)
   - [`convert_best_match_redshift.py`](../scripts/mismatch_mcz_td/convert_best_match_redshift.py)
@@ -131,6 +130,8 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 ### Plotting and comparison
 
+- [`visualize_mismatch_cube.py`](../scripts/utils/visualize_mismatch_cube.py) (single-cube td sweep; `mcz_td` or `I_td` cubes)
+- [`_cube_viz.py`](../scripts/utils/_cube_viz.py) — private helpers for cube movies/sliders (used by `visualize_mismatch_cube` and `visualize_mcz_sweep_at_td`)
 - [`plot_bestmatch_waveform_overlays.py`](../scripts/utils/plot_bestmatch_waveform_overlays.py)
 - [`plot_contour_from_dataset.py`](../scripts/utils/plot_contour_from_dataset.py) (supports both pickle and hdf5 contour inputs)
 - [`plot_cycles_and_extrema_mcz.py`](../scripts/utils/plot_cycles_and_extrema_mcz.py)

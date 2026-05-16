@@ -6,7 +6,7 @@ then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping over chirp mass
 - Optionally writes an interactive HTML slider (Plotly) to scrub chirp mass
 
-Default input directory points to the same location used by visualize_mismatch_cube if present.
+Default input directory points to the same location used by scripts.utils.visualize_mismatch_cube if present.
 """
 
 import os
@@ -21,7 +21,7 @@ from modules.filenames import (
 )
 import matplotlib.pyplot as plt
 from modules.plot_utils import apply_physics_paper_style
-from scripts.mismatch_mcz_td._viz_utils import (
+from scripts.utils._cube_viz import (
     infer_orientation_tag_from_filename,
     format_resolution_suffix,
     global_min_max,
