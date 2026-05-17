@@ -4,6 +4,7 @@ Loads a per-mcz or per-I mismatch cube HDF5 (same schema: td, theta, omega,
 epsilon_min_grid), then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
+- Reuses the input cube basename for output files to preserve canonical tokens
 
 """
 
@@ -12,59 +13,10 @@ import os
 
 import h5py
 import numpy as np
-from modules.filenames import (
-    parse_I_from_mismatch_I_cube_path,
-    parse_mcz_from_mismatch_mcz_cube_path,
-)
 from modules.plot_utils import apply_physics_paper_style
-from scripts.utils._cube_viz import (
-    format_resolution_suffix,
-    infer_orientation_tag_from_filename,
-    save_contour_movie,
-    save_html_slider,
-)
+from scripts.utils._cube_viz import save_contour_movie, save_html_slider
 
 apply_physics_paper_style()
-
-
-def _format_scalar_tag(val: float) -> str:
-    return f"{float(val):g}".replace(".", "p")
-
-
-def _infer_cube_id_token(h5: h5py.File, path: str) -> str:
-    """Basename token for the per-cube swept scalar: mcz (mcz_td) or I (I_td).
-
-    I-td cube files also contain a fixed ``mcz`` token in the filename; prefer
-    dataset ``I`` when present so outputs are not mislabeled as mcz cubes.
-    """
-    if "I" in h5:
-        arr = np.array(h5["I"], dtype=float).ravel()
-        if arr.size >= 1:
-            return f"I{_format_scalar_tag(float(arr[0]))}"
-        parsed = parse_I_from_mismatch_I_cube_path(path)
-        if parsed is not None:
-            return f"I{_format_scalar_tag(float(parsed))}"
-    if "mcz" in h5:
-        arr = np.array(h5["mcz"], dtype=float).ravel()
-        if arr.size >= 1:
-            return f"mcz{_format_scalar_tag(float(arr[0]))}"
-    mcz_val = parse_mcz_from_mismatch_mcz_cube_path(path)
-    if mcz_val is not None:
-        return f"mcz{_format_scalar_tag(float(mcz_val))}"
-    i_val = parse_I_from_mismatch_I_cube_path(path)
-    if i_val is not None:
-        return f"I{_format_scalar_tag(float(i_val))}"
-    return "unknown"
-
-
-def _format_td_range_tag(td_s: np.ndarray) -> str:
-    """Build td range token from td dataset values in seconds."""
-    td_ms = np.asarray(td_s, dtype=float) * 1e3
-    if td_ms.size == 0:
-        return "td-unknown"
-    td_min = f"{float(np.nanmin(td_ms)):g}".replace(".", "p")
-    td_max = f"{float(np.nanmax(td_ms)):g}".replace(".", "p")
-    return f"td{td_min}-{td_max}"
 
 
 def main():
@@ -112,19 +64,13 @@ def main():
         omega = np.array(h5["omega"], dtype=float)
         eps = np.array(h5["epsilon_min_grid"], dtype=float)  # (td, theta, omega)
 
-        res_suffix = format_resolution_suffix(h5)
-        cube_id_token = _infer_cube_id_token(h5, args.input_path)
-
         if eps.ndim != 3 or eps.shape[1:] != (theta.size, omega.size):
             raise ValueError(
                 f"Unexpected epsilon_min_grid shape {eps.shape}; expected (n_td, {theta.size}, {omega.size})"
             )
 
     os.makedirs(args.output_dir, exist_ok=True)
-    tag = infer_orientation_tag_from_filename(args.input_path)
-    td_range_tag = _format_td_range_tag(td)
-
-    base = f"epsilon_cube_td_sweep_{cube_id_token}_{td_range_tag}_{res_suffix}_{tag}"
+    base = os.path.splitext(os.path.basename(args.input_path))[0]
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.output_dir, base + movie_ext)
 
