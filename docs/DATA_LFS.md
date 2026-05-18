@@ -19,7 +19,6 @@ See [AGENTS.md — Output Filename Order](../AGENTS.md#output-filename-order) fo
 
 | Directory | Contents |
 |---|---|
-| `data/TACC/` | Outputs produced on TACC (filename prefix `TACC_`) |
 | `data/contour_mcz_td/` | Final `(td, mcz)` contour HDF5/PDF artifacts and super-contour aggregates |
 | `data/contour_I_td/` | Final `(td, I)` contour HDF5 artifacts |
 | `data/contour_omega_theta/` | Individual omega-theta contour outputs |
@@ -31,7 +30,7 @@ See [AGENTS.md — Output Filename Order](../AGENTS.md#output-filename-order) fo
 
 Pre-canonical data outputs and figures retained for reference live under `legacy/`:
 
-- `legacy/data/` — pre-canonical data outputs
+- `legacy/data/` — pre-canonical data outputs (including `legacy/data/TACC/` for TACC-produced pickle outputs)
 - `legacy/figures/` — pre-canonical figures
 
 ### Common filename tokens
@@ -91,7 +90,7 @@ git add lfs/checksums/manifest.sha256
 
 `lfs/organize_data.py` uses first-match priority:
 
-1. `TACC_` → `data/TACC/`
+1. `TACC_` → `legacy/data/TACC/`
 2. `indiv_contour` or `indiv_mismatch` → `data/contour_omega_theta/`
 3. `super_contour` → `data/contour_mcz_td/`
 4. `mismatch_contour` or `mismatch_contours` → `data/contour_mcz_td/`
@@ -216,8 +215,8 @@ Remove specific large files only:
 
 ```bash
 git filter-repo \
-  --path data/TACC/TACC_sys3_super_contour_mcz40_2024-07-29.pkl \
-  --path data/TACC/TACC_sys2_super_contour_mcz40_2024-08-03.pkl \
+  --path legacy/data/TACC/TACC_sys3_super_contour_mcz40_2024-07-29.pkl \
+  --path legacy/data/TACC/TACC_sys2_super_contour_mcz40_2024-08-03.pkl \
   --invert-paths
 git push --force origin main
 ```

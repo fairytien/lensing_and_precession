@@ -6,7 +6,7 @@ Usage:
   python3 lfs/organize_data.py
 
 Logic priority (first rule that matches a filename wins):
-  1. TACC_ -> data/TACC/
+  1. TACC_ -> legacy/data/TACC/
   2. indiv_contour -> data/contour_omega_theta/
   3. super_contour -> data/contour_mcz_td/
   4. mismatch_contour / mismatch_contours -> data/contour_mcz_td/
@@ -20,6 +20,7 @@ Safeguards:
   * Avoids descending into version control dirs.
 
 """
+
 from __future__ import annotations
 import argparse
 import os
@@ -27,8 +28,9 @@ import shutil
 from pathlib import Path
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+LEGACY_DATA_DIR = Path(__file__).resolve().parent.parent / "legacy" / "data"
 TARGETS = {
-    "TACC": DATA_DIR / "TACC",
+    "TACC": LEGACY_DATA_DIR / "TACC",
     "super": DATA_DIR / "contour_mcz_td",
     "indiv": DATA_DIR / "contour_omega_theta",
 }
