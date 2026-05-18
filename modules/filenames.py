@@ -606,6 +606,90 @@ def contour_mcz_td_filename(
     )
 
 
+def parse_mcz_td_run_dir_metadata(path: str) -> Optional[dict]:
+    """Extract canonical mcz_td run metadata from a run or mismatch_cubes path.
+
+    Accepts either the tagged run directory itself or its mismatch_cubes/
+    child directory.
+    """
+    normalized_path = _normalize_dir_path(path)
+    base_name = os.path.basename(normalized_path)
+    if base_name == "mismatch_cubes":
+        base_name = os.path.basename(os.path.dirname(normalized_path))
+
+    I_val = _parse_scalar_token_from_path(base_name, "_I")
+    z_val = _parse_scalar_token_from_path(base_name, "_z")
+    mcz_range = _parse_range_token_from_path(base_name, "_mcz")
+    td_range = _parse_range_token_from_path(base_name, "_td")
+    orient_match = re.search(r"_([A-Za-z0-9]+_[A-Za-z0-9]+)$", base_name)
+
+    if (
+        I_val is None
+        or z_val is None
+        or mcz_range is None
+        or td_range is None
+        or orient_match is None
+    ):
+        return None
+
+    return {
+        "I": I_val,
+        "z": z_val,
+        "mcz_min": mcz_range[0],
+        "mcz_max": mcz_range[1],
+        "td_min_ms": td_range[0],
+        "td_max_ms": td_range[1],
+        "orientation_tag": orient_match.group(1),
+    }
+
+
+def mismatch_sweep_mcz_td_filename(
+    fig_dir: str,
+    I: float,
+    td_ms: float,
+    mcz_min: float,
+    mcz_max: float,
+    omega_min: float,
+    omega_max: float,
+    omega_pts: int,
+    theta_min: float,
+    theta_max: float,
+    theta_pts: int,
+    gamma_pts: int,
+    orientation_tag: str,
+    z: Optional[float] = None,
+    ext: str = "gif",
+) -> str:
+    """Build the derived mismatch-sweep visualization path for fixed-td mcz sweeps.
+
+    Returns a path under fig_dir; creates directories.
+    Order: mismatch_sweep family, I, td slice, z, mcz range, template grid,
+    orientation tag.
+    """
+    z_token = _canonical_z_token(z)
+    return _build_named_path(
+        fig_dir,
+        [
+            "mismatch_sweep",
+            f"I{_format_min_precision(I)}",
+            f"td{_format_min_precision(td_ms)}",
+            f"z{z_token}",
+            f"mcz{_range_token(mcz_min, mcz_max)}",
+            _template_grid_token(
+                omega_min,
+                omega_max,
+                omega_pts,
+                theta_min,
+                theta_max,
+                theta_pts,
+                gamma_pts,
+            ),
+        ],
+        orientation_tag,
+        ext=ext,
+    )
+
+
 # ==============================================================================
 # (td, mcz) Inspection And Discovery Helpers
 # ==============================================================================

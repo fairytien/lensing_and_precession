@@ -114,10 +114,13 @@ In the production mismatch pipelines, this means:
 - `I_td`: fixed `z`, then fixed `mcz`, then swept `I`, then `td`.
 - For per-sweep mismatch cube filenames, both pipelines use the same token order: `z`, then `mcz`, then `I`, then `td`.
 
+Exception for `mismatch_sweep` visualizations (`visualize_mcz_sweep_at_td.py`): `mismatch_sweep`, fixed `I`, fixed `td`, fixed `z`, swept `mcz`, template-grid token, orientation tag. Does not apply to run directories, Stage-1 cube files, or aggregated products.
+
 Examples:
 
 - `mcz_td` run directory: `mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon`
 - `I_td` run directory: `mismatch_z1_mcz15_I0p1-0p9_td20-70_Taman_edgeon`
+- `mismatch_sweep` visualization: `mismatch_sweep_I0p5_td40_z1_mcz5-45_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon`
 
 ### Symbol Name Order
 

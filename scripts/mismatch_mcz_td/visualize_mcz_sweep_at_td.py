@@ -6,9 +6,11 @@ then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping over chirp mass
 - Optionally writes an interactive HTML slider (Plotly) to scrub chirp mass
 
-Default input directory points to the same location used by scripts.utils.visualize_mismatch_cube if present.
+Input directory must point to a canonical mismatch_cubes/ directory for one
+mcz_td run; run-level tokens are inferred from its parent path.
 """
 
+import glob
 import os
 import argparse
 from typing import List, Optional
@@ -16,15 +18,14 @@ from typing import List, Optional
 import numpy as np
 import h5py
 from modules.filenames import (
-    find_mismatch_mcz_cube_files,
+    mismatch_sweep_mcz_td_filename,
+    parse_mcz_td_run_dir_metadata,
+    parse_template_grid_tokens,
     parse_mcz_from_mismatch_mcz_cube_path,
 )
 import matplotlib.pyplot as plt
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils._cube_viz import (
-    infer_orientation_tag_from_filename,
-    format_resolution_suffix,
-    global_min_max,
     find_td_index,
     save_contour_movie,
     save_html_slider,
@@ -98,26 +99,16 @@ def save_grid_with_individual_colorbars(
 
 
 def main():
-    repo_root = os.path.dirname(
-        os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    )
-
     p = argparse.ArgumentParser(
         description="Make movie and/or slider sweeping mcz at fixed td"
     )
     p.add_argument(
         "--input_dir",
-        default=os.path.join(repo_root, "data/mismatch"),
+        required=True,
         help=(
-            "Run directory that contains mismatch_cubes/ subfolder with per-mcz "
-            "mismatch cube HDF5 files"
+            "Canonical mismatch_cubes/ directory for one mcz_td run, e.g. "
+            "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon/mismatch_cubes"
         ),
-    )
-    p.add_argument(
-        "--orientation_tag",
-        type=str,
-        default=None,
-        help="Filter files by orientation tag (e.g., Taman_edgeon). If omitted, infer from files",
     )
     p.add_argument(
         "--td_ms",
@@ -127,7 +118,12 @@ def main():
     )
     p.add_argument(
         "--output_dir",
-        default=os.path.join(repo_root, "figures/mismatch_cubes_mcz_sweep"),
+        default=os.path.join(
+            os.path.dirname(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            ),
+            "figures/mismatch_cubes_mcz_sweep",
+        ),
         help="Directory for outputs (movie + slider)",
     )
     p.add_argument("--cmap", type=str, default="jet")
@@ -149,17 +145,22 @@ def main():
     p.add_argument("--grid_max_panels", type=int, default=12)
     args = p.parse_args()
 
-    files = find_mismatch_mcz_cube_files(
-        results_dir=args.input_dir,
-        td_min_ms=None,
-        td_max_ms=None,
-        orientation_tag=args.orientation_tag or "*",
-    )
+    cube_dir = os.path.normpath(args.input_dir)
+    if os.path.basename(cube_dir) != "mismatch_cubes":
+        raise ValueError(
+            f"--input_dir must point to a mismatch_cubes/ directory, got: {args.input_dir}"
+        )
+
+    run_meta = parse_mcz_td_run_dir_metadata(cube_dir)
+    if run_meta is None:
+        raise ValueError(
+            f"Could not parse canonical mcz_td run metadata from input_dir: {args.input_dir}"
+        )
+
+    files = sorted(glob.glob(os.path.join(cube_dir, "*.h5")))
     if not files:
         raise FileNotFoundError(
-            "No mismatch cube files found in "
-            f"{args.input_dir} (tag={args.orientation_tag}). "
-            "Expected cube .h5 files under input_dir/mismatch_cubes/."
+            f"No mismatch cube files found in {args.input_dir}. Expected .h5 files directly inside mismatch_cubes/."
         )
 
     # Load axes consistency and collect per-mcz slices at fixed td
@@ -167,12 +168,12 @@ def main():
     eps_slices: List[np.ndarray] = []
     theta_ref: Optional[np.ndarray] = None
     omega_ref: Optional[np.ndarray] = None
-    res_suffix: Optional[str] = None
-    orient_tag: Optional[str] = args.orientation_tag
+    gamma_ref: Optional[np.ndarray] = None
+    grid_params: Optional[dict] = None
 
     for fp in files:
         with h5py.File(fp, "r") as h5:
-            for ds in ("td", "theta", "omega", "epsilon_min_grid"):
+            for ds in ("td", "theta", "omega", "gamma", "epsilon_min_grid"):
                 if ds not in h5:
                     raise KeyError(
                         f"Dataset '{ds}' missing in {fp}; found keys: {list(h5.keys())}"
@@ -180,15 +181,42 @@ def main():
 
             theta = np.array(h5["theta"], dtype=float)
             omega = np.array(h5["omega"], dtype=float)
+            gamma = np.array(h5["gamma"], dtype=float)
             td = np.array(h5["td"], dtype=float)
             eps = np.array(h5["epsilon_min_grid"], dtype=float)
+
+            raw_I = h5.attrs.get("I")
+            if raw_I is None or not np.isclose(float(raw_I), float(run_meta["I"])):
+                raise ValueError(
+                    f"Cube I metadata does not match input_dir run metadata: {fp}"
+                )
+
+            raw_z = h5.attrs.get("z")
+            if raw_z is None or not np.isclose(
+                float(raw_z), float(run_meta["z"]), equal_nan=True
+            ):
+                raise ValueError(
+                    f"Cube z metadata does not match input_dir run metadata: {fp}"
+                )
+
+            raw_orientation = h5.attrs.get("orientation_tag")
+            if raw_orientation is None or str(raw_orientation).strip() != str(
+                run_meta["orientation_tag"]
+            ):
+                raise ValueError(
+                    f"Cube orientation_tag does not match input_dir run metadata: {fp}"
+                )
 
             if theta_ref is None:
                 theta_ref = theta
                 omega_ref = omega
-                res_suffix = format_resolution_suffix(h5)
-                if orient_tag is None:
-                    orient_tag = infer_orientation_tag_from_filename(fp)
+                gamma_ref = gamma
+
+                grid_params = parse_template_grid_tokens(fp)
+                if grid_params is None:
+                    raise ValueError(
+                        f"Could not parse template-grid token from canonical cube filename: {fp}"
+                    )
             else:
                 if theta.shape != theta_ref.shape or not np.allclose(theta, theta_ref):
                     raise ValueError(
@@ -197,6 +225,12 @@ def main():
                 if omega.shape != omega_ref.shape or not np.allclose(omega, omega_ref):
                     raise ValueError(
                         "Omega grids differ across cubes; cannot sweep mcz coherently"
+                    )
+                if gamma_ref is not None and (
+                    gamma.shape != gamma_ref.shape or not np.allclose(gamma, gamma_ref)
+                ):
+                    raise ValueError(
+                        "Gamma grids differ across cubes; cannot sweep mcz coherently"
                     )
 
             td_idx = find_td_index(td, args.td_ms)
@@ -220,15 +254,28 @@ def main():
     assert theta_ref is not None and omega_ref is not None
     theta_ref = np.asarray(theta_ref)
     omega_ref = np.asarray(omega_ref)
+    assert grid_params is not None
 
     os.makedirs(args.output_dir, exist_ok=True)
-    tag = orient_tag or "unknown"
-    td_tag = f"td{args.td_ms:.1f}".replace(".", "p")
-    mcz_msun_min = f"{float(np.nanmin(mcz_msun_arr)):g}".replace(".", "p")
-    mcz_msun_max = f"{float(np.nanmax(mcz_msun_arr)):g}".replace(".", "p")
-    base = f"epsilon_cube_mcz_sweep_{td_tag}_mcz{mcz_msun_min}-{mcz_msun_max}_{res_suffix}_{tag}"
-    movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
-    movie_path = os.path.join(args.output_dir, base + movie_ext)
+    movie_ext = "mp4" if (args.mp4 and not args.gif) else "gif"
+    movie_path = mismatch_sweep_mcz_td_filename(
+        fig_dir=args.output_dir,
+        I=float(run_meta["I"]),
+        td_ms=float(args.td_ms),
+        z=float(run_meta["z"]),
+        mcz_min=float(run_meta["mcz_min"]),
+        mcz_max=float(run_meta["mcz_max"]),
+        omega_min=float(grid_params["omega_min"]),
+        omega_max=float(grid_params["omega_max"]),
+        omega_pts=int(grid_params["omega_pts"]),
+        theta_min=float(grid_params["theta_min"]),
+        theta_max=float(grid_params["theta_max"]),
+        theta_pts=int(grid_params["theta_pts"]),
+        gamma_pts=int(grid_params["gamma_pts"]),
+        orientation_tag=str(run_meta["orientation_tag"]),
+        ext=movie_ext,
+    )
+    base, _ = os.path.splitext(movie_path)
 
     # Movie over mcz
     save_contour_movie(
@@ -246,7 +293,7 @@ def main():
 
     # HTML slider over mcz
     if args.html:
-        html_path = os.path.join(args.output_dir, base + ".html")
+        html_path = base + ".html"
         save_html_slider(
             omega=omega_ref,
             theta=theta_ref,
@@ -261,7 +308,7 @@ def main():
 
     # Grid with individual colorbars
     if args.grid:
-        grid_path = os.path.join(args.output_dir, base + "_grid.png")
+        grid_path = base + "_grid.png"
         save_grid_with_individual_colorbars(
             omega=omega_ref,
             theta=theta_ref,
