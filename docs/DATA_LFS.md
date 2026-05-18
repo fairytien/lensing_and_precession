@@ -24,14 +24,14 @@ See [AGENTS.md — Output Filename Order](../AGENTS.md#output-filename-order) fo
 | `data/contour_omega_theta/` | Individual omega-theta contour outputs |
 | `data/run_logs/` | Per-pipeline run-log CSVs (see [`data/run_logs/CSV_RULES.md`](../data/run_logs/CSV_RULES.md)) |
 
-`figures/` mirrors the same shape: top-level run-dirs (`figures/mismatch_*`) for per-run plots, plus pipeline-grouped subdirs (`contour_mcz_td/`, `contour_I_td/`, `contour_omega_theta/`, `lindblom/`, `mismatch_cubes/`, `mismatch_cubes_mcz_sweep/`, `modality_nlens/`, `waveforms/`, `utils/`).
+`figures/` mirrors the same shape: top-level run-dirs (`figures/mismatch_*`) for per-run plots, plus pipeline-grouped subdirs (`contour_mcz_td/`, `contour_I_td/`, `contour_omega_theta/`, `lindblom/`, `modality_nlens/`, `waveforms/`, `utils/`).
 
 ### Legacy artifacts
 
 Pre-canonical data outputs and figures retained for reference live under `legacy/`:
 
 - `legacy/data/` — pre-canonical data outputs (including `legacy/data/TACC/` for TACC-produced pickle outputs)
-- `legacy/figures/` — pre-canonical figures
+- `legacy/figures/` — pre-canonical figures (including `legacy/figures/mismatch_cubes/` and `legacy/figures/mismatch_cubes_mcz_sweep/` for old epsilon-contour animations from the pre-canonical mismatch cube pipeline)
 
 ### Common filename tokens
 
