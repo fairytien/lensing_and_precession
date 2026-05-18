@@ -24,7 +24,7 @@ from scripts.utils._best_match_plot import (
     render_best_match_contour,
     build_figure_path,
 )
-from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
+from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines, plot_mcz_extrema
 
 import logging
 

@@ -13,8 +13,7 @@ from modules.plot_utils import apply_physics_paper_style
 
 apply_physics_paper_style()
 
-# Import overlay functions from plot_cycles_and_extrema_mcz.py
-from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
+from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines, plot_mcz_extrema
 
 
 def load_pickle_data(filepath):

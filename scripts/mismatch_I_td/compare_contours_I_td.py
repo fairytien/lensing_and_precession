@@ -39,7 +39,7 @@ from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import compare_I_td_figure_filename
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import apply_physics_paper_style
-from scripts.utils.plot_cycles_and_extrema_mcz import (
+from scripts.utils.plot_cycles_and_extrema import (
     draw_fixed_mcz_cycle_overlay,
     draw_fixed_mcz_extrema_overlay,
     make_fixed_mcz_overlay_legend_handles,

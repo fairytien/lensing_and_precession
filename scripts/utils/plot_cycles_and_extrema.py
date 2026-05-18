@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from modules.cosmology import source_mass_redshift_scale
-from modules.waveform import mcz_for_n_lens_cycles
+from modules.waveform import mcz_for_n_lens_cycles, number_of_lens_cycles
 from modules.filenames import contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
 from modules.lens_cycle_extrema import (
@@ -262,6 +262,49 @@ def make_fixed_mcz_overlay_legend_handles(
     return handles
 
 
+def draw_nlens_isocontours(
+    ax,
+    td_ms: np.ndarray,
+    y_arr: np.ndarray,
+    nlens_grid: np.ndarray,
+    *,
+    label_style: str = "inline",
+    fontsize: int = 8,
+) -> list:
+    """Overlay N_lensed=1/2/3 isocontours on *ax* from a precomputed nlens grid.
+
+    label_style="inline"  — ax.clabel() places labels directly on the contour lines.
+    label_style="legend"  — no inline labels; returns Line2D handles for a legend.
+    """
+    from matplotlib.lines import Line2D
+
+    handles = []
+    for n, ls in FIXED_MCZ_CYCLE_STYLES.items():
+        cs = ax.contour(
+            td_ms,
+            y_arr,
+            nlens_grid,
+            levels=[n],
+            colors=["black"],
+            linestyles=[ls],
+            linewidths=2.0,
+        )
+        if label_style == "inline":
+            ax.clabel(cs, fmt=rf"$N_{{\mathrm{{lensed}}}}={n}$", fontsize=fontsize)
+        else:
+            handles.append(
+                Line2D(
+                    [0],
+                    [0],
+                    color="black",
+                    lw=2,
+                    ls=ls,
+                    label=rf"$N_{{\mathrm{{lensed}}}}={n}$",
+                )
+            )
+    return handles
+
+
 def _load_data(
     input_path: str,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, Optional[float], Optional[float]]:
@@ -424,6 +467,16 @@ def main():
         default=None,
         help="If provided, remap mcz axis to this redshift via (1+z_from)/(1+z_to).",
     )
+    parser.add_argument(
+        "--nlens-label-style",
+        choices=["legend", "inline"],
+        default="legend",
+        help=(
+            "How to label N_lensed cycle overlays with --overlay-cycles: "
+            "'legend' (default) adds cycle handles to the legend box; "
+            "'inline' places labels directly on the lines with ax.clabel."
+        ),
+    )
     args = parser.parse_args()
 
     base_dir = os.path.dirname(
@@ -468,13 +521,20 @@ def main():
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
     # Overlay cycle lines if requested
+    cycle_handles: list = []
     if args.overlay_cycles:
-        plot_cycle_lines(
-            td_arr,
+        MCZ_DET_GRID, TD_GRID = np.meshgrid(
+            mcz_arr / overlay_mcz_scale, td_arr, indexing="ij"
+        )
+        nlens_grid = number_of_lens_cycles(
+            MCZ_DET_GRID, TD_GRID, f_min=args.f_min, eta=args.eta
+        )
+        cycle_handles = draw_nlens_isocontours(
+            plt.gca(),
             td_arr_ms,
-            eta=args.eta,
-            f_min=args.f_min,
-            mcz_scale=overlay_mcz_scale,
+            mcz_arr,
+            nlens_grid,
+            label_style=args.nlens_label_style,
         )
 
     # Overlay mcz extrema points if requested
@@ -493,8 +553,9 @@ def main():
     if args.show_legend:
         ax = plt.gca()
         handles, labels = ax.get_legend_handles_labels()
-        if handles:
-            plt.legend(loc="best")
+        all_handles = handles + cycle_handles
+        if all_handles:
+            plt.legend(handles=all_handles, loc="best")
     plt.tight_layout()
 
     # Generate output filename derived from source data + orientation tag, with 'overlayed' suffix

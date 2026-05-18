@@ -133,7 +133,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 - [`_cube_viz.py`](../scripts/utils/_cube_viz.py) — private helpers for cube movies/sliders (used by `visualize_mismatch_cube` and `visualize_mcz_sweep_at_td`)
 - [`plot_bestmatch_waveform_overlays.py`](../scripts/utils/plot_bestmatch_waveform_overlays.py)
 - [`plot_contour_from_dataset.py`](../scripts/utils/plot_contour_from_dataset.py) (supports pickle and HDF5 contour inputs, including mismatch cube schema with `--td_ms`)
-- [`plot_cycles_and_extrema_mcz.py`](../scripts/utils/plot_cycles_and_extrema_mcz.py)
+- [`plot_cycles_and_extrema.py`](../scripts/utils/plot_cycles_and_extrema.py)
 - [`compare_contours.py`](../scripts/utils/compare_contours.py)
 - [`rename_legacy_filenames.py`](../scripts/utils/rename_legacy_filenames.py)
 

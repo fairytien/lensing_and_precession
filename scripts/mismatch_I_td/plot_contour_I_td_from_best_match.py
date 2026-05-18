@@ -22,7 +22,7 @@ from scripts.utils._best_match_plot import (
     render_best_match_contour,
     build_figure_path,
 )
-from scripts.utils.plot_cycles_and_extrema_mcz import (
+from scripts.utils.plot_cycles_and_extrema import (
     draw_fixed_mcz_cycle_overlay,
     draw_fixed_mcz_extrema_overlay,
     make_fixed_mcz_overlay_legend_handles,

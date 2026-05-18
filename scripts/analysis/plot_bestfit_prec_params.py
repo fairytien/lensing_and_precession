@@ -32,6 +32,7 @@ if REPO_ROOT not in sys.path:
 from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import apply_physics_paper_style
 from modules.waveform import number_of_lens_cycles
+from scripts.utils.plot_cycles_and_extrema import draw_nlens_isocontours
 
 DEFAULT_PATHS = [
     "data/mismatch_z1_mcz15_I0p1-0p9_td20-70_Taman_edgeon/best_match/"
@@ -395,17 +396,7 @@ def create_figure(
         )
 
         for ax in (ax_top, ax_bottom):
-            for n, ls in [(1, "-"), (2, "--"), (3, ":")]:
-                cs = ax.contour(
-                    d["td_ms"],
-                    d["axis_values"],
-                    d["nlens"],
-                    levels=[n],
-                    colors=["black"],
-                    linestyles=[ls],
-                    linewidths=2.0,
-                )
-                ax.clabel(cs, fmt=rf"$N_\mathrm{{lensed}}={n}$", fontsize=8)
+            draw_nlens_isocontours(ax, d["td_ms"], d["axis_values"], d["nlens"])
 
             if hasattr(ax, "set_box_aspect"):
                 ax.set_box_aspect(1)

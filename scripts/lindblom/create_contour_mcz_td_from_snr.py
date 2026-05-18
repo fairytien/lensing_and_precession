@@ -21,8 +21,7 @@ sys.path.insert(
 from modules.filenames import _format_min_precision
 from modules.plot_utils import apply_physics_paper_style
 
-# Import overlay functions from plot_cycles_and_extrema_mcz.py
-from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
+from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines, plot_mcz_extrema
 
 import logging
 
