@@ -73,36 +73,6 @@ def _infer_chirp_mass_msun_from_pickle(out: dict) -> Optional[float]:
     return None
 
 
-def _optional_scalar_float(value) -> Optional[float]:
-    arr = np.asarray(value)
-    if arr.size != 1:
-        return None
-    scalar = float(arr.reshape(()))
-    if not np.isfinite(scalar):
-        return None
-    return scalar
-
-
-def _chirp_mass_box_text(
-    *, mcz_value: Optional[float], mcz_range: Optional[Tuple[float, float]]
-) -> Optional[str]:
-    if mcz_value is not None and np.isfinite(mcz_value):
-        return (
-            rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_value:.3g}\,\mathrm{{M}}_\odot$"
-        )
-
-    if mcz_range is not None:
-        m_min, m_max = mcz_range
-        if np.isfinite(m_min) and np.isfinite(m_max):
-            if np.isclose(m_min, m_max, rtol=0, atol=1e-12):
-                return rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {m_min:.3g}\,\mathrm{{M}}_\odot$"
-            return (
-                rf"$\mathcal{{M}}_{{\mathrm{{s}}}} \in [{m_min:.3g}, {m_max:.3g}]"
-                rf"\,\mathrm{{M}}_\odot$"
-            )
-    return None
-
-
 def _load_contour_from_pickle(path: str):
     with open(path, "rb") as f:
         out = pickle.load(f)
@@ -129,7 +99,7 @@ def _load_contour_from_pickle(path: str):
     }
 
 
-def _load_contour_from_h5(path: str):
+def _load_contour_from_h5(path: str, td_ms: Optional[float] = None):
     with h5py.File(path, "r") as h5:
         keys = set(h5.keys())
 
@@ -144,9 +114,9 @@ def _load_contour_from_h5(path: str):
 
             mcz_value = None
             if "source_param_mcz" in h5.attrs:
-                attr_value = _optional_scalar_float(h5.attrs["source_param_mcz"])
-                if attr_value is not None:
-                    mcz_value = attr_value / SOLMASS2SEC
+                arr = np.asarray(h5.attrs["source_param_mcz"])
+                if arr.size == 1 and np.isfinite(arr.item()):
+                    mcz_value = arr.item() / SOLMASS2SEC
 
             return {
                 "X": X,
@@ -160,10 +130,10 @@ def _load_contour_from_h5(path: str):
 
         if {"mcz", "td", "epsilon_min"}.issubset(keys):
             mcz = np.asarray(h5["mcz"], dtype=np.float64)
-            td_ms = np.asarray(h5["td"], dtype=np.float64) * 1e3
+            td_ms_arr = np.asarray(h5["td"], dtype=np.float64) * 1e3
             Z = _as_2d_float_array("epsilon_min", np.array(h5["epsilon_min"]))
 
-            X, Y = np.meshgrid(td_ms, mcz)
+            X, Y = np.meshgrid(td_ms_arr, mcz)
             if X.shape != Z.shape or Y.shape != Z.shape:
                 raise ValueError(
                     f"Mismatched shapes after meshgrid: X{X.shape}, Y{Y.shape}, Z{Z.shape}"
@@ -180,19 +150,48 @@ def _load_contour_from_h5(path: str):
                 "chirp_mass_range": mcz_range,
             }
 
+        if {"td", "theta", "omega", "epsilon_min_grid"}.issubset(keys):
+            if td_ms is None:
+                raise ValueError(
+                    "Cube schema (td, theta, omega, epsilon_min_grid) requires --td_ms"
+                )
+            td = np.asarray(h5["td"], dtype=np.float64)
+            theta = np.asarray(h5["theta"], dtype=np.float64)
+            omega = np.asarray(h5["omega"], dtype=np.float64)
+            eps_grid = np.asarray(h5["epsilon_min_grid"], dtype=np.float64)
+            j = int(np.argmin(np.abs(td * 1e3 - td_ms)))
+            Z = eps_grid[j]  # (n_theta, n_omega)
+            O, T = np.meshgrid(omega, theta)
+            mcz_val = None
+            if "mcz" in keys:
+                arr = np.asarray(h5["mcz"], dtype=np.float64).ravel()
+                if arr.size == 1 and np.isfinite(arr[0]):
+                    mcz_val = float(arr[0])
+            return {
+                "X": O,
+                "Y": T,
+                "Z": Z,
+                "x_label": X_LABEL_OMEGA,
+                "y_label": Y_LABEL_THETA,
+                "chirp_mass": mcz_val,
+                "chirp_mass_range": None,
+            }
+
         raise ValueError(
-            "Unsupported HDF5 schema. Expected either "
-            "(omega_matrix, theta_matrix, epsilon_matrix) or (mcz, td, epsilon_min). "
+            "Unsupported HDF5 schema. Expected one of: "
+            "(omega_matrix, theta_matrix, epsilon_matrix), "
+            "(mcz, td, epsilon_min), or "
+            "(td, theta, omega, epsilon_min_grid) [cube, requires --td_ms]. "
             f"Found keys: {sorted(keys)}"
         )
 
 
-def load_contour_dataset(path: str):
+def load_contour_dataset(path: str, td_ms: Optional[float] = None):
     ext = os.path.splitext(path)[1].lower()
     if ext in {".pkl", ".pickle"}:
         return _load_contour_from_pickle(path)
     if ext in {".h5", ".hdf5"}:
-        return _load_contour_from_h5(path)
+        return _load_contour_from_h5(path, td_ms=td_ms)
     raise ValueError(
         f"Unsupported input extension '{ext}'. Use .pkl/.pickle or .h5/.hdf5"
     )
@@ -201,8 +200,24 @@ def load_contour_dataset(path: str):
 def _add_chirp_mass_box(
     ax, mcz_value: Optional[float], mcz_range: Optional[Tuple[float, float]]
 ) -> None:
-    label = _chirp_mass_box_text(mcz_value=mcz_value, mcz_range=mcz_range)
-    if not label:
+    if mcz_value is not None and np.isfinite(mcz_value):
+        label = (
+            rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_value:.3g}\,\mathrm{{M}}_\odot$"
+        )
+    elif mcz_range is not None:
+        m_min, m_max = mcz_range
+        if not (np.isfinite(m_min) and np.isfinite(m_max)):
+            return
+        if np.isclose(m_min, m_max, rtol=0, atol=1e-12):
+            label = (
+                rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {m_min:.3g}\,\mathrm{{M}}_\odot$"
+            )
+        else:
+            label = (
+                rf"$\mathcal{{M}}_{{\mathrm{{s}}}} \in [{m_min:.3g}, {m_max:.3g}]"
+                rf"\,\mathrm{{M}}_\odot$"
+            )
+    else:
         return
 
     dummy = Line2D([], [], linestyle="None")
@@ -231,16 +246,10 @@ def main() -> None:
             "inferring axes from dataset schema."
         ),
     )
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument(
+    parser.add_argument(
         "--input",
-        default=None,
+        required=True,
         help="Path to contour input (.pkl/.pickle or .h5/.hdf5).",
-    )
-    group.add_argument(
-        "--pkl",
-        default=None,
-        help="Backward-compatible alias for --input when using pickle files.",
     )
     parser.add_argument(
         "--fig",
@@ -275,6 +284,12 @@ def main() -> None:
         help="Decimal places for colorbar tick labels (default: 2).",
     )
     parser.add_argument(
+        "--td_ms",
+        type=float,
+        default=None,
+        help="Time-delay slice in ms; required when input is a mismatch cube (td, theta, omega, epsilon_min_grid).",
+    )
+    parser.add_argument(
         "--dpi",
         type=int,
         default=200,
@@ -288,11 +303,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    input_path = os.path.abspath(args.input if args.input else args.pkl)
+    input_path = os.path.abspath(args.input)
     if not os.path.isfile(input_path):
         raise FileNotFoundError(f"Input file not found: {input_path}")
 
-    loaded = load_contour_dataset(input_path)
+    loaded = load_contour_dataset(input_path, td_ms=args.td_ms)
     X = loaded["X"]
     Y = loaded["Y"]
     Z = loaded["Z"]
