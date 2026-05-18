@@ -51,7 +51,6 @@ See [AGENTS.md — Parameter Order Convention](../AGENTS.md#parameter-order-conv
 - Folder-local helpers for existing outputs:
   - [`compare_contours_mcz_td.py`](../scripts/mismatch_mcz_td/compare_contours_mcz_td.py)
   - [`visualize_mcz_sweep_at_td.py`](../scripts/mismatch_mcz_td/visualize_mcz_sweep_at_td.py)
-  - [`convert_best_match_redshift.py`](../scripts/mismatch_mcz_td/convert_best_match_redshift.py)
 
 ## Mismatch Pipeline over `(td, I)` ([`scripts/mismatch_I_td/`](../scripts/mismatch_I_td/))
 
@@ -126,6 +125,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 - [`pickle_to_hdf5.py`](../scripts/utils/pickle_to_hdf5.py)
 - [`compress_pickle.py`](../scripts/utils/compress_pickle.py)
+- [`convert_best_match_mcz_td_redshift.py`](../scripts/utils/convert_best_match_mcz_td_redshift.py) — remap a `mcz_td` best-match HDF5 file from one redshift to another
 
 ### Plotting and comparison
 
