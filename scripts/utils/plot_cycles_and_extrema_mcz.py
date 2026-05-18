@@ -1,14 +1,20 @@
 import os, argparse, pickle
-from typing import Optional, Sequence, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 import matplotlib.pyplot as plt
 
 from modules.cosmology import source_mass_redshift_scale
-from modules.default_params import SOLMASS2SEC
-from modules.waveform import get_fcut_from_mcz, mcz_for_n_lens_cycles
+from modules.waveform import mcz_for_n_lens_cycles
 from modules.filenames import contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
+from modules.lens_cycle_extrema import (
+    find_mcz_troughs,
+    find_mcz_peaks,
+    fixed_mcz_cycle_positions_ms,
+    fixed_mcz_peak_positions_ms,
+    fixed_mcz_trough_positions_ms,
+)
 
 apply_physics_paper_style()
 
@@ -21,78 +27,6 @@ def _optional_positive_float(container, key: str) -> Optional[float]:
     if not np.isfinite(value) or value <= 0:
         return None
     return value
-
-
-def _mcz_extremum_for_n(td_s: float, n: float, eta: float = 0.25) -> float:
-    """Calculate mcz extremum for given time delay and index n.
-
-    For troughs: n = n_trough + 0.5
-    For peaks: n = n_peak (integer >= 1)
-    """
-    return (eta ** (3 / 5) * td_s) / (6 ** (3 / 2) * np.pi * n) / SOLMASS2SEC
-
-
-def _find_mcz_extrema(
-    td_arr: np.ndarray,
-    eta: float,
-    mcz_min: float,
-    mcz_max: float,
-    n_start: float,
-    n_increment: float,
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Generic function to find mcz extrema (troughs or peaks) within range.
-
-    Parameters
-    ----------
-    td_arr : np.ndarray
-        Array of time delays in seconds
-    eta : float
-        Symmetric mass ratio
-    mcz_min, mcz_max : float
-        Chirp mass range boundaries in solar masses
-    n_start : float
-        Starting value for n (0.5 for troughs, 1 for peaks)
-    n_increment : float
-        Increment for n (1.0 for both)
-
-    Returns
-    -------
-    tuple
-        (td_points, mcz_points) arrays
-    """
-    td_points = []
-    mcz_points = []
-
-    for td in td_arr:
-        n = n_start
-        while True:
-            mcz = _mcz_extremum_for_n(td, n, eta)
-            if mcz < mcz_min:
-                break
-            if mcz <= mcz_max:
-                td_points.append(td)
-                mcz_points.append(mcz)
-            n += n_increment
-
-    return np.array(td_points), np.array(mcz_points)
-
-
-def find_mcz_troughs(
-    td_arr: np.ndarray, eta: float = 0.25, mcz_min: float = 10.0, mcz_max: float = 90.0
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Find mcz_trough points for each time delay within the mcz range."""
-    return _find_mcz_extrema(
-        td_arr, eta, mcz_min, mcz_max, n_start=0.5, n_increment=1.0
-    )
-
-
-def find_mcz_peaks(
-    td_arr: np.ndarray, eta: float = 0.25, mcz_min: float = 10.0, mcz_max: float = 90.0
-) -> Tuple[np.ndarray, np.ndarray]:
-    """Find mcz_peak points for each time delay within the mcz range."""
-    return _find_mcz_extrema(
-        td_arr, eta, mcz_min, mcz_max, n_start=1.0, n_increment=1.0
-    )
 
 
 def plot_mcz_extrema(
@@ -197,91 +131,135 @@ def plot_cycle_lines(
     if ax is None:
         ax = plt.gca()
 
-    for n_cyc, ls_style in [(1.0, "-"), (2.0, "--"), (3.0, ":")]:
+    for n_cyc, ls_style in FIXED_MCZ_CYCLE_STYLES.items():
         mcz_cyc = mcz_for_n_lens_cycles(n_cyc, td_arr, f_min=f_min, eta=eta) * mcz_scale
-        label = f"{int(n_cyc)} cycle" if n_cyc == 1 else f"{int(n_cyc)} cycles"
+        label = f"{n_cyc} cycle" if n_cyc == 1 else f"{n_cyc} cycles"
         ax.plot(td_arr_ms, mcz_cyc, color="black", ls=ls_style, lw=2, label=label)
 
 
-def fixed_mcz_cycle_positions_ms(
-    mcz_msun: float,
+# ==============================================================================
+# Fixed-mcz vertical-line overlay drawing
+# ==============================================================================
+
+FIXED_MCZ_CYCLE_STYLES: dict[int, str] = {1: "-", 2: "--", 3: ":"}
+_PEAK_COLOR = "magenta"
+_TROUGH_COLOR = "white"
+_AXVLINE_KW: dict = {"lw": 1.0, "alpha": 0.9, "zorder": 6}
+
+
+def draw_fixed_mcz_cycle_overlay(
+    ax,
+    mcz_det_msun: float,
     td_min_ms: float,
     td_max_ms: float,
     *,
     eta: float = 0.25,
     f_min: float = 20.0,
-    cycle_counts: Sequence[int] = (1, 2, 3),
-) -> dict[int, float]:
-    """Return visible fixed-mass lensing-cycle positions on a td axis."""
-    f_cut = float(get_fcut_from_mcz(float(mcz_msun), eta=eta))
-    delta_f = f_cut - float(f_min)
-    if delta_f <= 0:
-        return {}
+) -> dict:
+    """Draw N=1/2/3 lensing-cycle vertical lines on *ax* for a fixed detector-frame chirp mass.
 
-    positions: dict[int, float] = {}
-    for cycle_count in cycle_counts:
-        td_ms = 1e3 * float(cycle_count) / delta_f
-        if td_min_ms <= td_ms <= td_max_ms:
-            positions[int(cycle_count)] = td_ms
+    Returns the positions dict ``{n_cycles: td_ms}`` of lines actually drawn.
+    """
+    positions = fixed_mcz_cycle_positions_ms(
+        mcz_det_msun,
+        td_min_ms,
+        td_max_ms,
+        eta=eta,
+        f_min=f_min,
+        cycle_counts=tuple(FIXED_MCZ_CYCLE_STYLES),
+    )
+    for n_cycles, td_ms in positions.items():
+        ax.axvline(
+            td_ms, color="black", ls=FIXED_MCZ_CYCLE_STYLES[n_cycles], **_AXVLINE_KW
+        )
     return positions
 
 
-def _fixed_mcz_extrema_positions_ms(
-    mcz_msun: float,
-    td_min_ms: float,
-    td_max_ms: float,
-    *,
-    eta: float,
-    n_start: float,
-) -> np.ndarray:
-    f_cut = float(get_fcut_from_mcz(float(mcz_msun), eta=eta))
-    if f_cut <= 0:
-        return np.array([], dtype=float)
-
-    positions_ms = []
-    n_value = float(n_start)
-    while True:
-        td_ms = 1e3 * n_value / f_cut
-        if td_ms > td_max_ms:
-            break
-        if td_ms >= td_min_ms:
-            positions_ms.append(td_ms)
-        n_value += 1.0
-    return np.asarray(positions_ms, dtype=float)
-
-
-def fixed_mcz_peak_positions_ms(
-    mcz_msun: float,
+def draw_fixed_mcz_extrema_overlay(
+    ax,
+    mcz_det_msun: float,
     td_min_ms: float,
     td_max_ms: float,
     *,
     eta: float = 0.25,
-) -> np.ndarray:
-    """Return visible fixed-mass peak positions on a td axis."""
-    return _fixed_mcz_extrema_positions_ms(
-        mcz_msun,
-        td_min_ms,
-        td_max_ms,
-        eta=eta,
-        n_start=1.0,
-    )
+    plot_peaks: bool = False,
+    plot_troughs: bool = False,
+) -> None:
+    """Draw peak/trough vertical lines on *ax* for a fixed detector-frame chirp mass."""
+    if plot_peaks:
+        for td_ms in fixed_mcz_peak_positions_ms(
+            mcz_det_msun, td_min_ms, td_max_ms, eta=eta
+        ):
+            ax.axvline(td_ms, color=_PEAK_COLOR, ls=":", **_AXVLINE_KW)
+    if plot_troughs:
+        for td_ms in fixed_mcz_trough_positions_ms(
+            mcz_det_msun, td_min_ms, td_max_ms, eta=eta
+        ):
+            ax.axvline(td_ms, color=_TROUGH_COLOR, ls=":", **_AXVLINE_KW)
 
 
-def fixed_mcz_trough_positions_ms(
-    mcz_msun: float,
-    td_min_ms: float,
-    td_max_ms: float,
+def make_fixed_mcz_overlay_legend_handles(
     *,
-    eta: float = 0.25,
-) -> np.ndarray:
-    """Return visible fixed-mass trough positions on a td axis."""
-    return _fixed_mcz_extrema_positions_ms(
-        mcz_msun,
-        td_min_ms,
-        td_max_ms,
-        eta=eta,
-        n_start=0.5,
-    )
+    cycle_n_list=None,
+    include_peaks: bool = False,
+    include_troughs: bool = False,
+) -> list:
+    """Return ``Line2D`` handles for a fixed-mcz overlay legend.
+
+    Parameters
+    ----------
+    cycle_n_list : sequence of int or None
+        Cycle counts to include handles for (e.g. ``[1, 2, 3]`` or
+        ``list(positions)``).  Pass ``None`` to omit cycle handles.
+    include_peaks : bool
+        Include the peak handle.
+    include_troughs : bool
+        Include the trough handle.
+    """
+    from matplotlib.lines import Line2D
+
+    handles = []
+    if cycle_n_list is not None:
+        for n in cycle_n_list:
+            ls = FIXED_MCZ_CYCLE_STYLES.get(n)
+            if ls is not None:
+                handles.append(
+                    Line2D(
+                        [0],
+                        [0],
+                        color="black",
+                        lw=2,
+                        ls=ls,
+                        label=rf"$N_{{\mathrm{{lensed}}}}={n}$",
+                    )
+                )
+    if include_peaks:
+        handles.append(
+            Line2D(
+                [0],
+                [0],
+                linestyle="None",
+                marker="o",
+                markersize=6,
+                markerfacecolor=_PEAK_COLOR,
+                markeredgecolor=_PEAK_COLOR,
+                label="peak",
+            )
+        )
+    if include_troughs:
+        handles.append(
+            Line2D(
+                [0],
+                [0],
+                linestyle="None",
+                marker="o",
+                markersize=6,
+                markerfacecolor=_TROUGH_COLOR,
+                markeredgecolor="black",
+                label="trough",
+            )
+        )
+    return handles
 
 
 def _load_data(

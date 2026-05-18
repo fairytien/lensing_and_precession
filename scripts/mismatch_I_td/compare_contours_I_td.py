@@ -40,9 +40,9 @@ from modules.filenames import compare_I_td_figure_filename
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils.plot_cycles_and_extrema_mcz import (
-    fixed_mcz_cycle_positions_ms,
-    fixed_mcz_peak_positions_ms,
-    fixed_mcz_trough_positions_ms,
+    draw_fixed_mcz_cycle_overlay,
+    draw_fixed_mcz_extrema_overlay,
+    make_fixed_mcz_overlay_legend_handles,
 )
 
 X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
@@ -52,8 +52,6 @@ COLORBAR_LABEL_TEMPLATE = (
     r"\tilde{{h}}_{{\mathrm{{{family}}}}}\right)$"
 )
 TEMPLATE_FAMILIES = ("NP", "RP")
-
-_CYCLE_STYLES = {1: "-", 2: "--", 3: ":"}
 
 
 def _validate_paths(paths: Sequence[str]) -> list[str]:
@@ -126,88 +124,6 @@ def _detector_mcz(mcz_source_msun: float, z: float | None) -> float:
     return float(mcz_src_to_det(float(mcz_source_msun), float(z)))
 
 
-def _draw_vertical_lines(
-    ax,
-    td_positions_ms,
-    *,
-    color,
-    ls,
-    lw,
-    alpha,
-    zorder,
-) -> None:
-    for td_ms in td_positions_ms:
-        ax.axvline(
-            td_ms,
-            color=color,
-            ls=ls,
-            lw=lw,
-            alpha=alpha,
-            zorder=zorder,
-        )
-
-
-def _draw_cycle_overlay(ax, mcz_source_msun, z, td_ms_arr, f_min, eta):
-    mcz_det = _detector_mcz(mcz_source_msun, z)
-    td_min_ms = float(np.min(td_ms_arr))
-    td_max_ms = float(np.max(td_ms_arr))
-    cycle_positions = fixed_mcz_cycle_positions_ms(
-        mcz_det,
-        td_min_ms,
-        td_max_ms,
-        eta=eta,
-        f_min=f_min,
-        cycle_counts=tuple(_CYCLE_STYLES),
-    )
-    for n_cycles, td_ms in cycle_positions.items():
-        _draw_vertical_lines(
-            ax,
-            [td_ms],
-            color="black",
-            ls=_CYCLE_STYLES[n_cycles],
-            lw=1.0,
-            alpha=0.9,
-            zorder=6,
-        )
-
-
-def _draw_extrema_overlay(
-    ax,
-    mcz_source_msun,
-    z,
-    td_ms_arr,
-    eta,
-    *,
-    plot_peaks: bool,
-    plot_troughs: bool,
-):
-    if not plot_peaks and not plot_troughs:
-        return
-    mcz_det = _detector_mcz(mcz_source_msun, z)
-    td_min_ms = float(np.min(td_ms_arr))
-    td_max_ms = float(np.max(td_ms_arr))
-    if plot_peaks:
-        _draw_vertical_lines(
-            ax,
-            fixed_mcz_peak_positions_ms(mcz_det, td_min_ms, td_max_ms, eta=eta),
-            color="magenta",
-            ls=":",
-            lw=1.0,
-            alpha=0.9,
-            zorder=6,
-        )
-    if plot_troughs:
-        _draw_vertical_lines(
-            ax,
-            fixed_mcz_trough_positions_ms(mcz_det, td_min_ms, td_max_ms, eta=eta),
-            color="white",
-            ls=":",
-            lw=1.0,
-            alpha=0.9,
-            zorder=6,
-        )
-
-
 def _add_mass_box(ax, mcz_source_msun: float) -> None:
     legend = ax.legend(
         [Line2D([], [], linestyle="none")],
@@ -233,69 +149,18 @@ def _add_overlay_legend(
     include_peaks: bool,
     include_troughs: bool,
 ) -> None:
-    overlay_handles = []
-    if include_cycles:
-        overlay_handles.extend(
-            [
-                Line2D(
-                    [0],
-                    [0],
-                    color="black",
-                    lw=2,
-                    ls="-",
-                    label=r"$N_{\mathrm{lensed}}=1$",
-                ),
-                Line2D(
-                    [0],
-                    [0],
-                    color="black",
-                    lw=2,
-                    ls="--",
-                    label=r"$N_{\mathrm{lensed}}=2$",
-                ),
-                Line2D(
-                    [0],
-                    [0],
-                    color="black",
-                    lw=2,
-                    ls=":",
-                    label=r"$N_{\mathrm{lensed}}=3$",
-                ),
-            ]
-        )
-    if include_peaks:
-        overlay_handles.append(
-            Line2D(
-                [0],
-                [0],
-                linestyle="None",
-                marker="o",
-                markersize=6,
-                markerfacecolor="magenta",
-                markeredgecolor="magenta",
-                label="peak",
-            )
-        )
-    if include_troughs:
-        overlay_handles.append(
-            Line2D(
-                [0],
-                [0],
-                linestyle="None",
-                marker="o",
-                markersize=6,
-                markerfacecolor="white",
-                markeredgecolor="black",
-                label="trough",
-            )
-        )
-    if not overlay_handles:
+    handles = make_fixed_mcz_overlay_legend_handles(
+        cycle_n_list=[1, 2, 3] if include_cycles else None,
+        include_peaks=include_peaks,
+        include_troughs=include_troughs,
+    )
+    if not handles:
         return
     overlay_legend = fig.legend(
-        handles=overlay_handles,
+        handles=handles,
         loc="lower center",
         bbox_to_anchor=(0.5, 0.012),
-        ncol=len(overlay_handles),
+        ncol=len(handles),
         frameon=True,
         fontsize=11,
     )
@@ -388,24 +253,27 @@ def create_figure(
 
         mcz_source_msun = float(dataset["mcz"])
 
+        mcz_det = _detector_mcz(mcz_source_msun, z_value)
+        td_min_ms = float(td_ms.min())
+        td_max_ms = float(td_ms.max())
         if draw_peaks or draw_troughs:
-            _draw_extrema_overlay(
+            draw_fixed_mcz_extrema_overlay(
                 ax,
-                mcz_source_msun,
-                z_value,
-                td_ms,
-                eta,
+                mcz_det,
+                td_min_ms,
+                td_max_ms,
+                eta=eta,
                 plot_peaks=draw_peaks,
                 plot_troughs=draw_troughs,
             )
         if draw_cycles:
-            _draw_cycle_overlay(
+            draw_fixed_mcz_cycle_overlay(
                 ax,
-                mcz_source_msun,
-                z_value,
-                td_ms,
-                f_min,
-                eta,
+                mcz_det,
+                td_min_ms,
+                td_max_ms,
+                eta=eta,
+                f_min=f_min,
             )
         _add_mass_box(ax, mcz_source_msun)
 

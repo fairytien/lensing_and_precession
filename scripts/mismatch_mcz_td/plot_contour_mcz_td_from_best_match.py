@@ -8,7 +8,6 @@ All contour naming parameters are inferred from that file's metadata.
 import os
 import argparse
 
-import numpy as np
 import matplotlib.pyplot as plt
 from modules.plot_utils import apply_physics_paper_style
 
@@ -19,32 +18,17 @@ from modules.filenames import (
     contour_run_dir,
 )
 from modules.bank_io import read_best_match_mcz_td_contour_data
-
-# Import overlay functions from plot_cycles_and_extrema_mcz.py
+from modules.cli_utils import add_cycle_extrema_overlay_args
+from scripts.utils._best_match_plot import (
+    VARIABLE_MAPPING,
+    render_best_match_contour,
+    build_figure_path,
+)
 from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines, plot_mcz_extrema
 
 import logging
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
-
-
-VARIABLE_MAPPING = {
-    "epsilon": {
-        "dataset": "epsilon_min",
-        "label": r"$\min_{\~\Omega, \~\theta, \gamma_{\mathrm{P}}}$ $\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$",
-        "suffix": "epsilon_min",
-    },
-    "omega": {
-        "dataset": "omega_best",
-        "label": r"$\tilde{\Omega}_{\mathrm{best}}$",
-        "suffix": "omega_best",
-    },
-    "theta": {
-        "dataset": "theta_best",
-        "label": r"$\tilde{\theta}_{\mathrm{best}}$",
-        "suffix": "theta_best",
-    },
-}
 
 
 def main(
@@ -58,19 +42,6 @@ def main(
     eta: float = 0.25,
     f_min: float = 20.0,
 ):
-    """Plot mismatch contour from aggregated best-match file.
-
-    Args:
-        input_path: Exact path to an aggregated best-match HDF5 file.
-        output_dir: Directory where the figure will be saved.
-        variable: Variable to plot ("epsilon", "omega", or "theta").
-        overlay_cycles: If True, overlay 1/2/3 lensing cycle lines.
-        overlay_peaks: If True, overlay mcz peak points.
-        overlay_troughs: If True, overlay mcz trough points.
-        show_legend: If True, show legend for overlays.
-        eta: Symmetric mass ratio (default 0.25).
-        f_min: Minimum frequency in Hz (default 20.0).
-    """
     if variable not in VARIABLE_MAPPING:
         raise ValueError(
             f"Invalid variable '{variable}'. Must be one of: {list(VARIABLE_MAPPING.keys())}"
@@ -102,48 +73,8 @@ def main(
 
     mcz_msun_arr = best_match["mcz"]
     td_arr = best_match["td"]
-    Zmap = best_match["values"]
-
-    # Convert td from seconds to ms for plotting
     td_arr_ms = td_arr * 1e3
 
-    # Get actual data range for overlays
-    mcz_msun_data_min, mcz_msun_data_max = mcz_msun_arr.min(), mcz_msun_arr.max()
-
-    # Create contour plot
-    TD, MCZ = np.meshgrid(td_arr_ms, mcz_msun_arr)
-    plt.figure(figsize=(8, 6))
-    cf = plt.contourf(TD, MCZ, Zmap, levels=100, cmap="jet")
-    cbar = plt.colorbar(cf)
-    cbar.set_label(var_info["label"])
-    plt.xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
-    plt.ylabel(r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$")
-
-    # Overlay lensing cycle lines if requested
-    if overlay_cycles:
-        plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
-
-    # Overlay mcz extrema points if requested
-    if overlay_troughs or overlay_peaks:
-        plot_mcz_extrema(
-            td_arr,
-            mcz_msun_data_min,
-            mcz_msun_data_max,
-            eta=eta,
-            plot_troughs=overlay_troughs,
-            plot_peaks=overlay_peaks,
-        )
-
-    # Show legend if requested and there are labeled artists
-    if show_legend:
-        ax = plt.gca()
-        handles, labels = ax.get_legend_handles_labels()
-        if handles:
-            plt.legend(loc="best")
-
-    plt.tight_layout()
-
-    # Generate filename with variable suffix and overlay suffixes
     base_path = contour_mcz_td_filename(
         output_dir,
         I=best_match["I"],
@@ -158,27 +89,41 @@ def main(
         ext="pdf",
     )
 
-    # Build list of suffixes
-    suffixes = []
+    has_overlays = overlay_cycles or overlay_peaks or overlay_troughs
+    fig_path = build_figure_path(base_path, variable, has_overlays=has_overlays)
 
-    # Add variable suffix for non-epsilon variables
-    if variable != "epsilon":
-        suffixes.append(var_info["suffix"])
+    mcz_data_min, mcz_data_max = mcz_msun_arr.min(), mcz_msun_arr.max()
 
-    # Add overlay suffix if any overlays are enabled
-    if overlay_cycles or overlay_peaks or overlay_troughs:
-        suffixes.append("overlayed")
+    def overlay_fn():
+        if overlay_cycles:
+            plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min)
+        if overlay_troughs or overlay_peaks:
+            plot_mcz_extrema(
+                td_arr,
+                mcz_data_min,
+                mcz_data_max,
+                eta=eta,
+                plot_troughs=overlay_troughs,
+                plot_peaks=overlay_peaks,
+            )
+        if show_legend:
+            ax = plt.gca()
+            handles, labels = ax.get_legend_handles_labels()
+            if handles:
+                plt.legend(loc="best")
 
-    # Apply suffixes to filename
-    path_without_ext, ext = os.path.splitext(base_path)
-    if suffixes:
-        fig_path = f"{path_without_ext}_{'_'.join(suffixes)}{ext}"
-    else:
-        fig_path = base_path
-
-    plt.savefig(fig_path, dpi=200)
+    render_best_match_contour(
+        x_arr=td_arr_ms,
+        y_arr=mcz_msun_arr,
+        Zmap=best_match["values"],
+        x_label=r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$",
+        y_label=r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$",
+        cbar_label=var_info["label"],
+        title=None,
+        output_path=fig_path,
+        overlay_fn=overlay_fn if (has_overlays or show_legend) else None,
+    )
     logging.info(f"Figure saved as {fig_path}")
-    plt.close()
 
 
 if __name__ == "__main__":
@@ -215,38 +160,7 @@ if __name__ == "__main__":
         choices=["epsilon", "omega", "theta"],
         help="Variable to plot: 'epsilon' (mismatch), 'omega' (best-match Omega), or 'theta' (best-match theta).",
     )
-    p.add_argument(
-        "--overlay-cycles",
-        action="store_true",
-        help="Overlay 1/2/3 lensing cycle lines on the contour plot.",
-    )
-    p.add_argument(
-        "--overlay-peaks",
-        action="store_true",
-        help="Overlay mcz peak points on the contour plot.",
-    )
-    p.add_argument(
-        "--overlay-troughs",
-        action="store_true",
-        help="Overlay mcz trough points on the contour plot.",
-    )
-    p.add_argument(
-        "--show-legend",
-        action="store_true",
-        help="Show legend for any plotted overlays (cycles, peaks, troughs).",
-    )
-    p.add_argument(
-        "--eta",
-        type=float,
-        default=0.25,
-        help="Symmetric mass ratio for overlay calculations (default: 0.25).",
-    )
-    p.add_argument(
-        "--f_min",
-        type=float,
-        default=20.0,
-        help="Minimum frequency in Hz for cycle calculations (default: 20.0).",
-    )
+    add_cycle_extrema_overlay_args(p)
 
     args = p.parse_args()
 

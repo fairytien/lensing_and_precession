@@ -8,7 +8,6 @@ All contour naming parameters are inferred from that file's metadata.
 import os
 import argparse
 
-import numpy as np
 import matplotlib.pyplot as plt
 from modules.plot_utils import apply_physics_paper_style
 
@@ -16,43 +15,35 @@ apply_physics_paper_style()
 
 from modules.filenames import contour_I_td_filename, contour_I_td_run_dir
 from modules.bank_io import read_best_match_I_td_contour_data
+from modules.cli_utils import add_cycle_extrema_overlay_args
+from modules.cosmology import mcz_src_to_det
+from scripts.utils._best_match_plot import (
+    VARIABLE_MAPPING,
+    render_best_match_contour,
+    build_figure_path,
+)
+from scripts.utils.plot_cycles_and_extrema_mcz import (
+    draw_fixed_mcz_cycle_overlay,
+    draw_fixed_mcz_extrema_overlay,
+    make_fixed_mcz_overlay_legend_handles,
+)
 
 import logging
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
-VARIABLE_MAPPING = {
-    "epsilon": {
-        "dataset": "epsilon_min",
-        "label": r"$\min_{\~\Omega, \~\theta, \gamma_{\mathrm{P}}}$ $\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$",
-        "suffix": "epsilon_min",
-    },
-    "omega": {
-        "dataset": "omega_best",
-        "label": r"$\tilde{\Omega}_{\mathrm{best}}$",
-        "suffix": "omega_best",
-    },
-    "theta": {
-        "dataset": "theta_best",
-        "label": r"$\tilde{\theta}_{\mathrm{best}}$",
-        "suffix": "theta_best",
-    },
-}
-
-
 def main(
     input_path: str,
     output_dir: str,
     variable: str = "epsilon",
+    overlay_cycles: bool = False,
+    overlay_peaks: bool = False,
+    overlay_troughs: bool = False,
+    show_legend: bool = False,
+    eta: float = 0.25,
+    f_min: float = 20.0,
 ):
-    """Plot mismatch contour from aggregated best-match file.
-
-    Args:
-        input_path: Exact path to an aggregated best-match HDF5 file.
-        output_dir: Directory where the figure will be saved.
-        variable: Variable to plot ("epsilon", "omega", or "theta").
-    """
     if variable not in VARIABLE_MAPPING:
         raise ValueError(
             f"Invalid variable '{variable}'. Must be one of: {list(VARIABLE_MAPPING.keys())}"
@@ -83,27 +74,8 @@ def main(
     logging.info(f"Resolved figure output directory: {output_dir}")
 
     I_arr = best_match["I"]
-    td_arr = best_match["td"]
-    Zmap = best_match["values"]
+    td_arr_ms = best_match["td"] * 1e3
 
-    # Convert td from seconds to ms for plotting
-    td_arr_ms = td_arr * 1e3
-
-    # Create contour plot: x = td (ms), y = I
-    TD, I_GRID = np.meshgrid(td_arr_ms, I_arr)
-    plt.figure(figsize=(8, 6))
-    cf = plt.contourf(TD, I_GRID, Zmap, levels=100, cmap="jet")
-    cbar = plt.colorbar(cf)
-    cbar.set_label(var_info["label"])
-    plt.xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
-    plt.ylabel(r"$I$")
-    plt.title(
-        rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {best_match['mcz']:.1f}\,\mathrm{{M}}_\odot$, $z = {best_match['z']:.2g}$"
-    )
-
-    plt.tight_layout()
-
-    # Generate filename with variable suffix
     base_path = contour_I_td_filename(
         output_dir,
         mcz_msun=best_match["mcz"],
@@ -118,23 +90,57 @@ def main(
         ext="pdf",
     )
 
-    # Build list of suffixes
-    suffixes = []
+    has_overlays = overlay_cycles or overlay_peaks or overlay_troughs
+    fig_path = build_figure_path(base_path, variable, has_overlays=has_overlays)
+    title = rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {best_match['mcz']:.1f}\,\mathrm{{M}}_\odot$, $z = {best_match['z']:.2g}$"
 
-    # Add variable suffix for non-epsilon variables
-    if variable != "epsilon":
-        suffixes.append(var_info["suffix"])
+    z = best_match["z"]
+    mcz_det = (
+        float(mcz_src_to_det(float(best_match["mcz"]), float(z)))
+        if z is not None
+        else float(best_match["mcz"])
+    )
+    td_min_ms = float(td_arr_ms.min())
+    td_max_ms = float(td_arr_ms.max())
 
-    # Apply suffixes to filename
-    path_without_ext, ext = os.path.splitext(base_path)
-    if suffixes:
-        fig_path = f"{path_without_ext}_{'_'.join(suffixes)}{ext}"
-    else:
-        fig_path = base_path
+    def overlay_fn():
+        ax = plt.gca()
+        positions = {}
+        if overlay_cycles:
+            positions = draw_fixed_mcz_cycle_overlay(
+                ax, mcz_det, td_min_ms, td_max_ms, eta=eta, f_min=f_min
+            )
+        if overlay_peaks or overlay_troughs:
+            draw_fixed_mcz_extrema_overlay(
+                ax,
+                mcz_det,
+                td_min_ms,
+                td_max_ms,
+                eta=eta,
+                plot_peaks=overlay_peaks,
+                plot_troughs=overlay_troughs,
+            )
+        if show_legend:
+            handles = make_fixed_mcz_overlay_legend_handles(
+                cycle_n_list=list(positions.keys()) if overlay_cycles else None,
+                include_peaks=overlay_peaks,
+                include_troughs=overlay_troughs,
+            )
+            if handles:
+                ax.legend(handles=handles, loc="best")
 
-    plt.savefig(fig_path, dpi=200)
+    render_best_match_contour(
+        x_arr=td_arr_ms,
+        y_arr=I_arr,
+        Zmap=best_match["values"],
+        x_label=r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$",
+        y_label=r"$I$",
+        cbar_label=var_info["label"],
+        title=title,
+        output_path=fig_path,
+        overlay_fn=overlay_fn if (has_overlays or show_legend) else None,
+    )
     logging.info(f"Figure saved as {fig_path}")
-    plt.close()
 
 
 if __name__ == "__main__":
@@ -171,6 +177,7 @@ if __name__ == "__main__":
         choices=["epsilon", "omega", "theta"],
         help="Variable to plot: 'epsilon' (mismatch), 'omega' (best-match Omega), or 'theta' (best-match theta).",
     )
+    add_cycle_extrema_overlay_args(p)
 
     args = p.parse_args()
 
@@ -178,4 +185,10 @@ if __name__ == "__main__":
         input_path=args.input_path,
         output_dir=args.output_dir,
         variable=args.variable,
+        overlay_cycles=args.overlay_cycles,
+        overlay_peaks=args.overlay_peaks,
+        overlay_troughs=args.overlay_troughs,
+        show_legend=args.show_legend,
+        eta=args.eta,
+        f_min=args.f_min,
     )

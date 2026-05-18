@@ -23,21 +23,16 @@ import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.lines import Line2D
 
-
 # Ensure repository root is importable when running this file directly.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.cosmology import source_mass_redshift_scale
+from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
-from scripts.utils.plot_cycles_and_extrema_mcz import (
-    find_mcz_peaks,
-    find_mcz_troughs,
-    plot_cycle_lines,
-)
-
+from scripts.utils.plot_cycles_and_extrema_mcz import plot_cycle_lines
 
 DEFAULT_PATHS = [
     "data/contour_mcz_td/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
