@@ -136,6 +136,8 @@ def plot_combined(
 
         customize_2x1_axes_ratio(col_axes)
 
+        col_axes[1].axhline(0.0, color=LINE_COLORS[0], linestyle=LINE_STYLES[0])
+
         for ax in col_axes:
             ax.set_xlim(f_min, float(summary["f_cut"]))
 
