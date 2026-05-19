@@ -8,6 +8,7 @@ from modules.cosmology import source_mass_redshift_scale
 from modules.waveform import mcz_for_n_lens_cycles, number_of_lens_cycles
 from modules.filenames import contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style
+from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.lens_cycle_extrema import (
     find_mcz_troughs,
     find_mcz_peaks,
@@ -422,8 +423,6 @@ def main():
         required=True,
         help="Path to input file (.pkl with mcz_arr, td_arr, epsilon_matrix) or best_match .h5",
     )
-    parser.add_argument("--eta", type=float, default=0.25)
-    parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument(
         "--optimize_mcz",
         action="store_true",
@@ -435,26 +434,7 @@ def main():
         default="",
         help="Optional suffix to append to figure filename",
     )
-    parser.add_argument(
-        "--overlay-cycles",
-        action="store_true",
-        help="Overlay 1/2/3 lensing cycle lines on the contour plot",
-    )
-    parser.add_argument(
-        "--overlay-peaks",
-        action="store_true",
-        help="Overlay mcz peak points on the contour plot",
-    )
-    parser.add_argument(
-        "--overlay-troughs",
-        action="store_true",
-        help="Overlay mcz trough points on the contour plot",
-    )
-    parser.add_argument(
-        "--show-legend",
-        action="store_true",
-        help="Show legend for any plotted overlays (cycles, peaks, troughs)",
-    )
+    add_cycle_extrema_overlay_args(parser)
     parser.add_argument(
         "--z_from",
         type=float,

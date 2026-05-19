@@ -20,6 +20,7 @@ sys.path.insert(
 
 from modules.filenames import _format_min_precision
 from modules.plot_utils import apply_physics_paper_style
+from modules.cli_utils import add_cycle_extrema_overlay_args
 
 from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines, plot_mcz_extrema
 
@@ -247,38 +248,7 @@ if __name__ == "__main__":
         default=os.path.join(project_root, "figures", "lindblom"),
         help="Directory where the figure will be saved.",
     )
-    p.add_argument(
-        "--overlay-cycles",
-        action="store_true",
-        help="Overlay 1/2/3 lensing cycle lines.",
-    )
-    p.add_argument(
-        "--overlay-peaks",
-        action="store_true",
-        help="Overlay mcz peak points.",
-    )
-    p.add_argument(
-        "--overlay-troughs",
-        action="store_true",
-        help="Overlay mcz trough points.",
-    )
-    p.add_argument(
-        "--show-legend",
-        action="store_true",
-        help="Show legend for overlays.",
-    )
-    p.add_argument(
-        "--eta",
-        type=float,
-        default=0.25,
-        help="Symmetric mass ratio (default: 0.25).",
-    )
-    p.add_argument(
-        "--f_min",
-        type=float,
-        default=20.0,
-        help="Minimum frequency in Hz (default: 20.0).",
-    )
+    add_cycle_extrema_overlay_args(p)
     p.add_argument(
         "--contour-levels",
         type=int,

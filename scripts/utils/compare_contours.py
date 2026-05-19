@@ -10,6 +10,7 @@ sys.path.insert(
 )
 
 from modules.plot_utils import apply_physics_paper_style
+from modules.cli_utils import add_cycle_extrema_overlay_args
 
 apply_physics_paper_style()
 
@@ -705,33 +706,7 @@ def _parse_args():
             "Typical range 0.3–1.2."
         ),
     )
-    parser.add_argument(
-        "--eta",
-        type=float,
-        default=0.25,
-        help="Symmetric mass ratio for cycle line calculations (default: 0.25)",
-    )
-    parser.add_argument(
-        "--f_min",
-        type=float,
-        default=20.0,
-        help="Minimum frequency in Hz for cycle line calculations (default: 20.0)",
-    )
-    parser.add_argument(
-        "--overlay-cycles",
-        action="store_true",
-        help="Overlay 1/2/3 lensing cycle lines on td-mcz plots",
-    )
-    parser.add_argument(
-        "--overlay-peaks",
-        action="store_true",
-        help="Overlay mcz peak points on td-mcz plots",
-    )
-    parser.add_argument(
-        "--overlay-troughs",
-        action="store_true",
-        help="Overlay mcz trough points on td-mcz plots",
-    )
+    add_cycle_extrema_overlay_args(parser, include_show_legend=False)
     parser.add_argument(
         "--overlay-peaks-for",
         nargs="+",
