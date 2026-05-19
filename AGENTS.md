@@ -23,7 +23,7 @@ Instructions for AI coding agents working in this repository. These guidelines a
 - In [`match_utils.py`](modules/match_utils.py), use `_resolve_deps(**overrides)` for dependency injection. Do not import canonical modules at the top of that file.
 - Production waveform physics remains pinned to `modules.Classes`. Treat `Classes_v3+` as testing-only unless the task explicitly says otherwise.
 - Legacy/versioned implementations live under [`legacy/modules/`](legacy/modules/), and legacy scripts should import from `legacy.modules.*`.
-- If historical files use legacy names, migrate them with `python -m scripts.utils.rename_legacy_filenames` and then `python -m scripts.utils.rename_legacy_filenames --apply`.
+- If historical files use legacy names, migrate them with `python -m scripts.migrate.rename_legacy_filenames` and then `python -m scripts.migrate.rename_legacy_filenames --apply`.
 
 ## Code Style
 

@@ -14,6 +14,7 @@ Use it to identify the workflow folder that owns a task and the next runbook or 
 | Run broad parameter sweeps in `(td, mcz)` | [`scripts/contour_mcz_td/`](../scripts/contour_mcz_td/) |
 | Generate a one-off contour for debugging | [`scripts/contour_omega_theta/v4_indiv_contour_otf.py`](../scripts/contour_omega_theta/v4_indiv_contour_otf.py) |
 | Convert or inspect stored outputs | [`scripts/utils/`](../scripts/utils/) |
+| Migrate legacy filenames or file formats | [`scripts/migrate/`](../scripts/migrate/) |
 
 ## Production Pipeline Comparison
 
@@ -121,10 +122,8 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 ## Utilities ([`scripts/utils/`](../scripts/utils/))
 
-### Conversion and compression
+### Conversion
 
-- [`pickle_to_hdf5.py`](../scripts/utils/pickle_to_hdf5.py)
-- [`compress_pickle.py`](../scripts/utils/compress_pickle.py)
 - [`convert_best_match_mcz_td_redshift.py`](../scripts/utils/convert_best_match_mcz_td_redshift.py) — remap a `mcz_td` best-match HDF5 file from one redshift to another
 
 ### Plotting and comparison
@@ -136,7 +135,6 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 - [`plot_contour_from_dataset.py`](../scripts/utils/plot_contour_from_dataset.py) (supports pickle and HDF5 contour inputs, including mismatch cube schema with `--td_ms`)
 - [`plot_cycles_and_extrema.py`](../scripts/utils/plot_cycles_and_extrema.py)
 - [`compare_contours.py`](../scripts/utils/compare_contours.py)
-- [`rename_legacy_filenames.py`](../scripts/utils/rename_legacy_filenames.py)
 
 ### Diagnostics and metadata inspection
 
@@ -144,6 +142,12 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 - [`estimate_cpu_time.py`](../scripts/utils/estimate_cpu_time.py)
 - [`plot_dist_vs_z.py`](../scripts/utils/plot_dist_vs_z.py)
 - [`plot_dist_vs_z_broken_axis.py`](../scripts/utils/plot_dist_vs_z_broken_axis.py)
+
+## Legacy Migration ([`scripts/migrate/`](../scripts/migrate/))
+
+- [`compress_pickle.py`](../scripts/migrate/compress_pickle.py) — compress legacy pickle files
+- [`pickle_to_hdf5.py`](../scripts/migrate/pickle_to_hdf5.py) — convert legacy pickle outputs to HDF5
+- [`rename_legacy_filenames.py`](../scripts/migrate/rename_legacy_filenames.py) — rename legacy mismatch-pipeline filenames to the canonical naming convention
 
 ## Batch Scripts Mapping
 
@@ -171,6 +175,7 @@ Use this ranking to decide where a new script belongs.
 4. **`scripts/template_banks/`** — bank builders.
 5. **`scripts/analysis/`** — cross-pipeline physics analyses (e.g., `modality_nlens`, `plot_bestfit_prec_params`).
 6. **`scripts/utils/`** — generic helpers and conversion scripts that operate across pipelines or on a common artifact schema (cube, generic dataset, HDF5 metadata).
+7. **`scripts/migrate/`** — one-off tools for legacy-filename migration and format conversion (`pickle → HDF5`, redshift rescaling history). Run once; not part of the active research workflow.
 
 `_underscore_helpers.py` private modules under a folder are imported only within that folder's siblings. For `scripts/utils/_*.py`, the consumers may be sibling scripts in any `scripts/` subfolder.
 
