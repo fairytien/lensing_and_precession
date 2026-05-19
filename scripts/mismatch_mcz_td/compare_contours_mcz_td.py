@@ -20,19 +20,24 @@ from typing import List
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
+import h5py
 import numpy as np
-from matplotlib.lines import Line2D
 
 # Ensure repository root is importable when running this file directly.
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+from modules.bank_io import read_best_match_mcz_td_contour_data
 from modules.cosmology import source_mass_redshift_scale
+from modules.filenames import compare_mcz_td_figure_filename
 from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
-from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines
+from scripts.utils.plot_cycles_and_extrema import (
+    make_fixed_mcz_overlay_legend_handles,
+    plot_cycle_lines,
+)
 
 DEFAULT_PATHS = [
     "data/contour_mcz_td/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
@@ -47,12 +52,6 @@ DEFAULT_PANEL_LABELS = [
     "System 2",
     "System 3",
 ]
-
-DEFAULT_OUTPUT = (
-    "figures/contour_mcz_td/"
-    "compare_LensingvsNPz1_LensingvsRPface-onz1_"
-    "LensingvsRPedge-onz1_LensingvsRPrandomz1_same_scale.pdf"
-)
 
 # Physics-style math labels: variables italic, identifiers/units upright roman.
 X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
@@ -72,10 +71,37 @@ def _validate_paths(paths: List[str]) -> List[str]:
     return paths
 
 
+def _load_panel(path: str) -> tuple:
+    """Load one panel's (X, Y, Z, meta) for a td_mcz grid.
+
+    Tries the best_match schema (mcz/td/epsilon_min) first via
+    read_best_match_mcz_td_contour_data; falls back to load_generic_dataset
+    for legacy contour_mcz_td or pickle files.  meta is a dict with
+    'I', 'z', and 'orientation_tag' when available, otherwise None.
+    """
+    if os.path.splitext(path)[1].lower() == ".h5":
+        with h5py.File(path, "r") as _h5:
+            is_best_match = all(k in _h5 for k in ("mcz", "td", "epsilon_min"))
+        if is_best_match:
+            ds = read_best_match_mcz_td_contour_data(path, "epsilon_min")
+            X, Y = np.meshgrid(ds["td"] * 1e3, ds["mcz"])
+            meta = {
+                "I": float(ds["I"]),
+                "z": ds["z"],
+                "orientation_tag": str(ds["orientation_tag"]),
+            }
+            return X, Y, np.asarray(ds["values"], dtype=float), meta
+    X, Y, Z, _, _, data_type = load_generic_dataset(path)
+    if data_type != "td_mcz":
+        raise ValueError(f"Expected a td_mcz dataset, got '{data_type}' for {path}")
+    return X, Y, Z, None
+
+
 def create_figure(
     paths: List[str],
     panel_labels: List[str],
-    output_path: str,
+    output_path: str | None,
+    fig_dir: str,
     decimals: int,
     levels_count: int,
     dpi: int,
@@ -89,15 +115,25 @@ def create_figure(
     if len(panel_labels) != 4:
         raise ValueError("Expected exactly 4 panel labels")
 
-    loaded = [load_generic_dataset(p) for p in paths]
-    xs = [t[0] for t in loaded]
-    ys = [t[1] for t in loaded]
-    eps = [t[2] for t in loaded]
-    data_types = [t[5] for t in loaded]
+    panels = [_load_panel(p) for p in paths]
+    xs = [p[0] for p in panels]
+    ys = [p[1] for p in panels]
+    eps = [p[2] for p in panels]
+    metas = [p[3] for p in panels]
 
-    if len(set(data_types)) != 1 or data_types[0] != "td_mcz":
-        raise ValueError(
-            "All inputs must be td_mcz datasets (best_match/contour_mcz_td td-mcz grids)."
+    if output_path is None:
+        meta = next((m for m in metas if m is not None), None)
+        if meta is None:
+            raise ValueError(
+                "Cannot auto-derive output path: no panel has best_match metadata. "
+                "Pass --output explicitly."
+            )
+        orientation_tags = [m["orientation_tag"] for m in metas if m is not None]
+        output_path = compare_mcz_td_figure_filename(
+            fig_dir,
+            I=meta["I"],
+            z=meta["z"],
+            orientation_tags=orientation_tags,
         )
 
     eps_masked, global_min, global_max = compute_color_scale(eps, "auto")
@@ -222,33 +258,11 @@ def create_figure(
     cbar.formatter = mticker.FormatStrFormatter(f"%.{decimals}f")
     cbar.update_ticks()
 
-    overlay_handles = [
-        Line2D([0], [0], color="black", lw=2, ls="-", label=r"$N_{\mathrm{lensed}}=1$"),
-        Line2D(
-            [0], [0], color="black", lw=2, ls="--", label=r"$N_{\mathrm{lensed}}=2$"
-        ),
-        Line2D([0], [0], color="black", lw=2, ls=":", label=r"$N_{\mathrm{lensed}}=3$"),
-        Line2D(
-            [0],
-            [0],
-            linestyle="None",
-            marker="o",
-            markersize=6,
-            markerfacecolor="magenta",
-            markeredgecolor="magenta",
-            label="peak",
-        ),
-        Line2D(
-            [0],
-            [0],
-            linestyle="None",
-            marker="o",
-            markersize=6,
-            markerfacecolor="white",
-            markeredgecolor="black",
-            label="trough",
-        ),
-    ]
+    overlay_handles = make_fixed_mcz_overlay_legend_handles(
+        cycle_n_list=[1, 2, 3],
+        include_peaks=True,
+        include_troughs=True,
+    )
     overlay_legend = fig.legend(
         handles=overlay_handles,
         loc="lower center",
@@ -261,6 +275,7 @@ def create_figure(
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
     print(f"Saved figure: {output_path}")
 
 
@@ -280,7 +295,8 @@ def _parse_args() -> argparse.Namespace:
         default=DEFAULT_PANEL_LABELS,
         help="Exactly 4 in-panel box labels.",
     )
-    parser.add_argument("--output", type=str, default=DEFAULT_OUTPUT)
+    parser.add_argument("--output", type=str, default=None)
+    parser.add_argument("--fig-dir", type=str, default="figures/contour_mcz_td")
     parser.add_argument("--decimals", type=int, default=2)
     parser.add_argument("--levels", type=int, default=160)
     parser.add_argument("--dpi", type=int, default=400)
@@ -300,6 +316,7 @@ def main() -> None:
         paths=paths,
         panel_labels=args.panel_labels,
         output_path=args.output,
+        fig_dir=args.fig_dir,
         decimals=args.decimals,
         levels_count=args.levels,
         dpi=args.dpi,

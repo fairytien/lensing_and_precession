@@ -192,9 +192,6 @@ def create_figure(
             dataset["template_family"] = family
     _validate_shared_metadata(datasets)
     family = str(datasets[0]["template_family"])
-    draw_cycles = overlay_cycles
-    draw_peaks = overlay_peaks
-    draw_troughs = overlay_troughs
     if output_path is None:
         output_path = compare_I_td_figure_filename(
             fig_dir="figures/contour_I_td",
@@ -256,17 +253,17 @@ def create_figure(
         mcz_det = _detector_mcz(mcz_source_msun, z_value)
         td_min_ms = float(td_ms.min())
         td_max_ms = float(td_ms.max())
-        if draw_peaks or draw_troughs:
+        if overlay_peaks or overlay_troughs:
             draw_fixed_mcz_extrema_overlay(
                 ax,
                 mcz_det,
                 td_min_ms,
                 td_max_ms,
                 eta=eta,
-                plot_peaks=draw_peaks,
-                plot_troughs=draw_troughs,
+                plot_peaks=overlay_peaks,
+                plot_troughs=overlay_troughs,
             )
-        if draw_cycles:
+        if overlay_cycles:
             draw_fixed_mcz_cycle_overlay(
                 ax,
                 mcz_det,
@@ -295,8 +292,6 @@ def create_figure(
             ax.set_box_aspect(1)
 
     axes[0].set_ylabel(Y_AXIS_LABEL)
-    axes[0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
-    axes[0].yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
 
     # No figure title per user request
 
@@ -320,9 +315,9 @@ def create_figure(
 
     _add_overlay_legend(
         fig,
-        include_cycles=draw_cycles,
-        include_peaks=draw_peaks,
-        include_troughs=draw_troughs,
+        include_cycles=overlay_cycles,
+        include_peaks=overlay_peaks,
+        include_troughs=overlay_troughs,
     )
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)

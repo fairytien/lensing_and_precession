@@ -606,6 +606,31 @@ def contour_mcz_td_filename(
     )
 
 
+def compare_mcz_td_figure_filename(
+    fig_dir: str,
+    I: float,
+    orientation_tags: List[str],
+    z: Optional[float] = None,
+    ext: str = "pdf",
+) -> str:
+    """Build the figure path for compare_Lensing outputs over (td, mcz).
+
+    Encodes the fixed flux ratio, redshift, and orientation tags of the
+    precessing panels.  Extrema-overlay style is intentionally not encoded.
+    """
+    z_token = _canonical_z_token(z)
+    tags_token = "_".join(str(t).strip() for t in orientation_tags)
+    stem = "_".join(
+        [
+            "compare_Lensing",
+            f"I{_format_min_precision(I)}",
+            f"z{z_token}",
+            tags_token,
+        ]
+    )
+    return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")
+
+
 def parse_mcz_td_run_dir_metadata(path: str) -> Optional[dict]:
     """Extract canonical mcz_td run metadata from a run or mismatch_cubes path.
 
