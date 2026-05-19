@@ -131,6 +131,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 - [`visualize_mismatch_cube.py`](../scripts/utils/visualize_mismatch_cube.py) (single-cube td sweep; `mcz_td` or `I_td` cubes)
 - [`_cube_viz.py`](../scripts/utils/_cube_viz.py) — private helpers for cube movies/sliders (used by `visualize_mismatch_cube` and `visualize_mcz_sweep_at_td`)
+- [`_best_match_plot.py`](../scripts/utils/_best_match_plot.py) — private shared renderer and `VARIABLE_MAPPING` for both `plot_contour_*_from_best_match.py` entry points
 - [`plot_bestmatch_waveform_overlays.py`](../scripts/utils/plot_bestmatch_waveform_overlays.py)
 - [`plot_contour_from_dataset.py`](../scripts/utils/plot_contour_from_dataset.py) (supports pickle and HDF5 contour inputs, including mismatch cube schema with `--td_ms`)
 - [`plot_cycles_and_extrema.py`](../scripts/utils/plot_cycles_and_extrema.py)
@@ -159,6 +160,19 @@ Shared mismatch-pipeline config defaults live in:
 - [`batch_scripts/_contour_I_td_config.sh`](../batch_scripts/_contour_I_td_config.sh) for `I_td`
 
 Deprecated batch scripts (for older workflows) are in [`legacy/batch_scripts/`](../legacy/batch_scripts/).
+
+## Folder Ownership Criteria
+
+Use this ranking to decide where a new script belongs.
+
+1. **`scripts/mismatch_mcz_td/`** or **`scripts/mismatch_I_td/`** — the four production stages (`compute_mismatch_cubes`, `aggregate_best_match`, `plot_contour_*_from_best_match`, `compare_contours_*_td`) and any post-production helper that is inherently pipeline-specific (i.e., depends on which axis is swept).
+2. **`scripts/contour_mcz_td/`** and **`scripts/contour_omega_theta/`** — broad parameter sweeps and one-off / debugging contour generators. Do **not** place paper-figure scripts that consume `best_match_*.h5` here; those belong with the pipeline that produced them.
+3. **`scripts/lindblom/`** — Lindblom workflow.
+4. **`scripts/template_banks/`** — bank builders.
+5. **`scripts/analysis/`** — cross-pipeline physics analyses (e.g., `modality_nlens`, `plot_bestfit_prec_params`).
+6. **`scripts/utils/`** — generic helpers and conversion scripts that operate across pipelines or on a common artifact schema (cube, generic dataset, HDF5 metadata).
+
+`_underscore_helpers.py` private modules under a folder are imported only within that folder's siblings. For `scripts/utils/_*.py`, the consumers may be sibling scripts in any `scripts/` subfolder.
 
 ## Contributor Notes
 
