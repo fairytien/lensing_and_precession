@@ -545,7 +545,9 @@ def create_figure(
         )
         if handles:
             add_overlay_legend(
-                fig, handles, loc="outside lower center",
+                fig,
+                handles,
+                loc="outside lower center",
                 bbox_to_anchor=None,
             )
 
@@ -558,7 +560,10 @@ def create_figure(
     ylab_theta = r"$\tilde{\theta}_{\mathrm{best}}$"
     if omega_cf is None or theta_cf is None:
         raise ValueError("No datasets were plotted")
-    for row, cf, levels, ylab in ((0, omega_cf, omega_levels, ylab_omega), (1, theta_cf, theta_levels, ylab_theta)):
+    for row, cf, levels, ylab in (
+        (0, omega_cf, omega_levels, ylab_omega),
+        (1, theta_cf, theta_levels, ylab_theta),
+    ):
         cb = fig.colorbar(cf, ax=axes[row, :], label=ylab, pad=0.015)
         format_colorbar_ticks(cb, levels[0], levels[-1])
 
