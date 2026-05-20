@@ -31,7 +31,13 @@ if REPO_ROOT not in sys.path:
 
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import bestfit_prec_params_I_td_figure_filename
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import (
+    add_overlay_legend,
+    apply_physics_paper_style,
+    format_colorbar_ticks,
+    save_figure,
+    set_contour_panel_style,
+)
 from modules.waveform import number_of_lens_cycles
 from scripts.utils.plot_cycles_and_extrema import (
     draw_fixed_mcz_overlays,
@@ -315,12 +321,9 @@ def _plot_line_pair_figure(
 
     fig.subplots_adjust(left=0.12, right=0.97, top=0.89, bottom=0.11, hspace=0.08)
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
     for line in selection_lines:
         print(line)
-    print(f"Saved figure: {output_path}")
+    save_figure(fig, output_path, dpi=dpi)
 
 
 def _slice_line_figure(
@@ -490,6 +493,7 @@ def create_figure(
         sharex=True,
         sharey=True,
         squeeze=False,
+        layout="compressed",
     )
 
     omega_cf = None
@@ -529,10 +533,7 @@ def create_figure(
         )
 
         for ax in (ax_top, ax_bottom):
-
-            if hasattr(ax, "set_box_aspect"):
-                ax.set_box_aspect(1)
-            ax.tick_params(direction="in", top=True, right=True)
+            set_contour_panel_style(ax)
 
         ax_top.set_title(_panel_title(label, d, axis_kind))
 
@@ -543,37 +544,25 @@ def create_figure(
             include_troughs=overlay_troughs,
         )
         if handles:
-            axes[0, 0].legend(handles=handles, loc="best", frameon=True)
+            add_overlay_legend(
+                fig, handles, loc="outside lower center",
+                bbox_to_anchor=None,
+            )
 
     for ax in axes[1, :]:
         ax.set_xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
     for ax in axes[:, 0]:
         ax.set_ylabel(axis_label)
 
-    fig.subplots_adjust(
-        left=0.12 if ncols == 1 else 0.10,
-        right=0.86,
-        top=0.90,
-        bottom=0.11,
-        wspace=0.05,
-        hspace=0.08,
-    )
-
-    fig.canvas.draw()
     ylab_omega = r"$\tilde{\Omega}_{\mathrm{best}}$"
     ylab_theta = r"$\tilde{\theta}_{\mathrm{best}}$"
     if omega_cf is None or theta_cf is None:
         raise ValueError("No datasets were plotted")
-    for row, cf, ylab in ((0, omega_cf, ylab_omega), (1, theta_cf, ylab_theta)):
-        pos = axes[row, -1].get_position()
-        cax = fig.add_axes((pos.x1 + 0.012, pos.y0, 0.016, pos.height))
-        fig.colorbar(cf, cax=cax).set_label(ylab)
+    for row, cf, levels, ylab in ((0, omega_cf, omega_levels, ylab_omega), (1, theta_cf, theta_levels, ylab_theta)):
+        cb = fig.colorbar(cf, ax=axes[row, :], label=ylab, pad=0.015)
+        format_colorbar_ticks(cb, levels[0], levels[-1])
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    fig.savefig(output_path, dpi=dpi)
-    plt.close(fig)
-
-    print(f"Saved figure: {output_path}")
+    save_figure(fig, output_path, dpi=dpi)
 
 
 def main() -> None:

@@ -19,7 +19,6 @@ import sys
 from typing import List
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import h5py
 import numpy as np
 
@@ -32,7 +31,13 @@ from modules.bank_io import read_best_match_mcz_td_contour_data
 from modules.cosmology import source_mass_redshift_scale
 from modules.filenames import compare_mcz_td_figure_filename
 from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import (
+    add_overlay_legend,
+    apply_physics_paper_style,
+    format_colorbar_ticks,
+    save_figure,
+    set_contour_panel_style,
+)
 from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
 from scripts.utils.plot_cycles_and_extrema import (
     make_fixed_mcz_overlay_legend_handles,
@@ -226,9 +231,7 @@ def create_figure(
             zorder=10,
         )
 
-        if hasattr(ax, "set_box_aspect"):
-            ax.set_box_aspect(1)
-        ax.tick_params(direction="in", top=True, right=True)
+        set_contour_panel_style(ax)
 
     # Leave fixed margin for manual colorbar and bottom legend.
     fig.subplots_adjust(
@@ -252,31 +255,19 @@ def create_figure(
     cax = fig.add_axes([x_right + 0.018, y0, 0.024, y1 - y0])
     cbar = fig.colorbar(cf, cax=cax)
     cbar.set_label(COLORBAR_LABEL)
-    cbar.locator = mticker.MaxNLocator(
-        nbins=max(2, cbar_n_ticks), steps=[1, 2, 2.5, 5, 10]
+    format_colorbar_ticks(
+        cbar, global_min, global_max,
+        use_locator=True, nbins=cbar_n_ticks, decimals=decimals,
     )
-    cbar.formatter = mticker.FormatStrFormatter(f"%.{decimals}f")
-    cbar.update_ticks()
 
     overlay_handles = make_fixed_mcz_overlay_legend_handles(
         cycle_n_list=[1, 2, 3],
         include_peaks=True,
         include_troughs=True,
     )
-    overlay_legend = fig.legend(
-        handles=overlay_handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.012),
-        ncol=5,
-        frameon=True,
-        fontsize=11,
-    )
-    overlay_legend.get_frame().set_alpha(0.35)
+    add_overlay_legend(fig, overlay_handles, ncol=5)
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Saved figure: {output_path}")
+    save_figure(fig, output_path, dpi=dpi)
 
 
 def _parse_args() -> argparse.Namespace:

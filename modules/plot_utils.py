@@ -10,7 +10,10 @@ from modules.match_utils import find_optimized_coalescence_params
 from modules.waveform import set_to_params, get_gw, get_I_from_y, get_td_from_MLz
 
 # import libraries
+import os
+
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mticker
 from matplotlib import colors
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -62,6 +65,61 @@ def apply_physics_paper_style(
             "ytick.right": True,
         }
     )
+
+
+def save_figure(fig, path, *, dpi=300):
+    """Save *fig* to *path* with tight bbox, close it, and print the path."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    fig.savefig(path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+    print(f"Saved figure: {path}")
+
+
+def format_colorbar_ticks(cbar, vmin, vmax, *, n_ticks=8, decimals=2,
+                          use_locator=False, nbins=None,
+                          steps=(1, 2, 2.5, 5, 10)):
+    """Set colorbar ticks to rounded values.
+
+    Default mode spaces *n_ticks* ticks linearly between *vmin* and *vmax*.
+    When *use_locator* is True, a ``MaxNLocator`` chooses nice tick
+    positions instead (pass *nbins* and/or *steps* to tune it).
+    """
+    if use_locator:
+        cbar.locator = mticker.MaxNLocator(
+            nbins=max(2, nbins or n_ticks), steps=list(steps),
+        )
+    else:
+        cbar.set_ticks(np.linspace(vmin, vmax, n_ticks))
+    cbar.ax.yaxis.set_major_formatter(
+        mticker.FormatStrFormatter(f"%.{decimals}f")
+    )
+    cbar.update_ticks()
+
+
+def set_contour_panel_style(ax, *, square=True):
+    """Apply standard contour-panel tick style and optional square aspect.
+
+    Complements ``apply_physics_paper_style``; safe to call even when the
+    global rcParams already set tick direction and visibility.
+    """
+    ax.tick_params(direction="in", top=True, right=True)
+    if square and hasattr(ax, "set_box_aspect"):
+        ax.set_box_aspect(1)
+
+
+def add_overlay_legend(fig, handles, *, ncol=None, alpha=0.35,
+                       fontsize=11, loc="lower center",
+                       bbox_to_anchor=(0.5, 0.012)):
+    """Add a translucent overlay legend at the figure bottom."""
+    if not handles:
+        return None
+    legend = fig.legend(
+        handles=handles, loc=loc, bbox_to_anchor=bbox_to_anchor,
+        ncol=ncol if ncol is not None else len(handles),
+        frameon=True, fontsize=fontsize,
+    )
+    legend.get_frame().set_alpha(alpha)
+    return legend
 
 
 def angle_to_pi_string(

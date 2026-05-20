@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from modules.cosmology import source_mass_redshift_scale
 from modules.waveform import mcz_for_n_lens_cycles, number_of_lens_cycles
 from modules.filenames import contour_mcz_td_filename
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, save_figure
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.lens_cycle_extrema import (
     find_mcz_troughs,
@@ -599,12 +599,11 @@ def main():
     if args.tag:
         suffixes.append(args.tag)
     out_path = f"{base_name}_{'_'.join(suffixes)}{base_ext}"
-    plt.savefig(out_path, dpi=200)
     if z_to_used is not None:
         print(
             f"Applied mcz-axis redshift conversion: z_from={z_from_used:g}, z_to={z_to_used:g}, scale={overlay_mcz_scale:.12g}"
         )
-    print("Figure saved as", out_path)
+    save_figure(plt.gcf(), out_path, dpi=200)
 
 
 if __name__ == "__main__":

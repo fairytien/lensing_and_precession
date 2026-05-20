@@ -36,7 +36,13 @@ from modules.bank_io import read_best_match_I_td_contour_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import compare_I_td_figure_filename
 from modules.cosmology import mcz_src_to_det
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import (
+    add_overlay_legend,
+    apply_physics_paper_style,
+    format_colorbar_ticks,
+    save_figure,
+    set_contour_panel_style,
+)
 from scripts.utils.plot_cycles_and_extrema import (
     draw_fixed_mcz_overlays,
     make_fixed_mcz_overlay_legend_handles,
@@ -157,17 +163,7 @@ def _add_overlay_legend(
         include_peaks=include_peaks,
         include_troughs=include_troughs,
     )
-    if not handles:
-        return
-    overlay_legend = fig.legend(
-        handles=handles,
-        loc="lower center",
-        bbox_to_anchor=(0.5, 0.012),
-        ncol=len(handles),
-        frameon=True,
-        fontsize=11,
-    )
-    overlay_legend.get_frame().set_alpha(0.35)
+    add_overlay_legend(fig, handles)
 
 
 def create_figure(
@@ -273,13 +269,11 @@ def create_figure(
         ax.set_xticks(xticks)
         xtick_labels = [f"{int(tick):d}" for tick in xticks]
         ax.set_xticklabels(xtick_labels)
-        ax.tick_params(direction="in", top=True, right=True)
+        set_contour_panel_style(ax)
         if index == 0:
             ax.tick_params(axis="y", which="both", labelleft=True)
         else:
             ax.tick_params(axis="y", which="both", labelleft=False)
-        if hasattr(ax, "set_box_aspect"):
-            ax.set_box_aspect(1)
 
     axes[0].set_ylabel(Y_AXIS_LABEL)
     axes[0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
@@ -302,8 +296,7 @@ def create_figure(
     cax = fig.add_axes([right_pos.x1 + 0.018, left_pos.y0, 0.016, left_pos.height])
     colorbar = fig.colorbar(contour_set, cax=cax)
     colorbar.set_label(colorbar_label)
-    colorbar.set_ticks(np.linspace(global_min, global_max, 8))
-    colorbar.ax.yaxis.set_major_formatter(mticker.FormatStrFormatter("%.2f"))
+    format_colorbar_ticks(colorbar, global_min, global_max)
 
     _add_overlay_legend(
         fig,
@@ -312,10 +305,7 @@ def create_figure(
         include_troughs=overlay_troughs,
     )
 
-    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
-    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Saved figure: {output_path}")
+    save_figure(fig, output_path, dpi=dpi)
 
 
 def _parse_args() -> argparse.Namespace:
