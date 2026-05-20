@@ -32,8 +32,7 @@ from modules.cosmology import source_mass_redshift_scale
 from modules.filenames import compare_mcz_td_figure_filename
 from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
 from modules.plot_utils import (
-    COLORBAR_PAD,
-    COLORBAR_WIDTH,
+    add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
     format_colorbar_ticks,
@@ -245,16 +244,7 @@ def create_figure(
         hspace=0.08,
     )
 
-    # Colorbar aligned to right-column axes bounds (excludes xlabel extent).
-    fig.canvas.draw()
-    pos_top_right = axes[1].get_position()
-    pos_bottom_right = axes[3].get_position()
-
-    x_right = max(pos_top_right.x1, pos_bottom_right.x1)
-    y0 = pos_bottom_right.y0
-    y1 = pos_top_right.y1
-
-    cax = fig.add_axes([x_right + COLORBAR_PAD, y0, COLORBAR_WIDTH, y1 - y0])
+    cax = add_colorbar_axes(fig, axes)
     cbar = fig.colorbar(cf, cax=cax)
     cbar.set_label(COLORBAR_LABEL)
     format_colorbar_ticks(

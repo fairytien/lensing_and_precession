@@ -37,8 +37,7 @@ from modules.bank_io import read_best_match_I_td_contour_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import (
-    COLORBAR_PAD,
-    COLORBAR_WIDTH,
+    add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
     format_colorbar_ticks,
@@ -203,15 +202,7 @@ def create_figure(
     axes[0][0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
     axes[0][0].yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
 
-    # Colorbar aligned to right-column axes bounds
-    fig.canvas.draw()
-    pos_top_right = axes[0][2].get_position()
-    pos_bottom_right = axes[1][2].get_position()
-    x_right = pos_top_right.x1
-    y0 = pos_bottom_right.y0
-    y1 = pos_top_right.y1
-
-    cax = fig.add_axes([x_right + COLORBAR_PAD, y0, COLORBAR_WIDTH, y1 - y0])
+    cax = add_colorbar_axes(fig, axes)
     colorbar = fig.colorbar(contour_set, cax=cax, extend="max")
     colorbar.set_label(COLORBAR_LABEL)
     format_colorbar_ticks(colorbar, global_min, vmax)

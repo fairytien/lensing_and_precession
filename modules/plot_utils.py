@@ -69,6 +69,35 @@ def apply_physics_paper_style(
 COLORBAR_PAD = 0.015
 COLORBAR_WIDTH = 0.02
 
+
+def add_colorbar_axes(fig, target_axes, *, pad=COLORBAR_PAD, width=COLORBAR_WIDTH):
+    """Add and return a colorbar axes (cax) aligned to the right of target_axes.
+
+    The colorbar will span vertically from the bottom of the lowest axis to the
+    top of the highest axis in target_axes, and will be placed to the right
+    of the rightmost axis.
+    """
+    fig.canvas.draw()
+    if hasattr(target_axes, "flat"):
+        axes_list = list(target_axes.flat)
+    elif isinstance(target_axes, (list, tuple)):
+        axes_list = []
+        for item in target_axes:
+            if isinstance(item, (list, tuple)):
+                axes_list.extend(item)
+            else:
+                axes_list.append(item)
+    else:
+        axes_list = [target_axes]
+
+    positions = [ax.get_position() for ax in axes_list]
+    x1 = max(pos.x1 for pos in positions)
+    y0 = min(pos.y0 for pos in positions)
+    y1 = max(pos.y1 for pos in positions)
+
+    return fig.add_axes([x1 + pad, y0, width, y1 - y0])
+
+
 def save_figure(fig, path, *, dpi=300):
     """Save *fig* to *path* with tight bbox, close it, and print the path."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)

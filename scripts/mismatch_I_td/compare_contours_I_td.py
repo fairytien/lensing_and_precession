@@ -37,8 +37,7 @@ from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import compare_I_td_figure_filename
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import (
-    COLORBAR_PAD,
-    COLORBAR_WIDTH,
+    add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
     format_colorbar_ticks,
@@ -291,10 +290,7 @@ def create_figure(
         wspace=0.04,
     )
 
-    fig.canvas.draw()
-    right_pos = axes[-1].get_position()
-    left_pos = axes[0].get_position()
-    cax = fig.add_axes([right_pos.x1 + COLORBAR_PAD, left_pos.y0, COLORBAR_WIDTH, left_pos.height])
+    cax = add_colorbar_axes(fig, axes)
     colorbar = fig.colorbar(contour_set, cax=cax)
     colorbar.set_label(colorbar_label)
     format_colorbar_ticks(colorbar, global_min, global_max)
