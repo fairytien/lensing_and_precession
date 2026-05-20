@@ -66,6 +66,7 @@ def apply_physics_paper_style(
         }
     )
 
+COLORBAR_PAD = 0.015
 
 def save_figure(fig, path, *, dpi=300):
     """Save *fig* to *path* with tight bbox, close it, and print the path."""

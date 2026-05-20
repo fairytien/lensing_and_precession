@@ -32,6 +32,7 @@ if REPO_ROOT not in sys.path:
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import (
+    COLORBAR_PAD,
     add_overlay_legend,
     apply_physics_paper_style,
     format_colorbar_ticks,
@@ -564,7 +565,7 @@ def create_figure(
         (0, omega_cf, omega_levels, ylab_omega),
         (1, theta_cf, theta_levels, ylab_theta),
     ):
-        cb = fig.colorbar(cf, ax=axes[row, :], label=ylab, pad=0.015)
+        cb = fig.colorbar(cf, ax=axes[row, :], label=ylab, pad=COLORBAR_PAD)
         format_colorbar_ticks(cb, levels[0], levels[-1])
 
     save_figure(fig, output_path, dpi=dpi)
