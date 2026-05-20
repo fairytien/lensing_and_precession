@@ -36,7 +36,7 @@ from modules.plot_utils import (
     apply_physics_paper_style,
     format_colorbar_ticks,
     save_figure,
-    set_contour_panel_style,
+    set_square_axes,
 )
 from modules.waveform import number_of_lens_cycles
 from scripts.utils.plot_cycles_and_extrema import (
@@ -533,7 +533,7 @@ def create_figure(
         )
 
         for ax in (ax_top, ax_bottom):
-            set_contour_panel_style(ax)
+            set_square_axes(ax)
 
         ax_top.set_title(_panel_title(label, d, axis_kind))
 

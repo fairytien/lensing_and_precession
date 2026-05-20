@@ -36,7 +36,7 @@ from modules.plot_utils import (
     apply_physics_paper_style,
     format_colorbar_ticks,
     save_figure,
-    set_contour_panel_style,
+    set_square_axes,
 )
 from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
 from scripts.utils.plot_cycles_and_extrema import (
@@ -231,7 +231,7 @@ def create_figure(
             zorder=10,
         )
 
-        set_contour_panel_style(ax)
+        set_square_axes(ax)
 
     # Leave fixed margin for manual colorbar and bottom legend.
     fig.subplots_adjust(

@@ -41,7 +41,7 @@ from modules.plot_utils import (
     apply_physics_paper_style,
     format_colorbar_ticks,
     save_figure,
-    set_contour_panel_style,
+    set_square_axes,
 )
 from scripts.utils.plot_cycles_and_extrema import (
     draw_fixed_mcz_overlays,
@@ -269,7 +269,7 @@ def create_figure(
         ax.set_xticks(xticks)
         xtick_labels = [f"{int(tick):d}" for tick in xticks]
         ax.set_xticklabels(xtick_labels)
-        set_contour_panel_style(ax)
+        set_square_axes(ax)
         if index == 0:
             ax.tick_params(axis="y", which="both", labelleft=True)
         else:

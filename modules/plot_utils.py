@@ -96,14 +96,9 @@ def format_colorbar_ticks(cbar, vmin, vmax, *, n_ticks=8, decimals=2,
     cbar.update_ticks()
 
 
-def set_contour_panel_style(ax, *, square=True):
-    """Apply standard contour-panel tick style and optional square aspect.
-
-    Complements ``apply_physics_paper_style``; safe to call even when the
-    global rcParams already set tick direction and visibility.
-    """
-    ax.tick_params(direction="in", top=True, right=True)
-    if square and hasattr(ax, "set_box_aspect"):
+def set_square_axes(*axes):
+    """Force square box aspect on each axis (for contour panels)."""
+    for ax in axes:
         ax.set_box_aspect(1)
 
 
