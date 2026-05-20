@@ -1,13 +1,11 @@
 """Create a publication-style td-I mismatch comparison for one Taman orientation.
 
 This script expects one or more aggregated best-match HDF5 files produced by
-``python -m scripts.mismatch_I_td.aggregate_best_match`` (RP templates) or
-the legacy single-template NP runs in ``data/contour_I_td/``. The template
-family is auto-detected per file and validated to match across panels:
-
-- NP: degenerate bank (no ``omega_best``/``theta_best``/``gamma_best``
-  datasets, or ``template_family='NP'`` attribute).
-- RP: full ``omega x theta x gamma`` bank with per-cell best-fit datasets.
+``python -m scripts.mismatch_I_td.aggregate_best_match``. The template family
+is taken from explicit ``template_family`` metadata on current pipeline
+outputs. RP files that predate that attribute are still accepted when they
+contain the standard ``omega_best``/``theta_best``/``gamma_best`` datasets.
+Legacy ``best_match_np_*`` files are not supported.
 
 The panels are sorted by source-frame chirp mass and rendered with a
 shared color scale. Each panel overlays:
@@ -40,8 +38,7 @@ from modules.filenames import compare_I_td_figure_filename
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils.plot_cycles_and_extrema import (
-    draw_fixed_mcz_cycle_overlay,
-    draw_fixed_mcz_extrema_overlay,
+    draw_fixed_mcz_overlays,
     make_fixed_mcz_overlay_legend_handles,
 )
 
@@ -71,8 +68,14 @@ def _detect_template_family(path: str) -> str:
             tag = tag.strip().upper()
             if tag in TEMPLATE_FAMILIES:
                 return tag
+            raise ValueError(f"Unsupported template_family={tag!r} in {path}.")
         bank_keys = ("omega_best", "theta_best", "gamma_best")
-        return "RP" if all(k in h5 for k in bank_keys) else "NP"
+        if all(k in h5 for k in bank_keys):
+            return "RP"
+    raise ValueError(
+        "Missing template_family metadata for NP compare input. "
+        f"Legacy NP best-match files are not supported: {path}"
+    )
 
 
 def _sort_datasets(paths: Sequence[str]) -> list[dict]:
@@ -253,25 +256,17 @@ def create_figure(
         mcz_det = _detector_mcz(mcz_source_msun, z_value)
         td_min_ms = float(td_ms.min())
         td_max_ms = float(td_ms.max())
-        if overlay_peaks or overlay_troughs:
-            draw_fixed_mcz_extrema_overlay(
-                ax,
-                mcz_det,
-                td_min_ms,
-                td_max_ms,
-                eta=eta,
-                plot_peaks=overlay_peaks,
-                plot_troughs=overlay_troughs,
-            )
-        if overlay_cycles:
-            draw_fixed_mcz_cycle_overlay(
-                ax,
-                mcz_det,
-                td_min_ms,
-                td_max_ms,
-                eta=eta,
-                f_min=f_min,
-            )
+        draw_fixed_mcz_overlays(
+            ax,
+            mcz_det,
+            td_min_ms,
+            td_max_ms,
+            overlay_cycles=overlay_cycles,
+            overlay_peaks=overlay_peaks,
+            overlay_troughs=overlay_troughs,
+            eta=eta,
+            f_min=f_min,
+        )
         _add_mass_box(ax, mcz_source_msun)
 
         ax.set_xlabel(X_AXIS_LABEL)
@@ -279,11 +274,6 @@ def create_figure(
         xtick_labels = [f"{int(tick):d}" for tick in xticks]
         ax.set_xticklabels(xtick_labels)
         ax.tick_params(direction="in", top=True, right=True)
-        # Use fixed locator for y-ticks for clarity, let matplotlib handle labels
-        major_locator = mticker.MultipleLocator(0.2)
-        minor_locator = mticker.MultipleLocator(0.1)
-        ax.yaxis.set_major_locator(major_locator)
-        ax.yaxis.set_minor_locator(minor_locator)
         if index == 0:
             ax.tick_params(axis="y", which="both", labelleft=True)
         else:
@@ -292,6 +282,8 @@ def create_figure(
             ax.set_box_aspect(1)
 
     axes[0].set_ylabel(Y_AXIS_LABEL)
+    axes[0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    axes[0].yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
 
     # No figure title per user request
 

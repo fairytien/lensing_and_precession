@@ -5,7 +5,7 @@ Creates a 2xN panel figure for any number of systems:
 - Bottom row: best-matching theta_tilde on the native best-match grid
 
 For multi-system runs, each row uses a shared color scale across panels.
-N_lensed = 1/2/3 contours are overlaid on every panel.
+Optional cycle/extrema overlays can be added to every panel.
 
 When --slice-mcz is provided for mcz-td inputs, the script instead creates
 two line plots versus time delay at the requested source-frame chirp mass.
@@ -18,7 +18,7 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import h5py
 import matplotlib.pyplot as plt
@@ -29,10 +29,16 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
+from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import apply_physics_paper_style
 from modules.waveform import number_of_lens_cycles
-from scripts.utils.plot_cycles_and_extrema import draw_nlens_isocontours
+from scripts.utils.plot_cycles_and_extrema import (
+    draw_fixed_mcz_overlays,
+    draw_nlens_isocontours,
+    make_fixed_mcz_overlay_legend_handles,
+    plot_mcz_extrema,
+)
 
 DEFAULT_PATHS = [
     "data/mismatch_z1_mcz15_I0p1-0p9_td20-70_Taman_edgeon/best_match/"
@@ -44,6 +50,8 @@ DEFAULT_LABELS = ["System 2 (edge-on)"]
 
 DEFAULT_OUTPUT = "figures/contour_mcz_td/bestfit_prec_params.pdf"
 
+BestMatchData = Dict[str, Any]
+
 
 def _decode_attr_text(value: object) -> str:
     if isinstance(value, bytes):
@@ -51,7 +59,7 @@ def _decode_attr_text(value: object) -> str:
     return str(value)
 
 
-def _load_best_match(path: str) -> Dict[str, np.ndarray]:
+def _load_best_match(path: str) -> BestMatchData:
     with h5py.File(path, "r") as h5:
         td = np.asarray(h5["td"], dtype=float)
         omega_best = np.asarray(h5["omega_best"], dtype=float)
@@ -68,7 +76,6 @@ def _load_best_match(path: str) -> Dict[str, np.ndarray]:
             axis_values = mcz
             axis_kind = "mcz"
             axis_label = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
-            mcz_grid = np.broadcast_to(mcz[:, None], omega_best.shape)
             I_value = float(h5.attrs.get("I", h5.attrs.get("source_param_I", np.nan)))
             mcz_value = np.nan
         elif axis_order == "I,td" or (
@@ -78,7 +85,6 @@ def _load_best_match(path: str) -> Dict[str, np.ndarray]:
             axis_kind = "I"
             axis_label = r"$I$"
             mcz_value = float(np.asarray(h5["mcz"], dtype=float).reshape(-1)[0])
-            mcz_grid = np.full(omega_best.shape, mcz_value, dtype=float)
             I_value = np.nan
         else:
             raise ValueError(
@@ -86,18 +92,15 @@ def _load_best_match(path: str) -> Dict[str, np.ndarray]:
             )
 
     td_ms = td * 1e3
-    TD, _ = np.meshgrid(td, np.arange(omega_best.shape[0], dtype=float))
-    MCZ = np.asarray(mcz_grid, dtype=float)
-    nlens = number_of_lens_cycles(MCZ * (1 + z), TD)
 
     return {
         "axis_kind": axis_kind,
         "axis_values": axis_values,
         "axis_label": axis_label,
+        "td_s": td,
         "td_ms": td_ms,
         "omega_best": omega_best,
         "theta_best": theta_best,
-        "nlens": nlens,
         "z": z,
         "orientation": orientation,
         "I_value": I_value,
@@ -155,18 +158,18 @@ def _is_effectively_exact(
     return max(abs(float(val) - target) for val in selected_values) <= atol
 
 
-def _uniq_sorted_field(datasets: List[Dict[str, np.ndarray]], key: str) -> str:
+def _uniq_sorted_field(datasets: List[BestMatchData], key: str) -> str:
     return ", ".join(
         sorted({f"{float(d[key]):g}" for d in datasets if np.isfinite(float(d[key]))})
     )
 
 
-def _z_detail_part(datasets: List[Dict[str, np.ndarray]]) -> str | None:
+def _z_detail_part(datasets: List[BestMatchData]) -> str | None:
     z_txt = ", ".join(sorted({f"{d['z']:g}" for d in datasets}))
     return rf"$z={z_txt}$" if z_txt else None
 
 
-def _extend_z(details: List[str], datasets: List[Dict[str, np.ndarray]]) -> None:
+def _extend_z(details: List[str], datasets: List[BestMatchData]) -> None:
     if p := _z_detail_part(datasets):
         details.append(p)
 
@@ -181,12 +184,106 @@ def _format_mcz_title(mcz_value: float) -> str:
     return rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_value:g}\,\mathrm{{M}}_\odot$"
 
 
-def _panel_title(label: str, dataset: Dict[str, np.ndarray], axis_kind: str) -> str:
+def _panel_title(label: str, dataset: BestMatchData, axis_kind: str) -> str:
     if axis_kind == "I":
         mcz_value = float(dataset["mcz_value"])
         if np.isfinite(mcz_value):
             return _format_mcz_title(mcz_value)
     return label
+
+
+def _source_frame_overlay_scale(z: float) -> float:
+    z_value = float(z)
+    if not np.isfinite(z_value):
+        return 1.0
+    return 1.0 / (1.0 + z_value)
+
+
+def _draw_dataset_overlays(
+    axes,
+    dataset: BestMatchData,
+    *,
+    overlay_cycles: bool,
+    overlay_peaks: bool,
+    overlay_troughs: bool,
+    show_legend: bool,
+    eta: float,
+    f_min: float,
+) -> set[int]:
+    if not (overlay_cycles or overlay_peaks or overlay_troughs):
+        return set()
+
+    axis_kind = str(dataset["axis_kind"])
+    td_ms = np.asarray(dataset["td_ms"], dtype=float)
+    visible_cycle_counts: set[int] = set()
+
+    if axis_kind == "mcz":
+        td_s = np.asarray(dataset["td_s"], dtype=float)
+        axis_values = np.asarray(dataset["axis_values"], dtype=float)
+        nlens: np.ndarray | None = None
+        if overlay_cycles:
+            z_factor = 1.0 + float(dataset["z"])
+            nlens = np.asarray(
+                number_of_lens_cycles(
+                    np.broadcast_to(axis_values[:, None], dataset["omega_best"].shape)
+                    * z_factor,
+                    np.broadcast_to(td_s[None, :], dataset["omega_best"].shape),
+                    f_min=f_min,
+                    eta=eta,
+                ),
+                dtype=float,
+            )
+            nlens_min = float(np.nanmin(nlens))
+            nlens_max = float(np.nanmax(nlens))
+            visible_cycle_counts.update(
+                n for n in (1, 2, 3) if nlens_min <= n <= nlens_max
+            )
+        mcz_min = float(np.nanmin(axis_values))
+        mcz_max = float(np.nanmax(axis_values))
+        mcz_scale = _source_frame_overlay_scale(float(dataset["z"]))
+        for ax in axes:
+            if nlens is not None:
+                draw_nlens_isocontours(
+                    ax,
+                    td_ms,
+                    axis_values,
+                    nlens,
+                    label_style="legend" if show_legend else "inline",
+                )
+            if overlay_peaks or overlay_troughs:
+                plot_mcz_extrema(
+                    td_s,
+                    mcz_min,
+                    mcz_max,
+                    eta=eta,
+                    plot_troughs=overlay_troughs,
+                    plot_peaks=overlay_peaks,
+                    mcz_scale=mcz_scale,
+                    ax=ax,
+                )
+        return visible_cycle_counts
+
+    mcz_det = float(dataset["mcz_value"]) * (1.0 + float(dataset["z"]))
+    if not np.isfinite(mcz_det):
+        return visible_cycle_counts
+
+    td_min_ms = float(np.nanmin(td_ms))
+    td_max_ms = float(np.nanmax(td_ms))
+    for index, ax in enumerate(axes):
+        positions = draw_fixed_mcz_overlays(
+            ax,
+            mcz_det,
+            td_min_ms,
+            td_max_ms,
+            overlay_cycles=overlay_cycles,
+            overlay_peaks=overlay_peaks,
+            overlay_troughs=overlay_troughs,
+            eta=eta,
+            f_min=f_min,
+        )
+        if index == 0:
+            visible_cycle_counts.update(int(n) for n in positions)
+    return visible_cycle_counts
 
 
 def _plot_line_pair_figure(
@@ -218,7 +315,7 @@ def _plot_line_pair_figure(
 
     fig.subplots_adjust(left=0.12, right=0.97, top=0.89, bottom=0.11, hspace=0.08)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
     plt.close(fig)
     for line in selection_lines:
@@ -227,7 +324,7 @@ def _plot_line_pair_figure(
 
 
 def _slice_line_figure(
-    datasets: List[Dict[str, np.ndarray]],
+    datasets: List[BestMatchData],
     labels: List[str],
     output_path: str,
     dpi: int,
@@ -272,8 +369,8 @@ def _slice_line_figure(
             )
             idxs.append(i)
             selected.append(v)
-        kind = datasets[0]["axis_kind"]
-        xlabel = datasets[0]["axis_label"]
+        kind = str(datasets[0]["axis_kind"])
+        xlabel = str(datasets[0]["axis_label"])
         xs = [d["axis_values"] for d in datasets]
         omega_ys = [d["omega_best"][:, c] for d, c in zip(datasets, idxs)]
         theta_ys = [d["theta_best"][:, c] for d, c in zip(datasets, idxs)]
@@ -302,12 +399,30 @@ def _slice_line_figure(
     )
 
 
-def _levels_for_field(
-    datasets: List[Dict[str, np.ndarray]], key: str, n: int
-) -> np.ndarray:
+def _levels_for_field(datasets: List[BestMatchData], key: str, n: int) -> np.ndarray:
     lo = min(float(np.nanmin(d[key])) for d in datasets)
     hi = max(float(np.nanmax(d[key])) for d in datasets)
     return np.linspace(lo, hi, n)
+
+
+def _default_output_path(datasets: List[BestMatchData], axis_kind: str) -> str:
+    if axis_kind == "I":
+        return bestfit_prec_params_I_td_figure_filename(
+            fig_dir="figures/contour_I_td",
+            mcz_values=[float(d["mcz_value"]) for d in datasets],
+            I_min=float(np.nanmin(datasets[0]["axis_values"])),
+            I_max=float(np.nanmax(datasets[0]["axis_values"])),
+            td_min_ms=float(np.nanmin(datasets[0]["td_ms"])),
+            td_max_ms=float(np.nanmax(datasets[0]["td_ms"])),
+            orientation_tag=str(datasets[0]["orientation"]),
+            z=float(datasets[0]["z"]),
+        )
+    return DEFAULT_OUTPUT
+
+
+def _with_output_suffix(output_path: str, suffix: str) -> str:
+    stem, ext = os.path.splitext(output_path)
+    return f"{stem}_{suffix}{ext or '.pdf'}"
 
 
 def create_figure(
@@ -317,6 +432,12 @@ def create_figure(
     levels_count: int,
     dpi: int,
     cmap: str,
+    overlay_cycles: bool,
+    overlay_peaks: bool,
+    overlay_troughs: bool,
+    show_legend: bool,
+    eta: float,
+    f_min: float,
     slice_mcz: float | None = None,
     slice_td_ms: float | None = None,
 ) -> None:
@@ -329,35 +450,33 @@ def create_figure(
         raise ValueError(
             "All inputs must use the same vertical axis; do not mix mcz-td and I-td files."
         )
-    axis_kind = datasets[0]["axis_kind"]
-    axis_label = datasets[0]["axis_label"]
+    axis_kind = str(datasets[0]["axis_kind"])
+    axis_label = str(datasets[0]["axis_label"])
+    output_path = output_path or _default_output_path(datasets, axis_kind)
 
     if slice_mcz is not None:
         if axis_kind != "mcz":
             raise ValueError(
                 "--slice-mcz is only supported for mcz-td best-match files"
             )
-        _slice_line_figure(datasets, labels, output_path, dpi, mcz_row=slice_mcz)
+        _slice_line_figure(
+            datasets,
+            labels,
+            _with_output_suffix(output_path, f"slice_mcz_{slice_mcz:g}"),
+            dpi,
+            mcz_row=slice_mcz,
+        )
         return
 
     if slice_td_ms is not None:
-        _slice_line_figure(datasets, labels, output_path, dpi, td_column_ms=slice_td_ms)
+        _slice_line_figure(
+            datasets,
+            labels,
+            _with_output_suffix(output_path, f"slice_td_ms_{slice_td_ms:g}"),
+            dpi,
+            td_column_ms=slice_td_ms,
+        )
         return
-
-    if output_path is None:
-        if axis_kind == "I":
-            output_path = bestfit_prec_params_I_td_figure_filename(
-                fig_dir="figures/contour_I_td",
-                mcz_values=[float(d["mcz_value"]) for d in datasets],
-                I_min=float(np.nanmin(datasets[0]["axis_values"])),
-                I_max=float(np.nanmax(datasets[0]["axis_values"])),
-                td_min_ms=float(np.nanmin(datasets[0]["td_ms"])),
-                td_max_ms=float(np.nanmax(datasets[0]["td_ms"])),
-                orientation_tag=str(datasets[0]["orientation"]),
-                z=datasets[0]["z"],
-            )
-        else:
-            output_path = DEFAULT_OUTPUT
 
     omega_levels = _levels_for_field(datasets, "omega_best", levels_count)
     theta_levels = _levels_for_field(datasets, "theta_best", levels_count)
@@ -375,6 +494,7 @@ def create_figure(
 
     omega_cf = None
     theta_cf = None
+    legend_cycle_counts: set[int] = set()
 
     for i, (d, label) in enumerate(zip(datasets, labels)):
         ax_top = axes[0, i]
@@ -395,14 +515,35 @@ def create_figure(
             cmap=cmap,
         )
 
+        legend_cycle_counts.update(
+            _draw_dataset_overlays(
+                (ax_top, ax_bottom),
+                d,
+                overlay_cycles=overlay_cycles,
+                overlay_peaks=overlay_peaks,
+                overlay_troughs=overlay_troughs,
+                show_legend=show_legend,
+                eta=eta,
+                f_min=f_min,
+            )
+        )
+
         for ax in (ax_top, ax_bottom):
-            draw_nlens_isocontours(ax, d["td_ms"], d["axis_values"], d["nlens"])
 
             if hasattr(ax, "set_box_aspect"):
                 ax.set_box_aspect(1)
             ax.tick_params(direction="in", top=True, right=True)
 
         ax_top.set_title(_panel_title(label, d, axis_kind))
+
+    if show_legend:
+        handles = make_fixed_mcz_overlay_legend_handles(
+            cycle_n_list=sorted(legend_cycle_counts) or None,
+            include_peaks=overlay_peaks,
+            include_troughs=overlay_troughs,
+        )
+        if handles:
+            axes[0, 0].legend(handles=handles, loc="best", frameon=True)
 
     for ax in axes[1, :]:
         ax.set_xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
@@ -421,12 +562,14 @@ def create_figure(
     fig.canvas.draw()
     ylab_omega = r"$\tilde{\Omega}_{\mathrm{best}}$"
     ylab_theta = r"$\tilde{\theta}_{\mathrm{best}}$"
+    if omega_cf is None or theta_cf is None:
+        raise ValueError("No datasets were plotted")
     for row, cf, ylab in ((0, omega_cf, ylab_omega), (1, theta_cf, ylab_theta)):
         pos = axes[row, -1].get_position()
-        cax = fig.add_axes([pos.x1 + 0.012, pos.y0, 0.016, pos.height])
+        cax = fig.add_axes((pos.x1 + 0.012, pos.y0, 0.016, pos.height))
         fig.colorbar(cf, cax=cax).set_label(ylab)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     fig.savefig(output_path, dpi=dpi)
     plt.close(fig)
 
@@ -472,6 +615,7 @@ def main() -> None:
         default="jet",
         help="Matplotlib colormap",
     )
+    add_cycle_extrema_overlay_args(parser)
     slice_group = parser.add_mutually_exclusive_group()
     slice_group.add_argument(
         "--slice-mcz",
@@ -500,6 +644,12 @@ def main() -> None:
         levels_count=args.levels,
         dpi=args.dpi,
         cmap=args.cmap,
+        overlay_cycles=args.overlay_cycles,
+        overlay_peaks=args.overlay_peaks,
+        overlay_troughs=args.overlay_troughs,
+        show_legend=args.show_legend,
+        eta=args.eta,
+        f_min=args.f_min,
         slice_mcz=args.slice_mcz,
         slice_td_ms=args.slice_td_ms,
     )

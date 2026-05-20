@@ -23,8 +23,7 @@ from scripts.utils._best_match_plot import (
     build_figure_path,
 )
 from scripts.utils.plot_cycles_and_extrema import (
-    draw_fixed_mcz_cycle_overlay,
-    draw_fixed_mcz_extrema_overlay,
+    draw_fixed_mcz_overlays,
     make_fixed_mcz_overlay_legend_handles,
 )
 
@@ -105,21 +104,17 @@ def main(
 
     def overlay_fn():
         ax = plt.gca()
-        positions = {}
-        if overlay_cycles:
-            positions = draw_fixed_mcz_cycle_overlay(
-                ax, mcz_det, td_min_ms, td_max_ms, eta=eta, f_min=f_min
-            )
-        if overlay_peaks or overlay_troughs:
-            draw_fixed_mcz_extrema_overlay(
-                ax,
-                mcz_det,
-                td_min_ms,
-                td_max_ms,
-                eta=eta,
-                plot_peaks=overlay_peaks,
-                plot_troughs=overlay_troughs,
-            )
+        positions = draw_fixed_mcz_overlays(
+            ax,
+            mcz_det,
+            td_min_ms,
+            td_max_ms,
+            overlay_cycles=overlay_cycles,
+            overlay_peaks=overlay_peaks,
+            overlay_troughs=overlay_troughs,
+            eta=eta,
+            f_min=f_min,
+        )
         if show_legend:
             handles = make_fixed_mcz_overlay_legend_handles(
                 cycle_n_list=list(positions.keys()) if overlay_cycles else None,

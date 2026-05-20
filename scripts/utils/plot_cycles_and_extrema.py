@@ -199,6 +199,41 @@ def draw_fixed_mcz_extrema_overlay(
             ax.axvline(td_ms, color=_TROUGH_COLOR, ls=":", **_AXVLINE_KW)
 
 
+def draw_fixed_mcz_overlays(
+    ax,
+    mcz_det_msun: float,
+    td_min_ms: float,
+    td_max_ms: float,
+    *,
+    overlay_cycles: bool = False,
+    overlay_peaks: bool = False,
+    overlay_troughs: bool = False,
+    eta: float = 0.25,
+    f_min: float = 20.0,
+) -> dict:
+    """Draw cycle and/or extrema overlays on *ax* for a fixed detector-frame chirp mass.
+
+    Returns the positions dict ``{n_cycles: td_ms}`` from the cycle overlay,
+    or an empty dict when *overlay_cycles* is False.
+    """
+    positions = {}
+    if overlay_cycles:
+        positions = draw_fixed_mcz_cycle_overlay(
+            ax, mcz_det_msun, td_min_ms, td_max_ms, eta=eta, f_min=f_min
+        )
+    if overlay_peaks or overlay_troughs:
+        draw_fixed_mcz_extrema_overlay(
+            ax,
+            mcz_det_msun,
+            td_min_ms,
+            td_max_ms,
+            eta=eta,
+            plot_peaks=overlay_peaks,
+            plot_troughs=overlay_troughs,
+        )
+    return positions
+
+
 def make_fixed_mcz_overlay_legend_handles(
     *,
     cycle_n_list=None,
