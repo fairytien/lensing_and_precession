@@ -38,6 +38,14 @@ from modules.cli_utils import add_I_grid_args, add_td_grid_args, add_redshift_ar
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
+def _normalize_template_family(raw: object) -> Optional[str]:
+    if raw is None:
+        return None
+    tag = raw.decode() if isinstance(raw, bytes) else str(raw)
+    tag = tag.strip().upper()
+    return tag if tag in {"NP", "RP"} else None
+
+
 @timer_decorator
 def main(
     run_dir: str,
@@ -92,6 +100,7 @@ def main(
     # Store source parameters from first cube (should be same across all)
     source_attrs = {}
     I_grid_meta = None
+    template_family = None
 
     for p in cube_paths:
         # Skip unreadable/corrupted files gracefully
@@ -102,12 +111,16 @@ def main(
             continue
         with h5:
             I_val = float(np.array(h5["I"]).item())
+            family_i = (
+                _normalize_template_family(h5.attrs.get("template_family")) or "RP"
+            )
             if td_arr is None:
                 td_arr = np.array(h5["td"])  # (td,)
                 ref_shape = read_mismatch_cube_shape(h5)
                 # Extract source parameters from first cube file if available
                 source_attrs = read_source_attrs(h5)
                 I_grid_meta = read_I_td_grid_attrs(h5)
+                template_family = family_i
             else:
                 # Light authenticity check: metadata should be consistent across cubes.
                 meta_i = read_I_td_grid_attrs(h5)
@@ -117,6 +130,11 @@ def main(
                         "falling back to discovered I values where needed."
                     )
                     I_grid_meta = {}
+                if template_family is not None and family_i != template_family:
+                    raise ValueError(
+                        "Mismatch cubes from different template families were discovered "
+                        f"in the same run: {template_family!r} and {family_i!r}."
+                    )
                 if not warned_shape_mismatch:
                     shape_i = read_mismatch_cube_shape(h5)
                     if ref_shape is not None and shape_i != ref_shape:
@@ -230,6 +248,7 @@ def main(
     # Save combined best-match file with resolution encoded
     I_min_out = float(np.min(desired_I))
     I_max_out = float(np.max(desired_I))
+    summary_prefix = "np" if template_family == "NP" else "best_match"
     summary_path = best_match_I_td_filename(
         run_dir,
         mcz_msun=mcz_msun,
@@ -248,6 +267,7 @@ def main(
         gamma_pts=gamma_pts,
         orientation_tag=orientation_tag,
         z=z_val,
+        file_prefix=summary_prefix,
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("I", data=desired_I)
@@ -285,6 +305,8 @@ def main(
             if key == "I":
                 continue
             h5.attrs[key] = val
+        if template_family is not None:
+            h5.attrs["template_family"] = template_family
         write_scalar_attr_with_unit(h5, "z", z_val, none_as_nan=True)
         write_scalar_attr_with_unit(h5, "mcz_source_msun", mcz_msun)
         write_orientation_attr(h5, orientation_tag)
