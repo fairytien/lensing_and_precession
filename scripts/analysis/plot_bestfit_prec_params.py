@@ -33,6 +33,7 @@ from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import (
     COLORBAR_PAD,
+    COLORBAR_WIDTH,
     add_overlay_legend,
     apply_physics_paper_style,
     format_colorbar_ticks,
@@ -561,11 +562,14 @@ def create_figure(
     ylab_theta = r"$\tilde{\theta}_{\mathrm{best}}$"
     if omega_cf is None or theta_cf is None:
         raise ValueError("No datasets were plotted")
+    fig.canvas.draw()
     for row, cf, levels, ylab in (
         (0, omega_cf, omega_levels, ylab_omega),
         (1, theta_cf, theta_levels, ylab_theta),
     ):
-        cb = fig.colorbar(cf, ax=axes[row, :], label=ylab, pad=COLORBAR_PAD)
+        pos = axes[row, -1].get_position()
+        cax = fig.add_axes([pos.x1 + COLORBAR_PAD, pos.y0, COLORBAR_WIDTH, pos.height])
+        cb = fig.colorbar(cf, cax=cax, label=ylab)
         format_colorbar_ticks(cb, levels[0], levels[-1])
 
     save_figure(fig, output_path, dpi=dpi)

@@ -67,6 +67,7 @@ def apply_physics_paper_style(
     )
 
 COLORBAR_PAD = 0.015
+COLORBAR_WIDTH = 0.02
 
 def save_figure(fig, path, *, dpi=300):
     """Save *fig* to *path* with tight bbox, close it, and print the path."""
@@ -76,9 +77,9 @@ def save_figure(fig, path, *, dpi=300):
     print(f"Saved figure: {path}")
 
 
-def format_colorbar_ticks(cbar, vmin, vmax, *, n_ticks=8, decimals=2,
+def format_colorbar_ticks(cbar, vmin, vmax, *, n_ticks=15, decimals=2,
                           use_locator=True, nbins=None,
-                          steps=(1, 2, 2.5, 5, 10)):
+                          steps=(1, 1.5, 2, 2.5, 3, 5, 10)):
     """Set colorbar ticks to rounded values.
 
     Default mode uses a ``MaxNLocator`` to choose nice tick positions
