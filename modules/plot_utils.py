@@ -77,13 +77,13 @@ def save_figure(fig, path, *, dpi=300):
 
 
 def format_colorbar_ticks(cbar, vmin, vmax, *, n_ticks=8, decimals=2,
-                          use_locator=False, nbins=None,
+                          use_locator=True, nbins=None,
                           steps=(1, 2, 2.5, 5, 10)):
     """Set colorbar ticks to rounded values.
 
-    Default mode spaces *n_ticks* ticks linearly between *vmin* and *vmax*.
-    When *use_locator* is True, a ``MaxNLocator`` chooses nice tick
-    positions instead (pass *nbins* and/or *steps* to tune it).
+    Default mode uses a ``MaxNLocator`` to choose nice tick positions
+    (pass *nbins* and/or *steps* to tune it).  Set *use_locator=False*
+    to fall back to *n_ticks* linearly spaced between *vmin* and *vmax*.
     """
     if use_locator:
         cbar.locator = mticker.MaxNLocator(
