@@ -1,0 +1,417 @@
+"""Fit a power-law phase-offset model from extracted best-fit precession data.
+
+The fitted model is
+
+    value = C * theta_tilde**a * omega_tilde**b
+
+which becomes linear in log space:
+
+    log(value) = log(C) + a * log(theta_tilde) + b * log(omega_tilde)
+
+Input data can be a headered text/CSV file with named columns or a plain
+three-column file ordered as
+
+    theta_tilde, omega_tilde, value
+
+Example:
+
+    python -m scripts.analysis.fit_phase_offset_power_law \
+        --input data/system1_phase_offsets.csv \
+        --title "System 1 (Taman_faceon)"
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Ensure repository root is importable when running this file directly.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if REPO_ROOT not in sys.path:
+    sys.path.insert(0, REPO_ROOT)
+
+from modules.plot_utils import apply_physics_paper_style
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Fit value = C * theta_tilde^a * omega_tilde^b in log space from "
+            "an extracted data table."
+        )
+    )
+    parser.add_argument("--input", required=True, help="Path to the input table.")
+    parser.add_argument(
+        "--delimiter",
+        default=None,
+        help="Column delimiter. Defaults to ',' for .csv files and whitespace otherwise.",
+    )
+    parser.add_argument(
+        "--no-header",
+        action="store_true",
+        help="Treat the input as a plain three-column table without column names.",
+    )
+    parser.add_argument(
+        "--theta-column",
+        default="theta_tilde",
+        help="Column name for theta_tilde when the file has a header.",
+    )
+    parser.add_argument(
+        "--omega-column",
+        default="omega_tilde",
+        help="Column name for omega_tilde when the file has a header.",
+    )
+    parser.add_argument(
+        "--value-column",
+        default="delta_phi",
+        help="Column name for the fitted dependent variable when the file has a header.",
+    )
+    parser.add_argument(
+        "--output-prefix",
+        default=None,
+        help=(
+            "Prefix for output files. Defaults to figures/analysis/<input_stem>_power_law"
+        ),
+    )
+    parser.add_argument(
+        "--title",
+        default="Power-law fit",
+        help="Figure title prefix.",
+    )
+    parser.add_argument(
+        "--value-label",
+        default=r"$\Delta\Phi_{\mathrm{P}}\,[\mathrm{rad}]$",
+        help="Axis label for the fitted dependent variable.",
+    )
+    parser.add_argument(
+        "--dpi",
+        type=int,
+        default=200,
+        help="Saved figure resolution.",
+    )
+    return parser.parse_args()
+
+
+def infer_delimiter(path: Path, delimiter: str | None) -> str | None:
+    if delimiter is not None:
+        return delimiter
+    if path.suffix.lower() == ".csv":
+        return ","
+    return None
+
+
+def load_data(
+    path: Path,
+    *,
+    delimiter: str | None,
+    has_header: bool,
+    theta_column: str,
+    omega_column: str,
+    value_column: str,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    if has_header:
+        table = np.genfromtxt(
+            path,
+            delimiter=delimiter,
+            names=True,
+            dtype=float,
+            encoding=None,
+        )
+        if table.dtype.names is None:
+            raise ValueError(
+                "Expected a header row. Pass --no-header for plain three-column data."
+            )
+        missing = [
+            column
+            for column in (theta_column, omega_column, value_column)
+            if column not in table.dtype.names
+        ]
+        if missing:
+            raise ValueError(
+                f"Missing required columns: {', '.join(missing)}. "
+                f"Available columns: {', '.join(table.dtype.names)}"
+            )
+        theta = np.atleast_1d(np.asarray(table[theta_column], dtype=float))
+        omega = np.atleast_1d(np.asarray(table[omega_column], dtype=float))
+        value = np.atleast_1d(np.asarray(table[value_column], dtype=float))
+        return theta.reshape(-1), omega.reshape(-1), value.reshape(-1)
+
+    table = np.genfromtxt(path, delimiter=delimiter, dtype=float)
+    if table.ndim == 1:
+        if table.size != 3:
+            raise ValueError(
+                "Expected exactly three values for a one-row file without a header."
+            )
+        table = table.reshape(1, 3)
+    if table.ndim != 2 or table.shape[1] < 3:
+        raise ValueError(
+            "Expected at least three columns ordered as theta_tilde, omega_tilde, value."
+        )
+    return table[:, 0], table[:, 1], table[:, 2]
+
+
+def validate_data(
+    theta: np.ndarray, omega: np.ndarray, value: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    finite_mask = np.isfinite(theta) & np.isfinite(omega) & np.isfinite(value)
+    theta = theta[finite_mask]
+    omega = omega[finite_mask]
+    value = value[finite_mask]
+
+    if theta.size < 3:
+        raise ValueError("Need at least three finite rows to fit the power law.")
+
+    if np.any(theta <= 0) or np.any(omega <= 0) or np.any(value <= 0):
+        raise ValueError(
+            "All theta_tilde, omega_tilde, and value entries must be strictly positive "
+            "for a log-space fit."
+        )
+
+    return theta, omega, value
+
+
+def fit_power_law(
+    theta: np.ndarray, omega: np.ndarray, value: np.ndarray
+) -> tuple[float, float, float, float]:
+    log_theta = np.log(theta)
+    log_omega = np.log(omega)
+    log_value = np.log(value)
+
+    design = np.column_stack([np.ones(theta.size), log_theta, log_omega])
+    coeffs, _, _, _ = np.linalg.lstsq(design, log_value, rcond=None)
+
+    log_c, exponent_theta, exponent_omega = coeffs
+    fitted_log_value = design @ coeffs
+    ss_res = np.sum((log_value - fitted_log_value) ** 2)
+    ss_tot = np.sum((log_value - np.mean(log_value)) ** 2)
+    r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else 1.0
+    return (
+        float(np.exp(log_c)),
+        float(exponent_theta),
+        float(exponent_omega),
+        float(r_squared),
+    )
+
+
+def nice_log_bounds(values: np.ndarray) -> tuple[float, float]:
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values) & (values > 0)]
+    if values.size == 0:
+        raise ValueError("Cannot compute log bounds for an empty array.")
+
+    lower_value = float(np.min(values))
+    upper_value = float(np.max(values))
+    lower_exp = int(np.floor(np.log10(lower_value)))
+    upper_exp = int(np.floor(np.log10(upper_value)))
+
+    mantissas = np.array([1.0, 2.0, 5.0, 10.0])
+    lower_scale = 10.0**lower_exp
+    upper_scale = 10.0**upper_exp
+
+    lower_candidates = mantissas * lower_scale
+    upper_candidates = mantissas * upper_scale
+
+    lower = float(lower_candidates[lower_candidates <= lower_value][-1])
+    upper = float(upper_candidates[upper_candidates >= upper_value][0])
+
+    if np.isclose(lower, upper):
+        upper *= 10.0
+    return lower, upper
+
+
+def nice_linear_bounds(values: np.ndarray) -> tuple[float, float]:
+    values = np.asarray(values, dtype=float)
+    values = values[np.isfinite(values)]
+    if values.size == 0:
+        raise ValueError("Cannot compute linear bounds for an empty array.")
+
+    lower_value = float(np.min(values))
+    upper_value = float(np.max(values))
+    span = upper_value - lower_value
+    if span <= 0:
+        pad = 0.5 * max(abs(lower_value), 1.0)
+        return lower_value - pad, upper_value + pad
+
+    scale = 10.0 ** np.floor(np.log10(span))
+    for factor in (0.1, 0.2, 0.5, 1.0):
+        step = factor * scale
+        rounded_lower = step * np.floor(lower_value / step)
+        rounded_upper = step * np.ceil(upper_value / step)
+        if rounded_lower < rounded_upper:
+            return float(rounded_lower), float(rounded_upper)
+
+    return lower_value, upper_value
+
+
+def resolve_output_prefix(input_path: Path, output_prefix: str | None) -> Path:
+    if output_prefix is not None:
+        return Path(output_prefix)
+    return Path("figures") / "analysis" / f"{input_path.stem}_power_law"
+
+
+def make_loglog_plot(
+    theta: np.ndarray,
+    omega: np.ndarray,
+    value: np.ndarray,
+    *,
+    constant: float,
+    exponent_theta: float,
+    exponent_omega: float,
+    value_label: str,
+    title: str,
+    output_path: Path,
+    dpi: int,
+) -> None:
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+
+    predictor = theta**exponent_theta * omega**exponent_omega
+    order = np.argsort(predictor)
+    predictor_sorted = predictor[order]
+    value_sorted = value[order]
+
+    x_fit = np.geomspace(np.min(predictor_sorted), np.max(predictor_sorted), 300)
+    y_fit = constant * x_fit
+
+    fig, ax = plt.subplots(figsize=(6.9, 5.4))
+    ax.scatter(predictor_sorted, value_sorted, s=34, color="C0", label="Data", zorder=3)
+    ax.plot(x_fit, y_fit, color="C1", linewidth=2.2, label="Best fit")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    ax.set_xlabel(
+        rf"$\tilde{{\theta}}^{{{exponent_theta:.2f}}}\,\tilde{{\Omega}}^{{{exponent_omega:.2f}}}$"
+    )
+    ax.set_ylabel(value_label)
+    ax.set_xlim(*nice_log_bounds(predictor_sorted))
+    ax.set_ylim(*nice_log_bounds(value_sorted))
+    ax.grid(True, which="both", alpha=0.25, linewidth=0.8)
+    ax.legend(loc="best", frameon=True)
+    ax.set_title(f"{title}: log-log collapse")
+    ax.margins(x=0.0, y=0.0)
+
+    model_text = (
+        rf"$C={constant:.3g}$"
+        + "\n"
+        + rf"$a={exponent_theta:.3f}$"
+        + "\n"
+        + rf"$b={exponent_omega:.3f}$"
+    )
+    ax.text(
+        0.03,
+        0.97,
+        model_text,
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        bbox={
+            "boxstyle": "round",
+            "facecolor": "white",
+            "alpha": 0.9,
+            "edgecolor": "0.7",
+        },
+    )
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+
+
+def make_surface_plot(
+    theta: np.ndarray,
+    omega: np.ndarray,
+    *,
+    constant: float,
+    exponent_theta: float,
+    exponent_omega: float,
+    value_label: str,
+    title: str,
+    output_path: Path,
+    dpi: int,
+) -> None:
+    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+
+    omega_grid = np.linspace(np.min(omega), np.max(omega), 250)
+    theta_grid = np.linspace(np.min(theta), np.max(theta), 250)
+    omega_mesh, theta_mesh = np.meshgrid(omega_grid, theta_grid)
+    fitted_value = constant * theta_mesh**exponent_theta * omega_mesh**exponent_omega
+
+    fig, ax = plt.subplots(figsize=(7.3, 5.9))
+    contour = ax.contourf(omega_mesh, theta_mesh, fitted_value, levels=40, cmap="jet")
+    ax.set_xlabel(r"$\tilde{\Omega}$")
+    ax.set_ylabel(r"$\tilde{\theta}$")
+    ax.set_xlim(*nice_linear_bounds(omega))
+    ax.set_ylim(*nice_linear_bounds(theta))
+    ax.set_title(f"{title}: fitted power-law surface")
+    ax.margins(x=0.0, y=0.0)
+    cbar = fig.colorbar(contour, ax=ax)
+    cbar.set_label(value_label)
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+
+
+def main() -> None:
+    args = parse_args()
+    input_path = Path(args.input)
+    delimiter = infer_delimiter(input_path, args.delimiter)
+
+    theta, omega, value = load_data(
+        input_path,
+        delimiter=delimiter,
+        has_header=not args.no_header,
+        theta_column=args.theta_column,
+        omega_column=args.omega_column,
+        value_column=args.value_column,
+    )
+    theta, omega, value = validate_data(theta, omega, value)
+
+    constant, exponent_theta, exponent_omega, r_squared = fit_power_law(
+        theta, omega, value
+    )
+
+    output_prefix = resolve_output_prefix(input_path, args.output_prefix)
+    loglog_path = output_prefix.with_name(output_prefix.name + "_loglog.png")
+    surface_path = output_prefix.with_name(output_prefix.name + "_surface.png")
+
+    make_loglog_plot(
+        theta,
+        omega,
+        value,
+        constant=constant,
+        exponent_theta=exponent_theta,
+        exponent_omega=exponent_omega,
+        value_label=args.value_label,
+        title=args.title,
+        output_path=loglog_path,
+        dpi=args.dpi,
+    )
+    make_surface_plot(
+        theta,
+        omega,
+        constant=constant,
+        exponent_theta=exponent_theta,
+        exponent_omega=exponent_omega,
+        value_label=args.value_label,
+        title=args.title,
+        output_path=surface_path,
+        dpi=args.dpi,
+    )
+
+    print("Fitted model: value = C * theta_tilde^a * omega_tilde^b")
+    print(f"C = {constant:.8g}")
+    print(f"a = {exponent_theta:.8g}")
+    print(f"b = {exponent_omega:.8g}")
+    print(f"R^2 in log space = {r_squared:.6f}")
+    print(f"Saved log-log plot: {loglog_path}")
+    print(f"Saved fitted surface plot: {surface_path}")
+
+
+if __name__ == "__main__":
+    main()
