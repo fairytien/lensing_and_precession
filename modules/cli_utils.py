@@ -97,68 +97,8 @@ def _add_chunking_args(
     return parser
 
 
-def add_cycle_extrema_overlay_args(
-    parser: ArgumentParser,
-    *,
-    include_overlay_cycles: bool = True,
-    include_overlay_peaks: bool = True,
-    include_overlay_troughs: bool = True,
-    include_show_legend: bool = True,
-    include_eta: bool = True,
-    include_f_min: bool = True,
-    default_eta: float = 0.25,
-    default_f_min: float = 20.0,
-) -> ArgumentParser:
-    """Attach the common cycle/extrema overlay CLI arguments used by plot scripts."""
-    if include_overlay_cycles:
-        parser.add_argument(
-            "--overlay-cycles",
-            action="store_true",
-            help="Overlay 1/2/3 lensing cycle guides.",
-        )
-    if include_overlay_peaks:
-        parser.add_argument(
-            "--overlay-peaks",
-            action="store_true",
-            help="Overlay peak guides.",
-        )
-    if include_overlay_troughs:
-        parser.add_argument(
-            "--overlay-troughs",
-            action="store_true",
-            help="Overlay trough guides.",
-        )
-    if include_show_legend:
-        parser.add_argument(
-            "--show-legend",
-            action="store_true",
-            help="Show legend for plotted overlays.",
-        )
-    if include_eta:
-        parser.add_argument(
-            "--eta",
-            type=float,
-            default=default_eta,
-            help=(
-                "Symmetric mass ratio for cycle/extrema overlay calculations "
-                f"(default: {default_eta})."
-            ),
-        )
-    if include_f_min:
-        parser.add_argument(
-            "--f_min",
-            type=float,
-            default=default_f_min,
-            help=(
-                "Minimum frequency in Hz for cycle overlay calculations "
-                f"(default: {default_f_min})."
-            ),
-        )
-    return parser
-
-
 # ==============================================================================
-# Shared Argument Groups
+# Grid Argument Groups
 # ==============================================================================
 
 
@@ -188,11 +128,6 @@ def add_orientation_args(
         ),
     )
     return parser
-
-
-# ==============================================================================
-# Grid Argument Groups
-# ==============================================================================
 
 
 def add_mcz_grid_args(
@@ -325,6 +260,66 @@ def add_redshift_arg(
 # ==============================================================================
 # Overlay Argument Groups
 # ==============================================================================
+
+
+def add_cycle_extrema_overlay_args(
+    parser: ArgumentParser,
+    *,
+    include_overlay_cycles: bool = True,
+    include_overlay_peaks: bool = True,
+    include_overlay_troughs: bool = True,
+    include_show_legend: bool = True,
+    include_eta: bool = True,
+    include_f_min: bool = True,
+    default_eta: float = 0.25,
+    default_f_min: float = 20.0,
+) -> ArgumentParser:
+    """Attach the common cycle/extrema overlay CLI arguments used by plot scripts."""
+    if include_overlay_cycles:
+        parser.add_argument(
+            "--overlay-cycles",
+            action="store_true",
+            help="Overlay 1/2/3 lensing cycle guides.",
+        )
+    if include_overlay_peaks:
+        parser.add_argument(
+            "--overlay-peaks",
+            action="store_true",
+            help="Overlay peak guides.",
+        )
+    if include_overlay_troughs:
+        parser.add_argument(
+            "--overlay-troughs",
+            action="store_true",
+            help="Overlay trough guides.",
+        )
+    if include_show_legend:
+        parser.add_argument(
+            "--show-legend",
+            action="store_true",
+            help="Show legend for plotted overlays.",
+        )
+    if include_eta:
+        parser.add_argument(
+            "--eta",
+            type=float,
+            default=default_eta,
+            help=(
+                "Symmetric mass ratio for cycle/extrema overlay calculations "
+                f"(default: {default_eta})."
+            ),
+        )
+    if include_f_min:
+        parser.add_argument(
+            "--f_min",
+            type=float,
+            default=default_f_min,
+            help=(
+                "Minimum frequency in Hz for cycle overlay calculations "
+                f"(default: {default_f_min})."
+            ),
+        )
+    return parser
 
 
 # ==============================================================================
