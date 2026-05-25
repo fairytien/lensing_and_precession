@@ -12,7 +12,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.plot_utils import customize_2x1_axes_ratio
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, save_figure
 from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
 DEFAULT_INPUTS = [
@@ -192,10 +192,8 @@ def plot_combined(
     out_path = os.path.join(
         output_dir, f"{output_prefix}_mcz{mcz_token}_combined_fracamp.pdf"
     )
-    fig.savefig(out_path, bbox_inches="tight", pad_inches=0.01, dpi=dpi)
-    plt.close(fig)
+    save_figure(fig, out_path, dpi=dpi)
 
-    print(f"Saved: {out_path}")
     for summary in summaries:
         print(
             "Best match:",

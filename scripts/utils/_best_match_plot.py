@@ -5,10 +5,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from modules.plot_utils import save_figure
+
 VARIABLE_MAPPING = {
     "epsilon": {
         "dataset": "epsilon_min",
-        "label": r"$\min_{\~\Omega, \~\theta, \gamma_{\mathrm{P}}}$ $\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$",
+        "label": r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$",
         "suffix": "epsilon_min",
     },
     "omega": {
@@ -56,9 +58,7 @@ def render_best_match_contour(
         plt.title(title)
     if overlay_fn is not None:
         overlay_fn()
-    plt.tight_layout()
-    plt.savefig(output_path, dpi=200)
-    plt.close()
+    save_figure(plt.gcf(), output_path, dpi=200)
 
 
 def build_figure_path(base_path, variable, has_overlays=False):

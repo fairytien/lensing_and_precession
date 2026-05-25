@@ -13,7 +13,6 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 from matplotlib.lines import Line2D
 
 # Ensure project root is importable when script is launched directly.
@@ -23,7 +22,7 @@ PROJECT_ROOT = os.path.dirname(
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, format_colorbar_ticks, save_figure
 from modules.default_params import SOLMASS2SEC
 
 apply_physics_paper_style()
@@ -360,21 +359,17 @@ def main() -> None:
     vmin = float(np.nanmin(Z))
     vmax = float(np.nanmax(Z))
     if np.isfinite(vmin) and np.isfinite(vmax) and vmax > vmin:
-        tick_count = max(2, int(args.cbar_n_ticks))
-        cbar.set_ticks(np.linspace(vmin, vmax, tick_count))
-    else:
-        cbar.locator = mticker.MaxNLocator(nbins=10, steps=[1, 2, 2.5, 5, 10])
-    cbar.formatter = mticker.FormatStrFormatter(f"%.{max(0, args.cbar_decimals)}f")
-    cbar.update_ticks()
+        format_colorbar_ticks(
+            cbar, vmin, vmax,
+            n_ticks=max(2, int(args.cbar_n_ticks)),
+            decimals=max(0, args.cbar_decimals),
+        )
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
     _add_chirp_mass_box(ax, chirp_mass, chirp_mass_range)
 
-    fig.tight_layout(pad=0.2)
-    fig.savefig(fig_path, dpi=args.dpi, bbox_inches="tight", pad_inches=0.02)
-    plt.close(fig)
-    print("Figure saved as", fig_path)
+    save_figure(fig, fig_path, dpi=args.dpi)
 
 
 if __name__ == "__main__":

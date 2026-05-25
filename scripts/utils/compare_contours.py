@@ -2,25 +2,62 @@ import sys, os, argparse, pickle, re
 import numpy as np
 import numpy.ma as ma
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 
 # Ensure project root is on path
 sys.path.insert(
     0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 )
 
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import (
+    apply_physics_paper_style,
+    format_colorbar_ticks,
+    save_figure,
+    set_square_axes,
+)
 from modules.cli_utils import add_cycle_extrema_overlay_args
 
 apply_physics_paper_style()
 
 from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines, plot_mcz_extrema
 
+_TD_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
+_MCZ_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
 
-def load_pickle_data(filepath):
-    """Load pickle data and return the loaded object"""
-    with open(filepath, "rb") as f:
-        return pickle.load(f)
+
+def _td_mcz_dataset(td_s, mcz, Z):
+    X, Y = np.meshgrid(td_s * 1e3, mcz)
+    return X, Y, Z, _TD_LABEL, _MCZ_LABEL, "td_mcz"
+
+
+def _apply_colorbar_ticks(cbar, vmin, vmax, round_ticks, n_ticks, decimals):
+    if not round_ticks:
+        return
+    nbins = (
+        None
+        if isinstance(n_ticks, str) and n_ticks.strip().lower() == "auto"
+        else max(2, int(n_ticks))
+    )
+    format_colorbar_ticks(
+        cbar,
+        vmin,
+        vmax,
+        nbins=nbins,
+        decimals=int(decimals) if decimals is not None else 2,
+    )
+
+
+def _resize_colorbar(fig, cbar, factor):
+    if factor == 1.0:
+        return
+    fig.canvas.draw()
+    if hasattr(fig, "get_constrained_layout") and fig.get_constrained_layout():
+        fig.set_constrained_layout(False)
+    cpos = cbar.ax.get_position()
+    factor = max(0.05, min(1.5, factor))
+    new_height = cpos.height * factor
+    new_y0 = cpos.y0 + 0.5 * (cpos.height - new_height)
+    cbar.ax.set_position([cpos.x0, new_y0, cpos.width, new_height])
+    fig.canvas.draw_idle()
 
 
 def load_generic_dataset(path):
@@ -42,7 +79,8 @@ def load_generic_dataset(path):
     ext = ext.lower()
 
     if ext == ".pkl":
-        d = load_pickle_data(path)
+        with open(path, "rb") as fh:
+            d = pickle.load(fh)
         # Case 1: omega-theta grid
         if all(k in d for k in ("omega_matrix", "theta_matrix", "epsilon_matrix")):
             X = np.asarray(d["omega_matrix"])
@@ -54,15 +92,7 @@ def load_generic_dataset(path):
             td = np.asarray(d["td_arr"], dtype=float)  # seconds
             mcz = np.asarray(d["mcz_arr"], dtype=float)
             Z = np.asarray(d["epsilon_matrix"], dtype=float)
-            X, Y = np.meshgrid(td * 1e3, mcz)  # x in ms
-            return (
-                X,
-                Y,
-                Z,
-                r"$\Delta t_d$ [ms]",
-                r"$\mathcal{M}_s\ [M_\odot]$",
-                "td_mcz",
-            )
+            return _td_mcz_dataset(td, mcz, Z)
         raise ValueError("Unsupported pickle structure: missing expected keys")
 
     elif ext == ".h5":
@@ -74,30 +104,14 @@ def load_generic_dataset(path):
                 mcz = np.asarray(h5["mcz"], dtype=float)
                 td = np.asarray(h5["td"], dtype=float)
                 Z = np.asarray(h5["epsilon_min"], dtype=float)
-                X, Y = np.meshgrid(td * 1e3, mcz)  # x in ms
-                return (
-                    X,
-                    Y,
-                    Z,
-                    r"$\Delta t_d$ [ms]",
-                    r"$\mathcal{M}_s\ [M_\odot]$",
-                    "td_mcz",
-                )
+                return _td_mcz_dataset(td, mcz, Z)
             # Case 2: contour_mcz_td file
             elif all(k in h5 for k in ("mcz_arr", "td_arr", "epsilon_matrix")):
                 mcz = np.asarray(h5["mcz_arr"], dtype=float)
                 td = np.asarray(h5["td_arr"], dtype=float)
                 Z = np.asarray(h5["epsilon_matrix"], dtype=float)
-                X, Y = np.meshgrid(td * 1e3, mcz)  # x in ms
-                return (
-                    X,
-                    Y,
-                    Z,
-                    r"$\Delta t_d$ [ms]",
-                    r"$\mathcal{M}_s\ [M_\odot]$",
-                    "td_mcz",
-                )
-            # Case 2: mismatch cube file (td, theta, omega)
+                return _td_mcz_dataset(td, mcz, Z)
+            # Case 3: mismatch cube file (td, theta, omega)
             elif all(k in h5 for k in ("td", "theta", "omega", "epsilon_min_grid")):
                 td = np.asarray(h5["td"], dtype=float)  # (n_td,)
                 theta = np.asarray(h5["theta"], dtype=float)  # (n_theta,)
@@ -106,12 +120,7 @@ def load_generic_dataset(path):
                     h5["epsilon_min_grid"], dtype=float
                 )  # (n_td, n_theta, n_omega)
 
-                # For single td value, extract that slice
-                if td.size == 1:
-                    Z = eps_grid[0]  # (n_theta, n_omega)
-                else:
-                    # Multiple td values: use first one
-                    Z = eps_grid[0]  # (n_theta, n_omega)
+                Z = eps_grid[0]  # (n_theta, n_omega) — first td slice
 
                 # Create meshgrid: X (omega), Y (theta)
                 # For Z[i,j], i indexes theta, j indexes omega
@@ -321,8 +330,7 @@ def create_ratio_contour(
             ax=ax,
         )
 
-    if hasattr(ax, "set_box_aspect"):
-        ax.set_box_aspect(1)
+    set_square_axes(ax)
 
     # Colorbar
     cbar = fig.colorbar(
@@ -335,42 +343,22 @@ def create_ratio_contour(
         pad=0.04,
     )
     cbar.set_label(
-        r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_{\rm L},\tilde{h}_{\rm P}) / \epsilon(\tilde{h}_{\rm L},\tilde{h}_{\rm NP})$"
+        r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\;\epsilon(\tilde{h}_{\mathrm{L}},\tilde{h}_{\mathrm{P}}) / \epsilon(\tilde{h}_{\mathrm{L}},\tilde{h}_{\mathrm{NP}})$"
     )
 
-    # Rounded ticks on colorbar
-    if cbar_round_ticks:
-        if isinstance(cbar_n_ticks, str) and cbar_n_ticks.strip().lower() == "auto":
-            nbins_val = "auto"
-        else:
-            nbins_val = max(2, int(cbar_n_ticks))
-        locator = mticker.MaxNLocator(nbins=nbins_val, steps=[1, 2, 2.5, 5, 10])
-        cbar.locator = locator
-        if cbar_decimals is not None:
-            cbar.formatter = mticker.FormatStrFormatter(f"%.{int(cbar_decimals)}f")
-        cbar.update_ticks()
-
-    # Resize colorbar height if requested
-    if cbar_resize_factor != 1.0:
-        fig.canvas.draw()
-        if hasattr(fig, "get_constrained_layout") and fig.get_constrained_layout():
-            fig.set_constrained_layout(False)
-        cpos = cbar.ax.get_position()
-        factor = max(0.05, min(1.5, float(cbar_resize_factor)))
-        new_height = cpos.height * factor
-        new_y0 = cpos.y0 + 0.5 * (cpos.height - new_height)
-        cbar.ax.set_position([cpos.x0, new_y0, cpos.width, new_height])
-        fig.canvas.draw_idle()
+    vmin_r = float(ratio.min()) if ratio.count() > 0 else 0.0
+    vmax_r = float(ratio.max()) if ratio.count() > 0 else 1.0
+    _apply_colorbar_ticks(
+        cbar, vmin_r, vmax_r, cbar_round_ticks, cbar_n_ticks, cbar_decimals
+    )
+    _resize_colorbar(fig, cbar, cbar_resize_factor)
 
     # Output path
-    os.makedirs(outdir, exist_ok=True)
     num_name = sanitize_filename(os.path.splitext(os.path.basename(num_path))[0])
     den_name = sanitize_filename(os.path.splitext(os.path.basename(den_path))[0])
     tag_str = f"_{tag}" if tag else ""
     out_path = os.path.join(outdir, f"ratio_{num_name}_OVER_{den_name}{tag_str}.pdf")
-    plt.savefig(out_path, dpi=200, bbox_inches="tight")
-    print(f"Ratio figure saved as {out_path}")
-    plt.show()
+    save_figure(fig, out_path, dpi=200)
 
 
 def create_comparison_contours(
@@ -519,43 +507,30 @@ def create_comparison_contours(
             mcz_data_min = Ys[i].min()
             mcz_data_max = Ys[i].max()
 
-            # Determine which overlays to apply to this panel (1-based index)
             panel_idx = i + 1
-
-            # Check if cycles should be overlaid on this panel
-            should_overlay_cycles = overlay_cycles and (
+            if overlay_cycles and (
                 overlay_cycles_for is None or panel_idx in overlay_cycles_for
-            )
-
-            # Check if peaks should be overlaid on this panel
-            should_overlay_peaks = overlay_peaks and (
+            ):
+                plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min, ax=ax)
+            do_peaks = overlay_peaks and (
                 overlay_peaks_for is None or panel_idx in overlay_peaks_for
             )
-
-            # Check if troughs should be overlaid on this panel
-            should_overlay_troughs = overlay_troughs and (
+            do_troughs = overlay_troughs and (
                 overlay_troughs_for is None or panel_idx in overlay_troughs_for
             )
-
-            # Overlay cycle lines if requested for this panel
-            if should_overlay_cycles:
-                plot_cycle_lines(td_arr, td_arr_ms, eta=eta, f_min=f_min, ax=ax)
-
-            # Overlay mcz extrema points if requested for this panel
-            if should_overlay_peaks or should_overlay_troughs:
+            if do_peaks or do_troughs:
                 plot_mcz_extrema(
                     td_arr,
                     mcz_data_min,
                     mcz_data_max,
                     eta=eta,
-                    plot_troughs=should_overlay_troughs,
-                    plot_peaks=should_overlay_peaks,
+                    plot_troughs=do_troughs,
+                    plot_peaks=do_peaks,
                     ax=ax,
                 )
 
         # Set square aspect ratio if supported
-        if hasattr(ax, "set_box_aspect"):
-            ax.set_box_aspect(1)
+        set_square_axes(ax)
         contour_handles.append(cf)
 
     # Hide any unused axes
@@ -573,47 +548,18 @@ def create_comparison_contours(
         pad=0.04,
     )
 
-    # Manually resize colorbar height by provided factor, keeping it centered vertically
-    if cbar_resize_factor != 1.0:
-        # Force a draw so positions are finalized
-        fig.canvas.draw()
-        # Disable constrained_layout to prevent it from resetting positions
-        if hasattr(fig, "get_constrained_layout") and fig.get_constrained_layout():
-            fig.set_constrained_layout(False)
-
-        cpos = cbar.ax.get_position()
-        factor = float(cbar_resize_factor)
-        # Clamp factor to reasonable range
-        factor = max(0.05, min(1.5, factor))
-        new_height = cpos.height * factor
-        new_y0 = cpos.y0 + 0.5 * (cpos.height - new_height)
-        cbar.ax.set_position([cpos.x0, new_y0, cpos.width, new_height])
-        fig.canvas.draw_idle()
-    # Set colorbar label based on data type
-    is_td_mcz = data_types[0] == "td_mcz"
-    if is_td_mcz:
+    _resize_colorbar(fig, cbar, cbar_resize_factor)
+    if data_types[0] == "td_mcz":
         cbar.set_label(
-            r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_P}\;\epsilon(\tilde{h}_L,\tilde{h}_P)$"
+            r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\;\epsilon(\tilde{h}_{\mathrm{L}},\tilde{h}_{\mathrm{P}})$"
         )
     else:
         cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
-
-    # Optional: rounded ticks on colorbar
-    if cbar_round_ticks:
-        # Allow automatic tick count when cbar_n_ticks == 'auto'
-        if isinstance(cbar_n_ticks, str) and cbar_n_ticks.strip().lower() == "auto":
-            nbins_val = "auto"
-        else:
-            nbins_val = max(2, int(cbar_n_ticks))
-
-        locator = mticker.MaxNLocator(nbins=nbins_val, steps=[1, 2, 2.5, 5, 10])
-        cbar.locator = locator
-        if cbar_decimals is not None:
-            cbar.formatter = mticker.FormatStrFormatter(f"%.{int(cbar_decimals)}f")
-        cbar.update_ticks()
+    _apply_colorbar_ticks(
+        cbar, global_min, global_max, cbar_round_ticks, cbar_n_ticks, cbar_decimals
+    )
 
     # Prepare output path with sanitized filename
-    os.makedirs(outdir, exist_ok=True)
     tag_str = f"_{tag}" if tag else ""
     safe_labels = [sanitize_filename(lab) for lab in labels]
     joined = "_".join(safe_labels)
@@ -626,12 +572,7 @@ def create_comparison_contours(
         print(f"{lab} X range: {float(X.min()):.1f} to {float(X.max()):.1f}")
         print(f"{lab} Y range: {float(Y.min()):.1f} to {float(Y.max()):.1f}")
 
-    # Save figure first (before showing to avoid potential resource issues)
-    plt.savefig(fig_path, dpi=200, bbox_inches="tight")
-    print(f"\nComparison figure saved as {fig_path}")
-
-    # Show the plot
-    plt.show()
+    save_figure(fig, fig_path, dpi=200)
 
 
 def _parse_args():

@@ -35,7 +35,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, save_figure
 
 
 def parse_args() -> argparse.Namespace:
@@ -315,10 +315,7 @@ def make_loglog_plot(
         },
     )
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
+    save_figure(fig, output_path, dpi=dpi)
 
 
 def make_surface_plot(
@@ -351,10 +348,7 @@ def make_surface_plot(
     cbar = fig.colorbar(contour, ax=ax)
     cbar.set_label(value_label)
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
-    plt.close(fig)
+    save_figure(fig, output_path, dpi=dpi)
 
 
 def main() -> None:

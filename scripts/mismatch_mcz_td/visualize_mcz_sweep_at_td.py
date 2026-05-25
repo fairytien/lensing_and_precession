@@ -24,7 +24,7 @@ from modules.filenames import (
     parse_mcz_from_mismatch_mcz_cube_path,
 )
 import matplotlib.pyplot as plt
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, save_figure
 from scripts.utils._cube_viz import (
     find_td_index,
     save_contour_movie,
@@ -92,9 +92,7 @@ def save_grid_with_individual_colorbars(
         ax.set_title(f"mcz = {mcz_msun_list[i]:.2f} Msun", fontsize=10)
 
     fig.tight_layout()
-    fig.savefig(out_path, dpi=160, bbox_inches="tight")
-    plt.close(fig)
-    print(f"Saved grid figure: {out_path}")
+    save_figure(fig, out_path, dpi=160)
     return out_path
 
 
