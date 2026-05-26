@@ -63,6 +63,8 @@ See [AGENTS.md — Parameter Order Convention](../AGENTS.md#parameter-order-conv
 
 - Use this folder for analysis helpers that are not tied to a single production pipeline.
 - Prefer the more specific workflow folders when a script clearly belongs to `mismatch_*`, `lindblom`, `contour_*`, or `utils`.
+- [`plot_dist_vs_z.py`](../scripts/analysis/plot_dist_vs_z.py) — luminosity distance vs. redshift reference figure
+- [`plot_dist_vs_z_broken_axis.py`](../scripts/analysis/plot_dist_vs_z_broken_axis.py) — same with broken y-axis
 
 ## Lindblom Pipeline ([`scripts/lindblom/`](../scripts/lindblom/))
 
@@ -110,6 +112,7 @@ Use this folder when you want broad parameter sweeps rather than strict stage-by
 - [`v4_indiv_contour_otf.py`](../scripts/contour_omega_theta/v4_indiv_contour_otf.py) — latest on-the-fly contour path
 - [`v3_indiv_contour_otf.py`](../scripts/contour_omega_theta/v3_indiv_contour_otf.py)
 - [`v3_indiv_contour_otf_v2prec.py`](../scripts/contour_omega_theta/v3_indiv_contour_otf_v2prec.py)
+- [`plot_bestmatch_waveform_overlays.py`](../scripts/contour_omega_theta/plot_bestmatch_waveform_overlays.py) — waveform overlay figures from contour pickle outputs
 
 ### Legacy scripts ([`legacy/scripts/contour_omega_theta/`](../legacy/scripts/contour_omega_theta/))
 
@@ -131,7 +134,6 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 - [`visualize_mismatch_cube.py`](../scripts/utils/visualize_mismatch_cube.py) (single-cube td sweep; `mcz_td` or `I_td` cubes)
 - [`_cube_viz.py`](../scripts/utils/_cube_viz.py) — private helpers for cube movies/sliders (used by `visualize_mismatch_cube` and `visualize_mcz_sweep_at_td`)
 - [`_best_match_plot.py`](../scripts/utils/_best_match_plot.py) — private shared renderer and `VARIABLE_MAPPING` for both `plot_contour_*_from_best_match.py` entry points
-- [`plot_bestmatch_waveform_overlays.py`](../scripts/utils/plot_bestmatch_waveform_overlays.py)
 - [`plot_contour_from_dataset.py`](../scripts/utils/plot_contour_from_dataset.py) (supports pickle and HDF5 contour inputs, including mismatch cube schema with `--td_ms`)
 - [`plot_cycles_and_extrema.py`](../scripts/utils/plot_cycles_and_extrema.py)
 - [`compare_contours.py`](../scripts/utils/compare_contours.py)
@@ -140,8 +142,7 @@ Use this folder for one-off experiments, spot checks, and debugging a specific s
 
 - [`inspect_hdf5_metadata.py`](../scripts/utils/inspect_hdf5_metadata.py)
 - [`estimate_cpu_time.py`](../scripts/utils/estimate_cpu_time.py)
-- [`plot_dist_vs_z.py`](../scripts/utils/plot_dist_vs_z.py)
-- [`plot_dist_vs_z_broken_axis.py`](../scripts/utils/plot_dist_vs_z_broken_axis.py)
+
 
 ## Legacy Migration ([`scripts/migrate/`](../scripts/migrate/))
 
