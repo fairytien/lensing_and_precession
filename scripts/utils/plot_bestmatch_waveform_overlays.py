@@ -11,7 +11,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from modules.plot_utils import customize_2x1_axes_ratio
+from modules.waveform_plotting import customize_2x1_axes_ratio
 from modules.plot_utils import apply_physics_paper_style, save_figure
 from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
