@@ -300,7 +300,6 @@ def _plot_line_pair_figure(
     labels: List[str],
     xlabel: str,
     output_path: str,
-    dpi: int,
     selection_lines: List[str],
 ) -> None:
     apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=10)
@@ -324,14 +323,13 @@ def _plot_line_pair_figure(
 
     for line in selection_lines:
         print(line)
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path)
 
 
 def _slice_line_figure(
     datasets: List[BestMatchData],
     labels: List[str],
     output_path: str,
-    dpi: int,
     *,
     mcz_row: float | None = None,
     td_column_ms: float | None = None,
@@ -398,9 +396,7 @@ def _slice_line_figure(
             )
         logs = [f"Using td={v:.8g} ms for {lab}" for lab, v in zip(labels, selected)]
 
-    _plot_line_pair_figure(
-        xs, omega_ys, theta_ys, labels, xlabel, output_path, dpi, logs
-    )
+    _plot_line_pair_figure(xs, omega_ys, theta_ys, labels, xlabel, output_path, logs)
 
 
 def _levels_for_field(datasets: List[BestMatchData], key: str, n: int) -> np.ndarray:
@@ -434,7 +430,6 @@ def create_figure(
     labels: List[str],
     output_path: str | None,
     levels_count: int,
-    dpi: int,
     cmap: str,
     overlay_cycles: bool,
     overlay_peaks: bool,
@@ -467,7 +462,6 @@ def create_figure(
             datasets,
             labels,
             _with_output_suffix(output_path, f"slice_mcz_{slice_mcz:g}"),
-            dpi,
             mcz_row=slice_mcz,
         )
         return
@@ -477,7 +471,6 @@ def create_figure(
             datasets,
             labels,
             _with_output_suffix(output_path, f"slice_td_ms_{slice_td_ms:g}"),
-            dpi,
             td_column_ms=slice_td_ms,
         )
         return
@@ -569,7 +562,7 @@ def create_figure(
         cb = fig.colorbar(cf, cax=cax, label=ylab)
         format_colorbar_ticks(cb, levels[0], levels[-1])
 
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path)
 
 
 def main() -> None:
@@ -599,12 +592,6 @@ def main() -> None:
         type=int,
         default=60,
         help="Number of contour levels per row",
-    )
-    parser.add_argument(
-        "--dpi",
-        type=int,
-        default=300,
-        help="Output DPI",
     )
     parser.add_argument(
         "--cmap",
@@ -638,7 +625,6 @@ def main() -> None:
         labels=args.labels,
         output_path=args.output,
         levels_count=args.levels,
-        dpi=args.dpi,
         cmap=args.cmap,
         overlay_cycles=args.overlay_cycles,
         overlay_peaks=args.overlay_peaks,

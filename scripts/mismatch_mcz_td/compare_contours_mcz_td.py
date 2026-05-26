@@ -19,7 +19,6 @@ import sys
 from typing import List
 
 import matplotlib.pyplot as plt
-import h5py
 import numpy as np
 
 # Ensure repository root is importable when running this file directly.
@@ -39,7 +38,7 @@ from modules.plot_utils import (
     save_figure,
     set_square_axes,
 )
-from scripts.utils.compare_contours import compute_color_scale, load_generic_dataset
+from scripts.utils.compare_contours import compute_color_scale
 from scripts.utils.plot_cycles_and_extrema import (
     make_fixed_mcz_overlay_legend_handles,
     plot_cycle_lines,
@@ -78,29 +77,17 @@ def _validate_paths(paths: List[str]) -> List[str]:
 
 
 def _load_panel(path: str) -> tuple:
-    """Load one panel's (X, Y, Z, meta) for a td_mcz grid.
-
-    Tries the best_match schema (mcz/td/epsilon_min) first via
-    read_best_match_mcz_td_contour_data; falls back to load_generic_dataset
-    for legacy contour_mcz_td or pickle files.  meta is a dict with
-    'I', 'z', and 'orientation_tag' when available, otherwise None.
-    """
-    if os.path.splitext(path)[1].lower() == ".h5":
-        with h5py.File(path, "r") as _h5:
-            is_best_match = all(k in _h5 for k in ("mcz", "td", "epsilon_min"))
-        if is_best_match:
-            ds = read_best_match_mcz_td_contour_data(path, "epsilon_min")
-            X, Y = np.meshgrid(ds["td"] * 1e3, ds["mcz"])
-            meta = {
-                "I": float(ds["I"]),
-                "z": ds["z"],
-                "orientation_tag": str(ds["orientation_tag"]),
-            }
-            return X, Y, np.asarray(ds["values"], dtype=float), meta
-    X, Y, Z, _, _, data_type = load_generic_dataset(path)
-    if data_type != "td_mcz":
-        raise ValueError(f"Expected a td_mcz dataset, got '{data_type}' for {path}")
-    return X, Y, Z, None
+    """Load one panel's (X, Y, Z, meta) from a best-match HDF5 file."""
+    if os.path.splitext(path)[1].lower() != ".h5":
+        raise ValueError(f"Expected an HDF5 (.h5) file, got: {path}")
+    ds = read_best_match_mcz_td_contour_data(path, "epsilon_min")
+    X, Y = np.meshgrid(ds["td"] * 1e3, ds["mcz"])
+    meta = {
+        "I": float(ds["I"]),
+        "z": ds["z"],
+        "orientation_tag": str(ds["orientation_tag"]),
+    }
+    return X, Y, np.asarray(ds["values"], dtype=float), meta
 
 
 def create_figure(
@@ -110,7 +97,6 @@ def create_figure(
     fig_dir: str,
     decimals: int,
     levels_count: int,
-    dpi: int,
     eta: float,
     f_min: float,
     z_from: float,
@@ -128,17 +114,11 @@ def create_figure(
     metas = [p[3] for p in panels]
 
     if output_path is None:
-        meta = next((m for m in metas if m is not None), None)
-        if meta is None:
-            raise ValueError(
-                "Cannot auto-derive output path: no panel has best_match metadata. "
-                "Pass --output explicitly."
-            )
-        orientation_tags = [m["orientation_tag"] for m in metas if m is not None]
+        orientation_tags = [m["orientation_tag"] for m in metas]
         output_path = compare_mcz_td_figure_filename(
             fig_dir,
-            I=meta["I"],
-            z=meta["z"],
+            I=metas[0]["I"],
+            z=metas[0]["z"],
             orientation_tags=orientation_tags,
         )
 
@@ -248,8 +228,12 @@ def create_figure(
     cbar = fig.colorbar(cf, cax=cax)
     cbar.set_label(COLORBAR_LABEL)
     format_colorbar_ticks(
-        cbar, global_min, global_max,
-        use_locator=True, nbins=cbar_n_ticks, decimals=decimals,
+        cbar,
+        global_min,
+        global_max,
+        use_locator=True,
+        nbins=cbar_n_ticks,
+        decimals=decimals,
     )
 
     overlay_handles = make_fixed_mcz_overlay_legend_handles(
@@ -259,7 +243,7 @@ def create_figure(
     )
     add_overlay_legend(fig, overlay_handles, ncol=5)
 
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -282,7 +266,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--fig-dir", type=str, default="figures/contour_mcz_td")
     parser.add_argument("--decimals", type=int, default=2)
     parser.add_argument("--levels", type=int, default=160)
-    parser.add_argument("--dpi", type=int, default=400)
     parser.add_argument("--eta", type=float, default=0.25)
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--overlay-z-from", type=float, default=1e-8)
@@ -302,7 +285,6 @@ def main() -> None:
         fig_dir=args.fig_dir,
         decimals=args.decimals,
         levels_count=args.levels,
-        dpi=args.dpi,
         eta=args.eta,
         f_min=args.f_min,
         z_from=args.overlay_z_from,

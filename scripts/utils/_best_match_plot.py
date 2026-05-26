@@ -58,7 +58,7 @@ def render_best_match_contour(
         plt.title(title)
     if overlay_fn is not None:
         overlay_fn()
-    save_figure(plt.gcf(), output_path, dpi=200)
+    save_figure(plt.gcf(), output_path)
 
 
 def build_figure_path(base_path, variable, has_overlays=False):

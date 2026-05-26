@@ -132,7 +132,6 @@ def create_figure(
     labels: List[str] | None,
     output_path: str | None,
     levels_count: int,
-    dpi: int,
     cmap: str,
 ) -> None:
     _validate_inputs(paths)
@@ -191,7 +190,7 @@ def create_figure(
         label=r"$\tilde{\Omega}_{\mathrm{best}}\,\tilde{\theta}_{\mathrm{best}}^2$",
     )
     format_colorbar_ticks(cb, levels[0], levels[-1])
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path)
 
 
 def main() -> None:
@@ -220,12 +219,6 @@ def main() -> None:
         help="Number of contour levels",
     )
     parser.add_argument(
-        "--dpi",
-        type=int,
-        default=300,
-        help="Output DPI",
-    )
-    parser.add_argument(
         "--cmap",
         default="jet",
         help="Matplotlib colormap",
@@ -237,7 +230,6 @@ def main() -> None:
         labels=args.labels,
         output_path=args.output,
         levels_count=args.levels,
-        dpi=args.dpi,
         cmap=args.cmap,
     )
 

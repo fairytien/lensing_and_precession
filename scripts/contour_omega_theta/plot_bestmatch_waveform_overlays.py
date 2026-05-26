@@ -88,7 +88,6 @@ def plot_combined(
     output_dir: str,
     f_min: float,
     npoints: int,
-    dpi: int,
     output_prefix: str,
 ) -> str:
     if not input_paths:
@@ -192,7 +191,7 @@ def plot_combined(
     out_path = os.path.join(
         output_dir, f"{output_prefix}_mcz{mcz_token}_combined_fracamp.pdf"
     )
-    save_figure(fig, out_path, dpi=dpi)
+    save_figure(fig, out_path)
 
     for summary in summaries:
         print(
@@ -231,7 +230,6 @@ def main():
     )
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--npoints", type=int, default=10000)
-    parser.add_argument("--dpi", type=int, default=400)
     args = parser.parse_args()
 
     os.makedirs(args.output_dir, exist_ok=True)
@@ -241,7 +239,6 @@ def main():
         args.output_dir,
         args.f_min,
         args.npoints,
-        args.dpi,
         args.output_prefix,
     )
 

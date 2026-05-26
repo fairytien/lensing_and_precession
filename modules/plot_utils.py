@@ -95,7 +95,7 @@ def add_colorbar_axes(fig, target_axes, *, pad=COLORBAR_PAD, width=COLORBAR_WIDT
     return fig.add_axes([x1 + pad, y0, width, y1 - y0])
 
 
-def save_figure(fig, path, *, dpi=300):
+def save_figure(fig, path, *, dpi=400):
     """Save *fig* to *path* with tight bbox, close it, and print the path."""
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     fig.savefig(path, dpi=dpi, bbox_inches="tight")

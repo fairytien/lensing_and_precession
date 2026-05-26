@@ -358,7 +358,7 @@ def create_ratio_contour(
     den_name = sanitize_filename(os.path.splitext(os.path.basename(den_path))[0])
     tag_str = f"_{tag}" if tag else ""
     out_path = os.path.join(outdir, f"ratio_{num_name}_OVER_{den_name}{tag_str}.pdf")
-    save_figure(fig, out_path, dpi=200)
+    save_figure(fig, out_path)
 
 
 def create_comparison_contours(
@@ -572,7 +572,7 @@ def create_comparison_contours(
         print(f"{lab} X range: {float(X.min()):.1f} to {float(X.max()):.1f}")
         print(f"{lab} Y range: {float(Y.min()):.1f} to {float(Y.max()):.1f}")
 
-    save_figure(fig, fig_path, dpi=200)
+    save_figure(fig, fig_path)
 
 
 def _parse_args():

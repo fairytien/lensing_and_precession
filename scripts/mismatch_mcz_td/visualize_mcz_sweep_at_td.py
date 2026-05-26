@@ -92,7 +92,7 @@ def save_grid_with_individual_colorbars(
         ax.set_title(f"mcz = {mcz_msun_list[i]:.2f} Msun", fontsize=10)
 
     fig.tight_layout()
-    save_figure(fig, out_path, dpi=160)
+    save_figure(fig, out_path)
     return out_path
 
 

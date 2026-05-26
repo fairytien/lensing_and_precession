@@ -171,7 +171,6 @@ def create_figure(
     paths: Sequence[str],
     output_path: str | None,
     levels_count: int,
-    dpi: int,
     cmap: str,
     f_min: float,
     eta: float,
@@ -302,7 +301,7 @@ def create_figure(
         include_troughs=overlay_troughs,
     )
 
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -326,7 +325,6 @@ def _parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument("--levels", type=int, default=160)
-    parser.add_argument("--dpi", type=int, default=400)
     parser.add_argument("--cmap", type=str, default="jet")
     add_cycle_extrema_overlay_args(
         parser,
@@ -351,7 +349,6 @@ def main() -> None:
         paths=args.paths,
         output_path=args.output,
         levels_count=args.levels,
-        dpi=args.dpi,
         cmap=args.cmap,
         f_min=args.f_min,
         eta=args.eta,

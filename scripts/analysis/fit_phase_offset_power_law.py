@@ -240,7 +240,7 @@ def make_loglog_plot(
         },
     )
 
-    save_figure(fig, output_path, dpi=200)
+    save_figure(fig, output_path)
 
 
 def make_surface_plot(
@@ -270,7 +270,7 @@ def make_surface_plot(
     cbar = fig.colorbar(contour, ax=ax)
     cbar.set_label(value_label)
 
-    save_figure(fig, output_path, dpi=200)
+    save_figure(fig, output_path)
 
 
 def main() -> None:

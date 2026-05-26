@@ -603,7 +603,7 @@ def main():
         print(
             f"Applied mcz-axis redshift conversion: z_from={z_from_used:g}, z_to={z_to_used:g}, scale={overlay_mcz_scale:.12g}"
         )
-    save_figure(plt.gcf(), out_path, dpi=200)
+    save_figure(plt.gcf(), out_path)
 
 
 if __name__ == "__main__":

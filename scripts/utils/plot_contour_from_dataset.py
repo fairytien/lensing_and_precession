@@ -22,7 +22,11 @@ PROJECT_ROOT = os.path.dirname(
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from modules.plot_utils import apply_physics_paper_style, format_colorbar_ticks, save_figure
+from modules.plot_utils import (
+    apply_physics_paper_style,
+    format_colorbar_ticks,
+    save_figure,
+)
 from modules.default_params import SOLMASS2SEC
 
 apply_physics_paper_style()
@@ -289,12 +293,6 @@ def main() -> None:
         help="Time-delay slice in ms; required when input is a mismatch cube (td, theta, omega, epsilon_min_grid).",
     )
     parser.add_argument(
-        "--dpi",
-        type=int,
-        default=200,
-        help="Output resolution (default: 200).",
-    )
-    parser.add_argument(
         "--cbar-n-ticks",
         type=int,
         default=10,
@@ -360,7 +358,9 @@ def main() -> None:
     vmax = float(np.nanmax(Z))
     if np.isfinite(vmin) and np.isfinite(vmax) and vmax > vmin:
         format_colorbar_ticks(
-            cbar, vmin, vmax,
+            cbar,
+            vmin,
+            vmax,
             n_ticks=max(2, int(args.cbar_n_ticks)),
             decimals=max(0, args.cbar_decimals),
         )
@@ -369,7 +369,7 @@ def main() -> None:
     ax.set_ylabel(y_label)
     _add_chirp_mass_box(ax, chirp_mass, chirp_mass_range)
 
-    save_figure(fig, fig_path, dpi=args.dpi)
+    save_figure(fig, fig_path)
 
 
 if __name__ == "__main__":

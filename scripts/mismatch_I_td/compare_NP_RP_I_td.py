@@ -97,7 +97,6 @@ def create_figure(
     output_path: str | None,
     levels_count: int,
     vmax: float,
-    dpi: int,
     cmap: str,
     f_min: float,
     eta: float,
@@ -214,10 +213,13 @@ def create_figure(
         include_troughs=overlay_troughs,
     )
     add_overlay_legend(
-        fig, handles, loc="outside lower center", bbox_to_anchor=None,
+        fig,
+        handles,
+        loc="outside lower center",
+        bbox_to_anchor=None,
     )
 
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -239,7 +241,6 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--vmax", type=float, default=0.3, help="Colorbar maximum (default 0.3)."
     )
-    parser.add_argument("--dpi", type=int, default=400)
     parser.add_argument("--cmap", type=str, default="jet")
     add_cycle_extrema_overlay_args(parser, include_show_legend=False)
     return parser.parse_args()
@@ -253,7 +254,6 @@ def main() -> None:
         output_path=args.output,
         levels_count=args.levels,
         vmax=args.vmax,
-        dpi=args.dpi,
         cmap=args.cmap,
         f_min=args.f_min,
         eta=args.eta,
