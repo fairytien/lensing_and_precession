@@ -37,6 +37,8 @@ if REPO_ROOT not in sys.path:
 
 from modules.plot_utils import apply_physics_paper_style, save_figure
 
+apply_physics_paper_style()
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -46,31 +48,6 @@ def parse_args() -> argparse.Namespace:
         )
     )
     parser.add_argument("--input", required=True, help="Path to the input table.")
-    parser.add_argument(
-        "--delimiter",
-        default=None,
-        help="Column delimiter. Defaults to ',' for .csv files and whitespace otherwise.",
-    )
-    parser.add_argument(
-        "--no-header",
-        action="store_true",
-        help="Treat the input as a plain three-column table without column names.",
-    )
-    parser.add_argument(
-        "--theta-column",
-        default="theta_tilde",
-        help="Column name for theta_tilde when the file has a header.",
-    )
-    parser.add_argument(
-        "--omega-column",
-        default="omega_tilde",
-        help="Column name for omega_tilde when the file has a header.",
-    )
-    parser.add_argument(
-        "--value-column",
-        default="delta_phi",
-        help="Column name for the fitted dependent variable when the file has a header.",
-    )
     parser.add_argument(
         "--output-prefix",
         default=None,
@@ -88,71 +65,28 @@ def parse_args() -> argparse.Namespace:
         default=r"$\Delta\Phi_{\mathrm{P}}\,[\mathrm{rad}]$",
         help="Axis label for the fitted dependent variable.",
     )
-    parser.add_argument(
-        "--dpi",
-        type=int,
-        default=200,
-        help="Saved figure resolution.",
-    )
     return parser.parse_args()
 
 
-def infer_delimiter(path: Path, delimiter: str | None) -> str | None:
-    if delimiter is not None:
-        return delimiter
-    if path.suffix.lower() == ".csv":
-        return ","
-    return None
-
-
-def load_data(
-    path: Path,
-    *,
-    delimiter: str | None,
-    has_header: bool,
-    theta_column: str,
-    omega_column: str,
-    value_column: str,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    if has_header:
-        table = np.genfromtxt(
-            path,
-            delimiter=delimiter,
-            names=True,
-            dtype=float,
-            encoding=None,
-        )
-        if table.dtype.names is None:
-            raise ValueError(
-                "Expected a header row. Pass --no-header for plain three-column data."
-            )
-        missing = [
-            column
-            for column in (theta_column, omega_column, value_column)
-            if column not in table.dtype.names
-        ]
-        if missing:
-            raise ValueError(
-                f"Missing required columns: {', '.join(missing)}. "
-                f"Available columns: {', '.join(table.dtype.names)}"
-            )
-        theta = np.atleast_1d(np.asarray(table[theta_column], dtype=float))
-        omega = np.atleast_1d(np.asarray(table[omega_column], dtype=float))
-        value = np.atleast_1d(np.asarray(table[value_column], dtype=float))
-        return theta.reshape(-1), omega.reshape(-1), value.reshape(-1)
-
-    table = np.genfromtxt(path, delimiter=delimiter, dtype=float)
-    if table.ndim == 1:
-        if table.size != 3:
-            raise ValueError(
-                "Expected exactly three values for a one-row file without a header."
-            )
-        table = table.reshape(1, 3)
-    if table.ndim != 2 or table.shape[1] < 3:
+def load_data(path: Path) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    delimiter = "," if path.suffix.lower() == ".csv" else None
+    table = np.genfromtxt(
+        path, delimiter=delimiter, names=True, dtype=float, encoding=None
+    )
+    if table.dtype.names is None:
+        raise ValueError("Expected a header row in the input file.")
+    cols = ("theta_tilde", "omega_tilde", "delta_phi")
+    missing = [c for c in cols if c not in table.dtype.names]
+    if missing:
         raise ValueError(
-            "Expected at least three columns ordered as theta_tilde, omega_tilde, value."
+            f"Missing required columns: {', '.join(missing)}. "
+            f"Available: {', '.join(table.dtype.names)}"
         )
-    return table[:, 0], table[:, 1], table[:, 2]
+    return (
+        np.asarray(table["theta_tilde"], dtype=float),
+        np.asarray(table["omega_tilde"], dtype=float),
+        np.asarray(table["delta_phi"], dtype=float),
+    )
 
 
 def validate_data(
@@ -248,12 +182,6 @@ def nice_linear_bounds(values: np.ndarray) -> tuple[float, float]:
     return lower_value, upper_value
 
 
-def resolve_output_prefix(input_path: Path, output_prefix: str | None) -> Path:
-    if output_prefix is not None:
-        return Path(output_prefix)
-    return Path("figures") / "analysis" / f"{input_path.stem}_power_law"
-
-
 def make_loglog_plot(
     theta: np.ndarray,
     omega: np.ndarray,
@@ -265,10 +193,7 @@ def make_loglog_plot(
     value_label: str,
     title: str,
     output_path: Path,
-    dpi: int,
 ) -> None:
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
-
     predictor = theta**exponent_theta * omega**exponent_omega
     order = np.argsort(predictor)
     predictor_sorted = predictor[order]
@@ -315,7 +240,7 @@ def make_loglog_plot(
         },
     )
 
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path, dpi=200)
 
 
 def make_surface_plot(
@@ -328,10 +253,7 @@ def make_surface_plot(
     value_label: str,
     title: str,
     output_path: Path,
-    dpi: int,
 ) -> None:
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
-
     omega_grid = np.linspace(np.min(omega), np.max(omega), 250)
     theta_grid = np.linspace(np.min(theta), np.max(theta), 250)
     omega_mesh, theta_mesh = np.meshgrid(omega_grid, theta_grid)
@@ -348,29 +270,25 @@ def make_surface_plot(
     cbar = fig.colorbar(contour, ax=ax)
     cbar.set_label(value_label)
 
-    save_figure(fig, output_path, dpi=dpi)
+    save_figure(fig, output_path, dpi=200)
 
 
 def main() -> None:
     args = parse_args()
     input_path = Path(args.input)
-    delimiter = infer_delimiter(input_path, args.delimiter)
 
-    theta, omega, value = load_data(
-        input_path,
-        delimiter=delimiter,
-        has_header=not args.no_header,
-        theta_column=args.theta_column,
-        omega_column=args.omega_column,
-        value_column=args.value_column,
-    )
+    theta, omega, value = load_data(input_path)
     theta, omega, value = validate_data(theta, omega, value)
 
     constant, exponent_theta, exponent_omega, r_squared = fit_power_law(
         theta, omega, value
     )
 
-    output_prefix = resolve_output_prefix(input_path, args.output_prefix)
+    output_prefix = (
+        Path(args.output_prefix)
+        if args.output_prefix is not None
+        else Path("figures") / "analysis" / f"{input_path.stem}_power_law"
+    )
     loglog_path = output_prefix.with_name(output_prefix.name + "_loglog.png")
     surface_path = output_prefix.with_name(output_prefix.name + "_surface.png")
 
@@ -384,7 +302,6 @@ def main() -> None:
         value_label=args.value_label,
         title=args.title,
         output_path=loglog_path,
-        dpi=args.dpi,
     )
     make_surface_plot(
         theta,
@@ -395,7 +312,6 @@ def main() -> None:
         value_label=args.value_label,
         title=args.title,
         output_path=surface_path,
-        dpi=args.dpi,
     )
 
     print("Fitted model: value = C * theta_tilde^a * omega_tilde^b")
@@ -403,8 +319,6 @@ def main() -> None:
     print(f"a = {exponent_theta:.8g}")
     print(f"b = {exponent_omega:.8g}")
     print(f"R^2 in log space = {r_squared:.6f}")
-    print(f"Saved log-log plot: {loglog_path}")
-    print(f"Saved fitted surface plot: {surface_path}")
 
 
 if __name__ == "__main__":
