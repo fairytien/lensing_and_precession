@@ -10,15 +10,12 @@ from modules.waveform import get_I_from_y, get_td_from_MLz
 
 # import libraries
 import os
-
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from matplotlib import colors
 from matplotlib.lines import Line2D
 from fractions import Fraction
 import numpy as np
-
-plt.rcParams["figure.dpi"] = 150
 
 # ============================================================================
 # Style And Convenience
