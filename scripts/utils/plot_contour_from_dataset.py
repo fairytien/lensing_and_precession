@@ -37,7 +37,7 @@ Y_LABEL_THETA = r"$\tilde{\theta}$"
 X_LABEL_TD = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
 Y_LABEL_MCZ = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
 COLORBAR_LABEL = (
-    r"$\epsilon(\tilde{\mathit{h}}_{\mathrm{L}}, \tilde{\mathit{h}}_{\mathrm{RP}})$"
+    r"$\epsilon(\tilde{\mathit{h}}_{\mathrm{L}}, \tilde{\mathit{h}}_{\mathrm{P}})$"
 )
 
 

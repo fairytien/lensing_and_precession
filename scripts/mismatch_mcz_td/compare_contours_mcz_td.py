@@ -51,19 +51,14 @@ DEFAULT_PATHS = [
     "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5",
 ]
 
-DEFAULT_PANEL_LABELS = [
-    "Non-Precessing",
-    "System 1",
-    "System 2",
-    "System 3",
-]
+DEFAULT_PANEL_LABELS = ["Non-Precessing", "System 1", "System 2", "System 3"]
 
 # Physics-style math labels: variables italic, identifiers/units upright roman.
 X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
 Y_AXIS_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
 COLORBAR_LABEL = (
     r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
-    r"\epsilon\left(\tilde{\mathit{h}}_{\mathrm{L}},\,\tilde{\mathit{h}}_{\mathrm{P}}\right)$"
+    r"\epsilon\left(\tilde{\mathit{h}}_{\mathrm{s}},\,\tilde{\mathit{h}}_{\mathrm{t}}\right)$"
 )
 
 

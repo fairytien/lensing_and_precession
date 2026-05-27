@@ -250,7 +250,7 @@ def main(
 
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$")
+        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
 
         # Find minimum mismatch and mark it with a green dot
         min_idx = np.unravel_index(np.argmin(Z), Z.shape)

@@ -236,7 +236,8 @@ def create_figure(
                 orientation_tag=str(datasets[0]["orientation_tag"]),
                 z=datasets[0]["z"],
             )
-    colorbar_label = COLORBAR_LABEL_TEMPLATE.format(family=family)
+    family_display = "P" if family == "RP" else family
+    colorbar_label = COLORBAR_LABEL_TEMPLATE.format(family=family_display)
 
     masked_values = [
         np.ma.masked_invalid(np.asarray(dataset["values"], dtype=float))
