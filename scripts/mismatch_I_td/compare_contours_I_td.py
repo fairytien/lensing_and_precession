@@ -1,4 +1,4 @@
-"""Create a publication-style td-I mismatch comparison for one Taman orientation.
+"""Create a publication-style td-I mismatch comparison figure.
 
 This script expects one or more aggregated best-match HDF5 files produced by
 ``python -m scripts.mismatch_I_td.aggregate_best_match``. The template family
@@ -7,8 +7,12 @@ outputs. RP files that predate that attribute are still accepted when they
 contain the standard ``omega_best``/``theta_best``/``gamma_best`` datasets.
 Legacy ``best_match_np_*`` files are not supported.
 
-The panels are sorted by source-frame chirp mass and rendered with a
-shared color scale. Each panel overlays:
+When all inputs share the same chirp mass but differ in orientation, panels
+are sorted by system number (1=face-on, 2=edge-on, 3=random) and each panel
+shows "System N" in its legend box. Otherwise panels are sorted by
+source-frame chirp mass and labelled with the chirp mass value.
+
+Each panel overlays:
 
 - visible N_lensed = 1, 2, 3 lines
 - visible peak lines in mismatch
@@ -24,7 +28,6 @@ from typing import Sequence
 
 import h5py
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.lines import Line2D
 
@@ -34,12 +37,17 @@ if REPO_ROOT not in sys.path:
 
 from modules.bank_io import read_best_match_I_td_contour_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
-from modules.filenames import compare_I_td_figure_filename
+from modules.filenames import (
+    compare_I_td_figure_filename,
+    compare_systems_I_td_figure_filename,
+)
 from modules.cosmology import mcz_src_to_det
+from modules.default_params import ORIENTATION_TO_SYSTEM
 from modules.plot_utils import (
     add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
+    configure_I_axis,
     format_colorbar_ticks,
     save_figure,
     set_square_axes,
@@ -85,22 +93,36 @@ def _detect_template_family(path: str) -> str:
     )
 
 
-def _sort_datasets(paths: Sequence[str]) -> list[dict]:
+def _load_datasets(paths: Sequence[str]) -> list[dict]:
     datasets = []
     for path in paths:
         dataset = read_best_match_I_td_contour_data(path, "epsilon_min")
         dataset["template_family"] = _detect_template_family(path)
         datasets.append(dataset)
-    return sorted(datasets, key=lambda dataset: float(dataset["mcz"]))
+    return datasets
+
+
+def _is_multi_orientation(datasets: Sequence[dict]) -> bool:
+    tags = {str(d["orientation_tag"]) for d in datasets}
+    return len(tags) > 1
+
+
+def _sort_datasets(datasets: list[dict]) -> list[dict]:
+    if _is_multi_orientation(datasets):
+        return sorted(
+            datasets,
+            key=lambda d: ORIENTATION_TO_SYSTEM.get(str(d["orientation_tag"]), 99),
+        )
+    return sorted(datasets, key=lambda d: float(d["mcz"]))
 
 
 def _validate_shared_metadata(datasets: Sequence[dict]) -> None:
     reference = datasets[0]
     td_ref = np.asarray(reference["td"], dtype=float)
     i_ref = np.asarray(reference["I"], dtype=float)
-    orientation_ref = str(reference["orientation_tag"])
     z_ref = reference["z"]
     family_ref = str(reference["template_family"])
+    multi_orient = _is_multi_orientation(datasets)
 
     for dataset in datasets[1:]:
         if not np.allclose(
@@ -111,8 +133,17 @@ def _validate_shared_metadata(datasets: Sequence[dict]) -> None:
             np.asarray(dataset["I"], dtype=float), i_ref, atol=0.0, rtol=0.0
         ):
             raise ValueError("All inputs must share the same I grid.")
-        if str(dataset["orientation_tag"]) != orientation_ref:
-            raise ValueError("All inputs must share the same orientation_tag.")
+        if not multi_orient:
+            if str(dataset["orientation_tag"]) != str(reference["orientation_tag"]):
+                raise ValueError("All inputs must share the same orientation_tag.")
+        else:
+            if not np.isclose(
+                float(dataset["mcz"]), float(reference["mcz"]), atol=0.0, rtol=0.0
+            ):
+                raise ValueError(
+                    "Multi-orientation inputs must share the same chirp mass "
+                    f"(got {reference['mcz']} and {dataset['mcz']})."
+                )
         if str(dataset["template_family"]) != family_ref:
             raise ValueError(
                 "All inputs must share the same template family "
@@ -134,12 +165,10 @@ def _detector_mcz(mcz_source_msun: float, z: float | None) -> float:
     return float(mcz_src_to_det(float(mcz_source_msun), float(z)))
 
 
-def _add_mass_box(ax, mcz_source_msun: float) -> None:
+def _add_panel_box(ax, label: str) -> None:
     legend = ax.legend(
         [Line2D([], [], linestyle="none")],
-        [
-            rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_source_msun:g}\,\mathrm{{M}}_\odot$"
-        ],
+        [label],
         loc="upper left",
         frameon=True,
         handlelength=0,
@@ -149,22 +178,17 @@ def _add_mass_box(ax, mcz_source_msun: float) -> None:
     )
     legend.get_frame().set_facecolor("white")
     legend.get_frame().set_edgecolor("black")
-    legend.get_frame().set_alpha(0.4)
+    legend.get_frame().set_alpha(0.75)
+    legend.set_zorder(10)
 
 
-def _add_overlay_legend(
-    fig,
-    *,
-    include_cycles: bool,
-    include_peaks: bool,
-    include_troughs: bool,
-) -> None:
-    handles = make_fixed_mcz_overlay_legend_handles(
-        cycle_n_list=[1, 2, 3] if include_cycles else None,
-        include_peaks=include_peaks,
-        include_troughs=include_troughs,
-    )
-    add_overlay_legend(fig, handles)
+def _panel_label(dataset: dict, multi_orient: bool) -> str:
+    if multi_orient:
+        tag = str(dataset["orientation_tag"])
+        system_num = ORIENTATION_TO_SYSTEM.get(tag)
+        return f"System {system_num}" if system_num is not None else tag
+    mcz = float(dataset["mcz"])
+    return rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz:g}\,\mathrm{{M}}_\odot$"
 
 
 def create_figure(
@@ -178,9 +202,11 @@ def create_figure(
     overlay_cycles: bool,
     overlay_peaks: bool,
     overlay_troughs: bool,
+    cbar_n_ticks: int = 6,
+    decimals: int = 2,
 ) -> None:
     paths = _validate_paths(paths)
-    datasets = _sort_datasets(paths)
+    datasets = _load_datasets(paths)
     if template_family is not None:
         family = template_family.strip().upper()
         if family not in TEMPLATE_FAMILIES:
@@ -189,16 +215,27 @@ def create_figure(
             )
         for dataset in datasets:
             dataset["template_family"] = family
+    datasets = _sort_datasets(datasets)
     _validate_shared_metadata(datasets)
     family = str(datasets[0]["template_family"])
+    multi_orient = _is_multi_orientation(datasets)
     if output_path is None:
-        output_path = compare_I_td_figure_filename(
-            fig_dir="figures/contour_I_td",
-            template_family=family,
-            mcz_values=[float(dataset["mcz"]) for dataset in datasets],
-            orientation_tag=str(datasets[0]["orientation_tag"]),
-            z=datasets[0]["z"],
-        )
+        if multi_orient:
+            output_path = compare_systems_I_td_figure_filename(
+                fig_dir="figures/contour_I_td",
+                template_family=family,
+                mcz_msun=float(datasets[0]["mcz"]),
+                orientation_tags=[str(d["orientation_tag"]) for d in datasets],
+                z=datasets[0]["z"],
+            )
+        else:
+            output_path = compare_I_td_figure_filename(
+                fig_dir="figures/contour_I_td",
+                template_family=family,
+                mcz_values=[float(dataset["mcz"]) for dataset in datasets],
+                orientation_tag=str(datasets[0]["orientation_tag"]),
+                z=datasets[0]["z"],
+            )
     colorbar_label = COLORBAR_LABEL_TEMPLATE.format(family=family)
 
     masked_values = [
@@ -215,6 +252,16 @@ def create_figure(
     if not np.isfinite(global_min) or not np.isfinite(global_max):
         raise ValueError("Input datasets do not contain any finite mismatch values.")
 
+    # Pad the colorbar limits to nice even numbers so the top and bottom ticks
+    # align exactly with the boundaries.
+    vmin = 0.0
+    if global_max <= 0.1:
+        vmax = float(np.ceil(global_max / 0.01) * 0.01)
+    elif global_max <= 0.25:
+        vmax = float(np.ceil(global_max / 0.02) * 0.02)
+    else:
+        vmax = float(np.ceil(global_max / 0.05) * 0.05)
+
     apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
 
     ncols = len(datasets)
@@ -227,7 +274,7 @@ def create_figure(
         squeeze=False,
     )
     axes = axes[0]
-    levels = np.linspace(global_min, global_max, levels_count)
+    levels = np.linspace(vmin, vmax, levels_count)
     contour_set = None
     # Ensure 20 ms is always included
     xticks = np.arange(20.0, 70.1, 10.0)
@@ -263,7 +310,7 @@ def create_figure(
             eta=eta,
             f_min=f_min,
         )
-        _add_mass_box(ax, mcz_source_msun)
+        _add_panel_box(ax, _panel_label(dataset, multi_orient))
 
         ax.set_xlabel(X_AXIS_LABEL)
         ax.set_xticks(xticks)
@@ -276,8 +323,7 @@ def create_figure(
             ax.tick_params(axis="y", which="both", labelleft=False)
 
     axes[0].set_ylabel(Y_AXIS_LABEL)
-    axes[0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
-    axes[0].yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
+    configure_I_axis(axes[0])
 
     # No figure title per user request
 
@@ -292,14 +338,20 @@ def create_figure(
     cax = add_colorbar_axes(fig, axes)
     colorbar = fig.colorbar(contour_set, cax=cax)
     colorbar.set_label(colorbar_label)
-    format_colorbar_ticks(colorbar, global_min, global_max)
+    format_colorbar_ticks(
+        colorbar,
+        vmin,
+        vmax,
+        nbins=cbar_n_ticks,
+        decimals=decimals,
+    )
 
-    _add_overlay_legend(
-        fig,
-        include_cycles=overlay_cycles,
+    overlay_handles = make_fixed_mcz_overlay_legend_handles(
+        cycle_n_list=[1, 2, 3] if overlay_cycles else None,
         include_peaks=overlay_peaks,
         include_troughs=overlay_troughs,
     )
+    add_overlay_legend(fig, overlay_handles)
 
     save_figure(fig, output_path)
 
@@ -312,7 +364,9 @@ def _parse_args() -> argparse.Namespace:
         required=True,
         help=(
             "One or more aggregated I_td best-match HDF5 files. "
-            "Panels are sorted by source chirp mass."
+            "When all inputs share a chirp mass but differ in orientation, "
+            "panels sort by system number and show 'System N' labels. "
+            "Otherwise panels sort by source chirp mass."
         ),
     )
     parser.add_argument(
@@ -326,6 +380,8 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--levels", type=int, default=160)
     parser.add_argument("--cmap", type=str, default="jet")
+    parser.add_argument("--cbar-n-ticks", type=int, default=6)
+    parser.add_argument("--decimals", type=int, default=2)
     add_cycle_extrema_overlay_args(
         parser,
         include_show_legend=False,
@@ -356,6 +412,8 @@ def main() -> None:
         overlay_cycles=args.overlay_cycles,
         overlay_peaks=args.overlay_peaks,
         overlay_troughs=args.overlay_troughs,
+        cbar_n_ticks=args.cbar_n_ticks,
+        decimals=args.decimals,
     )
 
 

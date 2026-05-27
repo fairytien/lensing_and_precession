@@ -216,3 +216,14 @@ loc_params["Ben"] = {
 
 # Backward compatibility - deprecated in favor of orient_params
 orient_params = loc_params
+
+
+######################################
+# Section 5: System Number Mapping   #
+######################################
+
+ORIENTATION_TO_SYSTEM: dict[str, int] = {
+    "Taman_faceon": 1,
+    "Taman_edgeon": 2,
+    "Taman_random": 3,
+}

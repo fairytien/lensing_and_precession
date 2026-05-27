@@ -1029,6 +1029,32 @@ def compare_I_td_figure_filename(
     return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")
 
 
+def compare_systems_I_td_figure_filename(
+    fig_dir: str,
+    template_family: str,
+    mcz_msun: float,
+    orientation_tags: List[str],
+    z: Optional[float] = None,
+    ext: str = "pdf",
+) -> str:
+    """Build the figure path for compare_systems outputs over (td, I).
+
+    Encodes the template family, fixed chirp mass, redshift, and the
+    orientation tags of the panels.
+    """
+    z_token = _canonical_z_token(z)
+    tags_token = "_".join(str(t).strip() for t in orientation_tags)
+    stem = "_".join(
+        [
+            f"compare_Lensingvs{str(template_family).strip().upper()}",
+            f"z{z_token}",
+            f"mcz{_format_min_precision(float(mcz_msun))}",
+            tags_token,
+        ]
+    )
+    return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")
+
+
 def bestfit_prec_params_I_td_figure_filename(
     fig_dir: str,
     mcz_values: List[float],
