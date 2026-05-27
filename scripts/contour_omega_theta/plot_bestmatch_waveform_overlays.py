@@ -54,7 +54,7 @@ def _row_parameter_box_text(summary: dict) -> str:
         rf"$\tilde{{\Omega}}={_format_stat(summary['omega_tilde'])}$, "
         rf"$\tilde{{\theta}}={_format_stat(summary['theta_tilde'])}$, "
         rf"$\gamma_{{\mathrm{{P}}}}={_format_stat(summary['gamma_P'])}$, "
-        rf"$\epsilon_{{\mathrm{{min}}}}={_format_stat(summary['epsilon'], '.2g')}$"
+        rf"$\epsilon_{{\mathrm{{RP}}}}={_format_stat(summary['epsilon'], '.2g')}$"
     )
 
 
