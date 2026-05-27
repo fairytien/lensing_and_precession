@@ -180,19 +180,33 @@ def create_figure(
                 f_min=f_min,
             )
 
-            if row_idx == 0:
-                _add_mass_box(ax, mcz_src)
-
             set_square_axes(ax)
 
-        # Row label on the leftmost panel's y-axis
-        axes[row_idx][0].set_ylabel(
-            rf"$I$  [{ROW_LABELS[row_idx]}]",
-            fontsize=13,
+        # NP/RP row label as a descriptive text box on the leftmost panel
+        axes[row_idx][0].text(
+            0.97,
+            0.97,
+            ROW_LABELS[row_idx],
+            transform=axes[row_idx][0].transAxes,
+            ha="right",
+            va="top",
+            fontsize=12,
+            fontweight="bold",
+            bbox=dict(
+                facecolor="white",
+                edgecolor="black",
+                alpha=0.5,
+                boxstyle="round,pad=0.3",
+            ),
         )
+        axes[row_idx][0].set_ylabel(r"$I$", fontsize=13)
 
-    # Bottom row x-axis labels
+    # Column headers (chirp mass) and bottom row x-axis labels
     for col_idx in range(3):
+        axes[0][col_idx].set_title(
+            rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_values[col_idx]:g}\,\mathrm{{M}}_\odot$",
+            fontsize=12,
+        )
         ax = axes[1][col_idx]
         ax.set_xlabel(X_AXIS_LABEL)
         ax.set_xticks(xticks)
@@ -201,12 +215,7 @@ def create_figure(
     axes[0][0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
     axes[0][0].yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
 
-    cax = add_colorbar_axes(fig, axes)
-    colorbar = fig.colorbar(contour_set, cax=cax, extend="max")
-    colorbar.set_label(COLORBAR_LABEL)
-    format_colorbar_ticks(colorbar, global_min, vmax)
-
-    # Overlay legend at bottom
+    # Add overlay legend before freezing the layout so the engine reserves space for it.
     handles = make_fixed_mcz_overlay_legend_handles(
         cycle_n_list=[1, 2, 3] if overlay_cycles else None,
         include_peaks=overlay_peaks,
@@ -217,6 +226,17 @@ def create_figure(
         handles,
         loc="outside lower center",
         bbox_to_anchor=None,
+    )
+
+    cax = add_colorbar_axes(fig, axes)
+    colorbar = fig.colorbar(contour_set, cax=cax, extend="max")
+    colorbar.set_label(COLORBAR_LABEL)
+    format_colorbar_ticks(
+        colorbar,
+        0.0,
+        vmax,
+        use_locator=False,
+        n_ticks=int(round(vmax / 0.05)) + 1,
     )
 
     save_figure(fig, output_path)

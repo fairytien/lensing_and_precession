@@ -75,23 +75,16 @@ def add_colorbar_axes(fig, target_axes, *, pad=COLORBAR_PAD, width=COLORBAR_WIDT
     of the rightmost axis.
     """
     fig.canvas.draw()
-    if hasattr(target_axes, "flat"):
-        axes_list = list(target_axes.flat)
-    elif isinstance(target_axes, (list, tuple)):
-        axes_list = []
-        for item in target_axes:
-            if isinstance(item, (list, tuple)):
-                axes_list.extend(item)
-            else:
-                axes_list.append(item)
-    else:
-        axes_list = [target_axes]
+    axes_list = list(np.asarray(target_axes, dtype=object).flat)
 
     positions = [ax.get_position() for ax in axes_list]
     x1 = max(pos.x1 for pos in positions)
     y0 = min(pos.y0 for pos in positions)
     y1 = max(pos.y1 for pos in positions)
 
+    # Freeze the layout so it cannot re-run after the new axes is added,
+    # which would shift the subplots and misalign the colorbar.
+    fig.set_layout_engine("none")
     return fig.add_axes([x1 + pad, y0, width, y1 - y0])
 
 
