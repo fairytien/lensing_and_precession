@@ -396,9 +396,13 @@ def _slice_line_figure(
     _plot_line_pair_figure(xs, omega_ys, theta_ys, labels, xlabel, output_path, logs)
 
 
-def _levels_for_field(datasets: List[BestMatchData], key: str, n: int) -> np.ndarray:
+def _levels_for_field(
+    datasets: List[BestMatchData], key: str, n: int, vmax: float | None = None
+) -> np.ndarray:
     lo = min(float(np.nanmin(d[key])) for d in datasets)
     hi = max(float(np.nanmax(d[key])) for d in datasets)
+    if vmax is not None:
+        hi = vmax
     return np.linspace(lo, hi, n)
 
 
@@ -436,6 +440,8 @@ def create_figure(
     f_min: float,
     slice_mcz: float | None = None,
     slice_td_ms: float | None = None,
+    omega_vmax: float | None = None,
+    theta_vmax: float | None = None,
 ) -> None:
     _validate_inputs(paths, labels)
 
@@ -472,8 +478,12 @@ def create_figure(
         )
         return
 
-    omega_levels = _levels_for_field(datasets, "omega_best", levels_count)
-    theta_levels = _levels_for_field(datasets, "theta_best", levels_count)
+    omega_levels = _levels_for_field(
+        datasets, "omega_best", levels_count, vmax=omega_vmax
+    )
+    theta_levels = _levels_for_field(
+        datasets, "theta_best", levels_count, vmax=theta_vmax
+    )
 
     apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=10)
 
@@ -619,6 +629,18 @@ def main() -> None:
             "versus the native vertical-axis variable instead of the 2D contour grids"
         ),
     )
+    parser.add_argument(
+        "--omega-vmax",
+        type=float,
+        default=None,
+        help="Cap the omega_tilde colormap maximum at this value (e.g. 6)",
+    )
+    parser.add_argument(
+        "--theta-vmax",
+        type=float,
+        default=None,
+        help="Cap the theta_tilde colormap maximum at this value (e.g. 15)",
+    )
     args = parser.parse_args()
 
     create_figure(
@@ -635,6 +657,8 @@ def main() -> None:
         f_min=args.f_min,
         slice_mcz=args.slice_mcz,
         slice_td_ms=args.slice_td_ms,
+        omega_vmax=args.omega_vmax,
+        theta_vmax=args.theta_vmax,
     )
 
 
