@@ -29,7 +29,6 @@ if REPO_ROOT not in sys.path:
 from modules.bank_io import read_best_match_mcz_td_contour_data
 from modules.cosmology import source_mass_redshift_scale
 from modules.filenames import compare_mcz_td_figure_filename
-from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
 from modules.plot_utils import (
     add_colorbar_axes,
     add_overlay_legend,
@@ -42,6 +41,7 @@ from scripts.utils.compare_contours import compute_color_scale
 from scripts.utils.plot_cycles_and_extrema import (
     make_fixed_mcz_overlay_legend_handles,
     plot_cycle_lines,
+    plot_mcz_extrema,
 )
 
 DEFAULT_PATHS = [
@@ -146,42 +146,14 @@ def create_figure(
 
         # Peaks/troughs only on panel 1 (Non-Precessing).
         if i == 0:
-            mcz_min_unscaled = mcz_min / overlay_mcz_scale
-            mcz_max_unscaled = mcz_max / overlay_mcz_scale
-
-            td_peak, mcz_peak = find_mcz_peaks(
+            plot_mcz_extrema(
                 td_arr,
+                mcz_min,
+                mcz_max,
                 eta=eta,
-                mcz_min=mcz_min_unscaled,
-                mcz_max=mcz_max_unscaled,
+                mcz_scale=overlay_mcz_scale,
+                ax=ax,
             )
-            if td_peak.size > 0:
-                ax.scatter(
-                    td_peak * 1e3,
-                    mcz_peak * overlay_mcz_scale,
-                    c="magenta",
-                    marker=".",
-                    s=7,
-                    alpha=0.9,
-                    zorder=6,
-                )
-
-            td_trough, mcz_trough = find_mcz_troughs(
-                td_arr,
-                eta=eta,
-                mcz_min=mcz_min_unscaled,
-                mcz_max=mcz_max_unscaled,
-            )
-            if td_trough.size > 0:
-                ax.scatter(
-                    td_trough * 1e3,
-                    mcz_trough * overlay_mcz_scale,
-                    c="white",
-                    marker=".",
-                    s=7,
-                    alpha=0.9,
-                    zorder=6,
-                )
 
         row, col = divmod(i, 2)
         ax.set_xlabel(X_AXIS_LABEL if row == 1 else "")

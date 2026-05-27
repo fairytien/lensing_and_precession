@@ -95,7 +95,7 @@ def plot_mcz_extrema(
             ax.scatter(
                 td_peak_pts * 1e3,  # Convert to ms
                 mcz_peak_pts,
-                c="red",
+                c=_PEAK_COLOR,
                 marker=".",
                 s=5,
                 alpha=0.8,
