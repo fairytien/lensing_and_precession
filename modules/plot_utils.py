@@ -106,22 +106,35 @@ def format_colorbar_ticks(
     use_locator=True,
     nbins=None,
     steps=(1, 1.5, 2, 2.5, 3, 5, 10),
+    prune=None,
 ):
     """Set colorbar ticks to rounded values.
 
     Default mode uses a ``MaxNLocator`` to choose nice tick positions
     (pass *nbins* and/or *steps* to tune it).  Set *use_locator=False*
     to fall back to *n_ticks* linearly spaced between *vmin* and *vmax*.
+    Pass *prune* (e.g. ``'both'``) to remove ticks at the colorbar extremes.
     """
     if use_locator:
         cbar.locator = mticker.MaxNLocator(
             nbins=max(2, nbins or n_ticks),
             steps=list(steps),
+            prune=prune,
         )
     else:
         cbar.set_ticks(np.linspace(vmin, vmax, n_ticks))
     cbar.ax.yaxis.set_major_formatter(mticker.FormatStrFormatter(f"%.{decimals}f"))
     cbar.update_ticks()
+
+
+def configure_I_axis(ax) -> None:
+    """Apply the standard flux ratio (I) axis tick style.
+
+    Sets major ticks every 0.2 (labeled) and minor ticks every 0.1 (unlabeled).
+    Since axes are typically shared, calling this on one axis is sufficient.
+    """
+    ax.yaxis.set_major_locator(mticker.MultipleLocator(0.2))
+    ax.yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
 
 
 def set_square_axes(*axes):

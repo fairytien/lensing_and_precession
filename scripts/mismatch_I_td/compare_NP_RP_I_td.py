@@ -25,7 +25,6 @@ import sys
 from typing import Sequence
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
 import numpy as np
 from matplotlib.lines import Line2D
 
@@ -40,6 +39,7 @@ from modules.plot_utils import (
     add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
+    configure_I_axis,
     format_colorbar_ticks,
     save_figure,
     set_square_axes,
@@ -212,8 +212,7 @@ def create_figure(
         ax.set_xticks(xticks)
         ax.set_xticklabels([f"{int(t):d}" for t in xticks])
 
-    axes[0][0].yaxis.set_major_locator(mticker.MultipleLocator(0.2))
-    axes[0][0].yaxis.set_minor_locator(mticker.MultipleLocator(0.1))
+    configure_I_axis(axes[0][0])
 
     # Add overlay legend before freezing the layout so the engine reserves space for it.
     handles = make_fixed_mcz_overlay_legend_handles(

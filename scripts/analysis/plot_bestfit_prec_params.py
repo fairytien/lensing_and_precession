@@ -35,6 +35,7 @@ from modules.plot_utils import (
     add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
+    configure_I_axis,
     format_colorbar_ticks,
     save_figure,
     set_square_axes,
@@ -53,7 +54,7 @@ DEFAULT_PATHS = [
     "gamma0-2pix51_Taman_edgeon.h5",
 ]
 
-DEFAULT_LABELS = ["System 2 (edge-on)"]
+DEFAULT_LABELS = ["System 2"]
 
 DEFAULT_OUTPUT = "figures/contour_mcz_td/bestfit_prec_params.pdf"
 
@@ -192,10 +193,6 @@ def _format_mcz_title(mcz_value: float) -> str:
 
 
 def _panel_title(label: str, dataset: BestMatchData, axis_kind: str) -> str:
-    if axis_kind == "I":
-        mcz_value = float(dataset["mcz_value"])
-        if np.isfinite(mcz_value):
-            return _format_mcz_title(mcz_value)
     return label
 
 
@@ -550,6 +547,9 @@ def create_figure(
     for ax in axes[:, 0]:
         ax.set_ylabel(axis_label)
 
+    if axis_kind == "I":
+        configure_I_axis(axes[0, 0])
+
     ylab_omega = r"$\tilde{\Omega}_{\mathrm{best}}$"
     ylab_theta = r"$\tilde{\theta}_{\mathrm{best}}$"
     if omega_cf is None or theta_cf is None:
@@ -560,7 +560,8 @@ def create_figure(
     ):
         cax = add_colorbar_axes(fig, axes[row, -1])
         cb = fig.colorbar(cf, cax=cax, label=ylab)
-        format_colorbar_ticks(cb, levels[0], levels[-1])
+        prune = "lower" if row == 0 else None
+        format_colorbar_ticks(cb, levels[0], levels[-1], n_ticks=6, prune=prune)
 
     save_figure(fig, output_path)
 
