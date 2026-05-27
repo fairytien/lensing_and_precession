@@ -192,10 +192,11 @@ def create_figure(
             va="top",
             fontsize=12,
             fontweight="bold",
+            zorder=7,
             bbox=dict(
                 facecolor="white",
                 edgecolor="black",
-                alpha=0.5,
+                alpha=0.75,
                 boxstyle="round,pad=0.3",
             ),
         )
