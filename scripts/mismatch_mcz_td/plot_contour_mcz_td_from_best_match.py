@@ -17,7 +17,7 @@ from modules.filenames import (
     contour_mcz_td_filename,
     contour_run_dir,
 )
-from modules.bank_io import read_best_match_mcz_td_contour_data
+from modules.bank_io import read_best_match_mcz_td_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from scripts.utils._best_match_plot import (
     VARIABLE_MAPPING,
@@ -48,7 +48,7 @@ def main(
         )
 
     var_info = VARIABLE_MAPPING[variable]
-    best_match = read_best_match_mcz_td_contour_data(input_path, var_info["dataset"])
+    best_match = read_best_match_mcz_td_data(input_path, var_info["dataset"])
 
     if best_match["missing_mcz_count"] > 0:
         logging.warning(

@@ -35,7 +35,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from modules.bank_io import read_best_match_I_td_contour_data
+from modules.bank_io import read_best_match_I_td_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.filenames import (
     compare_I_td_figure_filename,
@@ -96,7 +96,7 @@ def _detect_template_family(path: str) -> str:
 def _load_datasets(paths: Sequence[str]) -> list[dict]:
     datasets = []
     for path in paths:
-        dataset = read_best_match_I_td_contour_data(path, "epsilon_min")
+        dataset = read_best_match_I_td_data(path, "epsilon_min")
         dataset["template_family"] = _detect_template_family(path)
         datasets.append(dataset)
     return datasets

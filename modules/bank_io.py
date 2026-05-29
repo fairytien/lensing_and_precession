@@ -27,7 +27,6 @@ from typing import Tuple, Dict, Any, Optional, cast
 import numpy as np
 import h5py
 
-
 PARAM_UNITS: Dict[str, str] = {
     "I": "dimensionless",
     "theta_S": "rad",
@@ -493,9 +492,7 @@ def _read_required_scalar_dataset(h5: h5py.File, input_path: str, key: str) -> f
     return float(raw.reshape(-1)[0])
 
 
-def read_best_match_mcz_td_contour_data(
-    input_path: str, value_dataset: str
-) -> Dict[str, Any]:
+def read_best_match_mcz_td_data(input_path: str, value_dataset: str) -> Dict[str, Any]:
     """Load one best-match contour dataset and infer plotting metadata.
 
     Returns a dict with arrays and metadata needed by contour plotting scripts.
@@ -532,9 +529,7 @@ def read_best_match_mcz_td_contour_data(
     }
 
 
-def read_best_match_I_td_contour_data(
-    input_path: str, value_dataset: str
-) -> Dict[str, Any]:
+def read_best_match_I_td_data(input_path: str, value_dataset: str) -> Dict[str, Any]:
     """Load one best-match I-td contour dataset and infer plotting metadata.
 
     Returns a dict with arrays and metadata needed by I-td contour plotting scripts.

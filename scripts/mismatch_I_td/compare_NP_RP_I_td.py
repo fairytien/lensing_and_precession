@@ -32,7 +32,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from modules.bank_io import read_best_match_I_td_contour_data
+from modules.bank_io import read_best_match_I_td_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import (
@@ -62,7 +62,7 @@ def _load_row(paths: Sequence[str]) -> list[dict]:
     for path in paths:
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Missing input file: {path}")
-        dataset = read_best_match_I_td_contour_data(path, "epsilon_min")
+        dataset = read_best_match_I_td_data(path, "epsilon_min")
         datasets.append(dataset)
     return sorted(datasets, key=lambda d: float(d["mcz"]))
 

@@ -14,7 +14,7 @@ from modules.plot_utils import apply_physics_paper_style
 apply_physics_paper_style()
 
 from modules.filenames import contour_I_td_filename, contour_I_td_run_dir
-from modules.bank_io import read_best_match_I_td_contour_data
+from modules.bank_io import read_best_match_I_td_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.cosmology import mcz_src_to_det
 from scripts.utils._best_match_plot import (
@@ -49,7 +49,7 @@ def main(
         )
 
     var_info = VARIABLE_MAPPING[variable]
-    best_match = read_best_match_I_td_contour_data(input_path, var_info["dataset"])
+    best_match = read_best_match_I_td_data(input_path, var_info["dataset"])
 
     if best_match["missing_I_count"] > 0:
         logging.warning(

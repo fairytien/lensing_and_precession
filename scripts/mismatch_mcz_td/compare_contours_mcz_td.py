@@ -26,7 +26,7 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
-from modules.bank_io import read_best_match_mcz_td_contour_data
+from modules.bank_io import read_best_match_mcz_td_data
 from modules.cosmology import source_mass_redshift_scale
 from modules.filenames import compare_mcz_td_figure_filename
 from modules.plot_utils import (
@@ -75,7 +75,7 @@ def _load_panel(path: str) -> tuple:
     """Load one panel's (X, Y, Z, meta) from a best-match HDF5 file."""
     if os.path.splitext(path)[1].lower() != ".h5":
         raise ValueError(f"Expected an HDF5 (.h5) file, got: {path}")
-    ds = read_best_match_mcz_td_contour_data(path, "epsilon_min")
+    ds = read_best_match_mcz_td_data(path, "epsilon_min")
     X, Y = np.meshgrid(ds["td"] * 1e3, ds["mcz"])
     meta = {
         "I": float(ds["I"]),
