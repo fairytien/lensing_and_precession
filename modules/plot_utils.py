@@ -64,6 +64,45 @@ COLORBAR_PAD = 0.015
 COLORBAR_WIDTH = 0.02
 
 
+# ============================================================================
+# Label Constants
+# ============================================================================
+# Python analogues of the \newcommand shortcuts in paper_lens_prec/preamble.tex.
+# Use these in set_xlabel/set_ylabel/set_label/legend label= calls to keep
+# typography consistent across scripts (variables italic, identifiers upright
+# roman, \epsilon throughout, no \mathit on h).
+
+# -- Axis labels --------------------------------------------------------------
+LBL_TD = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
+LBL_MCZ = r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$"
+LBL_I = r"$I$"
+LBL_OMEGA = r"$\tilde{\Omega}$"
+LBL_THETA = r"$\tilde{\theta}$"
+LBL_F = r"$f\,[\mathrm{Hz}]$"
+
+# -- Waveform symbols ---------------------------------------------------------
+LBL_H_L = r"$\tilde{h}_{\mathrm{L}}$"
+LBL_H_UL = r"$\tilde{h}_{\mathrm{UL}}$"
+LBL_H_NP = r"$\tilde{h}_{\mathrm{NP}}$"
+LBL_H_RP = r"$\tilde{h}_{\mathrm{RP}}$"
+LBL_H_P = r"$\tilde{h}_{\mathrm{P}}$"
+LBL_H_S = r"$\tilde{h}_{\mathrm{s}}$"  # generic source waveform
+LBL_H_T = r"$\tilde{h}_{\mathrm{t}}$"  # generic template waveform
+
+# -- Mismatch labels ----------------------------------------------------------
+LBL_EPS_LP = r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$"
+LBL_EPS_LNP = r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{NP}})$"
+LBL_EPS_ST = r"$\epsilon\left(\tilde{h}_{\mathrm{s}},\,\tilde{h}_{\mathrm{t}}\right)$"
+LBL_MIN_EPS_LP = (
+    r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
+    r"\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$"
+)
+LBL_MIN_EPS_ST = (
+    r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
+    r"\epsilon\left(\tilde{h}_{\mathrm{s}},\,\tilde{h}_{\mathrm{t}}\right)$"
+)
+
+
 def add_colorbar_axes(fig, target_axes, *, pad=COLORBAR_PAD, width=COLORBAR_WIDTH):
     """Add and return a colorbar axes (cax) aligned to the right of target_axes.
 
