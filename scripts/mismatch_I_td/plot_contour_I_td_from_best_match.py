@@ -9,7 +9,7 @@ import os
 import argparse
 
 import matplotlib.pyplot as plt
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, LBL_I, LBL_TD
 
 apply_physics_paper_style()
 
@@ -128,8 +128,8 @@ def main(
         x_arr=td_arr_ms,
         y_arr=I_arr,
         Zmap=best_match["values"],
-        x_label=r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$",
-        y_label=r"$I$",
+        x_label=LBL_TD,
+        y_label=LBL_I,
         cbar_label=var_info["label"],
         title=title,
         output_path=fig_path,

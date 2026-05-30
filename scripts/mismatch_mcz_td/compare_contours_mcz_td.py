@@ -30,6 +30,9 @@ from modules.bank_io import read_best_match_mcz_td_data
 from modules.cosmology import source_mass_redshift_scale
 from modules.filenames import compare_mcz_td_figure_filename
 from modules.plot_utils import (
+    LBL_MCZ,
+    LBL_MIN_EPS_ST,
+    LBL_TD,
     add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
@@ -52,14 +55,6 @@ DEFAULT_PATHS = [
 ]
 
 DEFAULT_PANEL_LABELS = ["Non-Precessing", "System 1", "System 2", "System 3"]
-
-# Physics-style math labels: variables italic, identifiers/units upright roman.
-X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-Y_AXIS_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
-COLORBAR_LABEL = (
-    r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
-    r"\epsilon\left(\tilde{\mathit{h}}_{\mathrm{s}},\,\tilde{\mathit{h}}_{\mathrm{t}}\right)$"
-)
 
 
 def _validate_paths(paths: List[str]) -> List[str]:
@@ -156,8 +151,8 @@ def create_figure(
             )
 
         row, col = divmod(i, 2)
-        ax.set_xlabel(X_AXIS_LABEL if row == 1 else "")
-        ax.set_ylabel(Y_AXIS_LABEL if col == 0 else "")
+        ax.set_xlabel(LBL_TD if row == 1 else "")
+        ax.set_ylabel(LBL_MCZ if col == 0 else "")
 
         # In-panel label boxes (final style, non-bold text).
         ax.text(
@@ -193,7 +188,7 @@ def create_figure(
 
     cax = add_colorbar_axes(fig, axes)
     cbar = fig.colorbar(cf, cax=cax)
-    cbar.set_label(COLORBAR_LABEL)
+    cbar.set_label(LBL_MIN_EPS_ST)
     format_colorbar_ticks(
         cbar,
         global_min,

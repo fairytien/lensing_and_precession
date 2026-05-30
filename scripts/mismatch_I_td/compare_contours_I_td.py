@@ -44,6 +44,8 @@ from modules.filenames import (
 from modules.cosmology import mcz_src_to_det
 from modules.default_params import ORIENTATION_TO_SYSTEM
 from modules.plot_utils import (
+    LBL_I,
+    LBL_TD,
     add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
@@ -57,8 +59,6 @@ from scripts.utils.plot_cycles_and_extrema import (
     make_fixed_mcz_overlay_legend_handles,
 )
 
-X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-Y_AXIS_LABEL = r"$I$"
 COLORBAR_LABEL_TEMPLATE = (
     r"$\epsilon\left(\tilde{{h}}_{{\mathrm{{L}}}},\,"
     r"\tilde{{h}}_{{\mathrm{{{family}}}}}\right)$"
@@ -313,7 +313,7 @@ def create_figure(
         )
         _add_panel_box(ax, _panel_label(dataset, multi_orient))
 
-        ax.set_xlabel(X_AXIS_LABEL)
+        ax.set_xlabel(LBL_TD)
         ax.set_xticks(xticks)
         xtick_labels = [f"{int(tick):d}" for tick in xticks]
         ax.set_xticklabels(xtick_labels)
@@ -323,7 +323,7 @@ def create_figure(
         else:
             ax.tick_params(axis="y", which="both", labelleft=False)
 
-    axes[0].set_ylabel(Y_AXIS_LABEL)
+    axes[0].set_ylabel(LBL_I)
     configure_I_axis(axes[0])
 
     # No figure title per user request

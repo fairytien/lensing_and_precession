@@ -36,6 +36,9 @@ from modules.bank_io import read_best_match_I_td_data
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.cosmology import mcz_src_to_det
 from modules.plot_utils import (
+    LBL_EPS_ST,
+    LBL_I,
+    LBL_TD,
     add_colorbar_axes,
     add_overlay_legend,
     apply_physics_paper_style,
@@ -49,11 +52,6 @@ from scripts.utils.plot_cycles_and_extrema import (
     make_fixed_mcz_overlay_legend_handles,
 )
 
-X_AXIS_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-Y_AXIS_LABEL = r"$I$"
-COLORBAR_LABEL = (
-    r"$\epsilon\left(\tilde{h}_{\mathrm{s}},\,\tilde{h}_{\mathrm{t}}\right)$"
-)
 ROW_LABELS = ["NP", "RP"]
 
 
@@ -200,7 +198,7 @@ def create_figure(
                 boxstyle="round,pad=0.3",
             ),
         )
-        axes[row_idx][0].set_ylabel(r"$I$", fontsize=13)
+        axes[row_idx][0].set_ylabel(LBL_I, fontsize=13)
 
     # Column headers (chirp mass) and bottom row x-axis labels
     for col_idx in range(3):
@@ -209,7 +207,7 @@ def create_figure(
             fontsize=12,
         )
         ax = axes[1][col_idx]
-        ax.set_xlabel(X_AXIS_LABEL)
+        ax.set_xlabel(LBL_TD)
         ax.set_xticks(xticks)
         ax.set_xticklabels([f"{int(t):d}" for t in xticks])
 
@@ -230,7 +228,7 @@ def create_figure(
 
     cax = add_colorbar_axes(fig, axes)
     colorbar = fig.colorbar(contour_set, cax=cax, extend="max")
-    colorbar.set_label(COLORBAR_LABEL)
+    colorbar.set_label(LBL_EPS_ST)
     format_colorbar_ticks(
         colorbar,
         0.0,

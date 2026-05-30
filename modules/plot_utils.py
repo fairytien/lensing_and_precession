@@ -74,7 +74,7 @@ COLORBAR_WIDTH = 0.02
 
 # -- Axis labels --------------------------------------------------------------
 LBL_TD = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-LBL_MCZ = r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$"
+LBL_MCZ = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
 LBL_I = r"$I$"
 LBL_OMEGA = r"$\tilde{\Omega}$"
 LBL_THETA = r"$\tilde{\theta}$"

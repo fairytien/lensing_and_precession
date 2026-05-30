@@ -7,7 +7,12 @@ import matplotlib.pyplot as plt
 from modules.cosmology import source_mass_redshift_scale
 from modules.waveform import mcz_for_n_lens_cycles, number_of_lens_cycles
 from modules.filenames import contour_mcz_td_filename
-from modules.plot_utils import apply_physics_paper_style, save_figure
+from modules.plot_utils import (
+    apply_physics_paper_style,
+    save_figure,
+    LBL_MIN_EPS_LP,
+    LBL_TD,
+)
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.lens_cycle_extrema import (
     find_mcz_troughs,
@@ -529,10 +534,8 @@ def main():
             r"$\min_{\mathcal{M}_{\rm t}}$ $\epsilon(\tilde{h}_{\rm L}, \tilde{h}_{\rm P})$"
         )
     else:
-        cbar.set_label(
-            r"$\min_{\tilde{\Omega}, \, \tilde{\theta}, \, \gamma_P}\; \epsilon(\tilde{h}_L,\tilde{h}_P)$"
-        )
-    plt.xlabel(r"$\Delta t_d$ [ms]")
+        cbar.set_label(LBL_MIN_EPS_LP)
+    plt.xlabel(LBL_TD)
     plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
 
     # Overlay cycle lines if requested

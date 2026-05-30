@@ -5,12 +5,12 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-from modules.plot_utils import save_figure
+from modules.plot_utils import save_figure, LBL_MIN_EPS_LP
 
 VARIABLE_MAPPING = {
     "epsilon": {
         "dataset": "epsilon_min",
-        "label": r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$",
+        "label": LBL_MIN_EPS_LP,
         "suffix": "epsilon_min",
     },
     "omega": {

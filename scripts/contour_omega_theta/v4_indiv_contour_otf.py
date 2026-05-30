@@ -26,6 +26,7 @@ from modules.default_params import (
 
 # Classes_v4.Precessing provides solve_ivp-only phase_delta_phi with configurable methods
 from legacy.modules.Classes_v4 import Precessing as P4
+from modules.plot_utils import LBL_EPS_LP, LBL_OMEGA, LBL_THETA
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -276,9 +277,9 @@ def main(
 
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
-        plt.xlabel(r"$\tilde{\Omega}$")
-        plt.ylabel(r"$\tilde{\theta}$")
+        cbar.set_label(LBL_EPS_LP)
+        plt.xlabel(LBL_OMEGA)
+        plt.ylabel(LBL_THETA)
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
         plt.savefig(fig_path, dpi=200)

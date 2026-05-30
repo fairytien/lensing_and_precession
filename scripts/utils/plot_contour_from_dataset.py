@@ -23,6 +23,11 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from modules.plot_utils import (
+    LBL_EPS_LP,
+    LBL_MCZ,
+    LBL_OMEGA,
+    LBL_TD,
+    LBL_THETA,
     apply_physics_paper_style,
     format_colorbar_ticks,
     save_figure,
@@ -30,15 +35,6 @@ from modules.plot_utils import (
 from modules.default_params import SOLMASS2SEC
 
 apply_physics_paper_style()
-
-
-X_LABEL_OMEGA = r"$\tilde{\Omega}$"
-Y_LABEL_THETA = r"$\tilde{\theta}$"
-X_LABEL_TD = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-Y_LABEL_MCZ = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
-COLORBAR_LABEL = (
-    r"$\epsilon(\tilde{\mathit{h}}_{\mathrm{L}}, \tilde{\mathit{h}}_{\mathrm{P}})$"
-)
 
 
 def derive_fig_path_from_input(input_path: str, tag: Optional[str] = None) -> str:
@@ -95,8 +91,8 @@ def _load_contour_from_pickle(path: str):
         "X": X,
         "Y": Y,
         "Z": Z,
-        "x_label": X_LABEL_OMEGA,
-        "y_label": Y_LABEL_THETA,
+        "x_label": LBL_OMEGA,
+        "y_label": LBL_THETA,
         "chirp_mass": _infer_chirp_mass_msun_from_pickle(out),
         "chirp_mass_range": None,
     }
@@ -125,8 +121,8 @@ def _load_contour_from_h5(path: str, td_ms: Optional[float] = None):
                 "X": X,
                 "Y": Y,
                 "Z": Z,
-                "x_label": X_LABEL_OMEGA,
-                "y_label": Y_LABEL_THETA,
+                "x_label": LBL_OMEGA,
+                "y_label": LBL_THETA,
                 "chirp_mass": mcz_value,
                 "chirp_mass_range": None,
             }
@@ -147,8 +143,8 @@ def _load_contour_from_h5(path: str, td_ms: Optional[float] = None):
                 "X": X,
                 "Y": Y,
                 "Z": Z,
-                "x_label": X_LABEL_TD,
-                "y_label": Y_LABEL_MCZ,
+                "x_label": LBL_TD,
+                "y_label": LBL_MCZ,
                 "chirp_mass": None,
                 "chirp_mass_range": mcz_range,
             }
@@ -174,8 +170,8 @@ def _load_contour_from_h5(path: str, td_ms: Optional[float] = None):
                 "X": O,
                 "Y": T,
                 "Z": Z,
-                "x_label": X_LABEL_OMEGA,
-                "y_label": Y_LABEL_THETA,
+                "x_label": LBL_OMEGA,
+                "y_label": LBL_THETA,
                 "chirp_mass": mcz_val,
                 "chirp_mass_range": None,
             }
@@ -353,7 +349,7 @@ def main() -> None:
     cf = ax.contourf(X, Y, Z, levels=args.levels, cmap="jet")
 
     cbar = fig.colorbar(cf, ax=ax, pad=0.02)
-    cbar.set_label(COLORBAR_LABEL)
+    cbar.set_label(LBL_EPS_LP)
     vmin = float(np.nanmin(Z))
     vmax = float(np.nanmax(Z))
     if np.isfinite(vmin) and np.isfinite(vmax) and vmax > vmin:

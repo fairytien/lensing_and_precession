@@ -30,7 +30,7 @@ from modules.default_params import (
 )
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
-from modules.plot_utils import apply_physics_paper_style
+from modules.plot_utils import apply_physics_paper_style, LBL_EPS_LNP, LBL_MCZ, LBL_TD
 from modules.cli_utils import resolve_grid_array
 
 apply_physics_paper_style()
@@ -326,10 +326,10 @@ def main(
                 r"$\min_{\mathcal{M}_{\rm t}}$ $\epsilon(\tilde{h}_{\rm L}, \tilde{h}_{\rm NP})$"
             )
         else:
-            cbar.set_label(r"$\epsilon(\tilde{h}_\mathrm{L}, \tilde{h}_\mathrm{NP})$")
+            cbar.set_label(LBL_EPS_LNP)
 
-        plt.xlabel(r"$\Delta t_d$ [ms]")
-        plt.ylabel(r"$\mathcal{M}_s\ [M_\odot]$")
+        plt.xlabel(LBL_TD)
+        plt.ylabel(LBL_MCZ)
         if z is not None:
             z_label = _format_min_precision(z, prefix="z = ")
             plt.plot([], [], " ", label=z_label)

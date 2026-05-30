@@ -24,6 +24,7 @@ from modules.default_params import (
     SOLMASS2SEC,
 )
 from modules.Classes import Precessing as P2
+from modules.plot_utils import LBL_EPS_LP, LBL_OMEGA, LBL_THETA
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -250,7 +251,7 @@ def main(
 
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
+        cbar.set_label(LBL_EPS_LP)
 
         # Find minimum mismatch and mark it with a green dot
         min_idx = np.unravel_index(np.argmin(Z), Z.shape)
@@ -269,8 +270,8 @@ def main(
         )
         plt.legend()
 
-        plt.xlabel(r"$\tilde{\Omega}$")
-        plt.ylabel(r"$\tilde{\theta}$")
+        plt.xlabel(LBL_OMEGA)
+        plt.ylabel(LBL_THETA)
         plt.tight_layout()
         fig_path = os.path.join(fig_dir, f"{base_name}.pdf")
         plt.savefig(fig_path, dpi=200)

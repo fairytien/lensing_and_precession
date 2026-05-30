@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from modules.filenames import get_mismatch_cube_resolution
+from modules.plot_utils import LBL_EPS_LP, LBL_OMEGA, LBL_THETA
 
 
 def infer_orientation_tag_from_filename(path: str) -> str:
@@ -78,9 +79,9 @@ def save_contour_movie(
     X, Y = np.meshgrid(omega, theta)
     cf = ax.contourf(X, Y, eps_grid[0], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax)
     cbar = fig.colorbar(cf)
-    cbar.set_label(r"$\epsilon(\tilde{h}_L, \tilde{h}_P)$")
-    ax.set_xlabel(r"$\tilde{\Omega}$")
-    ax.set_ylabel(r"$\tilde{\theta}$")
+    cbar.set_label(LBL_EPS_LP)
+    ax.set_xlabel(LBL_OMEGA)
+    ax.set_ylabel(LBL_THETA)
     ttl = ax.set_title(f"{sweep_label} = {sweep_fmt.format(sweep_values[0])}")
     fig.tight_layout()
 

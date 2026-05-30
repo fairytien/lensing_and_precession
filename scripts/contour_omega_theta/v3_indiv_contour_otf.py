@@ -25,6 +25,7 @@ from modules.default_params import (
 )
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, timestamp_path
+from modules.plot_utils import LBL_EPS_LP, LBL_OMEGA, LBL_THETA
 
 
 def _ensure_dirs(base_dir: str) -> Tuple[str, str]:
@@ -260,7 +261,7 @@ def main(
 
         cf = plt.contourf(X, Y, Z, levels=100, cmap="jet")
         cbar = plt.colorbar(cf)
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
+        cbar.set_label(LBL_EPS_LP)
         plt.plot(
             [],
             [],
@@ -276,8 +277,8 @@ def main(
             handletextpad=0.2,
             labelspacing=0.2,
         )
-        plt.xlabel(r"$\tilde{\Omega}$")
-        plt.ylabel(r"$\tilde{\theta}$")
+        plt.xlabel(LBL_OMEGA)
+        plt.ylabel(LBL_THETA)
         plt.tight_layout()
         fig_path = timestamp_path(os.path.join(fig_dir, f"{base_name}.pdf"))
         plt.savefig(fig_path, bbox_inches="tight")

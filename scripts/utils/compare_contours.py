@@ -9,6 +9,10 @@ sys.path.insert(
 )
 
 from modules.plot_utils import (
+    LBL_EPS_LP,
+    LBL_MCZ,
+    LBL_MIN_EPS_LP,
+    LBL_TD,
     apply_physics_paper_style,
     format_colorbar_ticks,
     save_figure,
@@ -20,13 +24,10 @@ apply_physics_paper_style()
 
 from scripts.utils.plot_cycles_and_extrema import plot_cycle_lines, plot_mcz_extrema
 
-_TD_LABEL = r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$"
-_MCZ_LABEL = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
-
 
 def _td_mcz_dataset(td_s, mcz, Z):
     X, Y = np.meshgrid(td_s * 1e3, mcz)
-    return X, Y, Z, _TD_LABEL, _MCZ_LABEL, "td_mcz"
+    return X, Y, Z, LBL_TD, LBL_MCZ, "td_mcz"
 
 
 def _apply_colorbar_ticks(cbar, vmin, vmax, round_ticks, n_ticks, decimals):
@@ -550,11 +551,9 @@ def create_comparison_contours(
 
     _resize_colorbar(fig, cbar, cbar_resize_factor)
     if data_types[0] == "td_mcz":
-        cbar.set_label(
-            r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\;\epsilon(\tilde{h}_{\mathrm{L}},\tilde{h}_{\mathrm{P}})$"
-        )
+        cbar.set_label(LBL_MIN_EPS_LP)
     else:
-        cbar.set_label(r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$")
+        cbar.set_label(LBL_EPS_LP)
     _apply_colorbar_ticks(
         cbar, global_min, global_max, cbar_round_ticks, cbar_n_ticks, cbar_decimals
     )
