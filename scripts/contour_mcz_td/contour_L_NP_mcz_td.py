@@ -20,7 +20,7 @@ from modules.waveform import (
     get_y_from_I,
 )
 from modules.snr import Sn
-from modules.match_utils import mismatch_from_params, optimize_mismatch_mcz
+from modules.match_utils import MatchMethod, mismatch_from_params, optimize_mismatch_mcz
 from modules.runtime_helpers import timer_decorator
 from modules.default_params import (
     SOLMASS2SEC,
@@ -112,7 +112,7 @@ def _save_contour_hdf5(
 
 
 def _compute_mismatch_row(args):
-    mcz, td_arr, y, f_min, delta_f, compare_both, z, optimize_mcz = args
+    mcz, td_arr, y, f_min, delta_f, match_method, z, optimize_mcz = args
 
     # Build fresh parameter dictionaries for this process
     lens_params, NP_params = set_orientation(
@@ -163,8 +163,7 @@ def _compute_mismatch_row(args):
                     f_min=f_min,
                     delta_f=delta_f,
                     psd=psd,
-                    use_opt_match=True,
-                    compare_both=compare_both,
+                    match_method=match_method,
                 )
                 mismatch_row[j] = float(
                     opt_ep_results["ep_min"]
@@ -176,8 +175,7 @@ def _compute_mismatch_row(args):
                     f_min=f_min,
                     delta_f=delta_f,
                     psd=psd,
-                    use_opt_match=True,
-                    compare_both=compare_both,
+                    match_method=match_method,
                 )
                 mismatch_row[j] = float(res["mismatch"])  # ensure JSON/pickle friendly
         except Exception:
@@ -203,7 +201,7 @@ def main(
     n_processes: Optional[int] = None,
     optimize_mcz: bool = False,
     tag: str = "",
-    compare_both: bool = False,
+    match_method: "MatchMethod" = MatchMethod.OPTIMIZED_BOUNDED,
     z: Optional[float] = None,
 ):
     if I <= 0:
@@ -261,7 +259,7 @@ def main(
 
     # Prepare arguments for parallel computation
     args_list = [
-        (mcz, td_arr, y, f_min, delta_f, compare_both, z, optimize_mcz)
+        (mcz, td_arr, y, f_min, delta_f, match_method, z, optimize_mcz)
         for mcz in mcz_arr
     ]
 
@@ -395,9 +393,11 @@ if __name__ == "__main__":
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--delta_f", type=float, default=0.25)
     parser.add_argument(
-        "--compare_both",
-        action="store_true",
-        help="Use both match and optimized_match_bounded internally and take the best.",
+        "--match_method",
+        type=str,
+        choices=[m.value for m in MatchMethod],
+        default=MatchMethod.OPTIMIZED_BOUNDED.value,
+        help="Match method to use. Default: optimized_bounded",
     )
     parser.add_argument(
         "--n_processes",
@@ -435,5 +435,5 @@ if __name__ == "__main__":
         n_processes=args.n_processes,
         optimize_mcz=args.optimize_mcz,
         tag=args.tag,
-        compare_both=args.compare_both,
+        match_method=MatchMethod(args.match_method),
     )

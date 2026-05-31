@@ -16,7 +16,7 @@ from modules.waveform import (
     get_MLz_from_td,
 )
 from modules.snr import Sn
-from modules.match_utils import optimize_mismatch_gammaP
+from modules.match_utils import MatchMethod, optimize_mismatch_gammaP
 from modules.runtime_helpers import pickle_data, timer_decorator
 from modules.default_params import (
     lens_params_1,
@@ -92,8 +92,7 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
         f_min,
         delta_f,
         psd,
-        compare_both,
-        use_opt_match,
+        match_method,
         two_stage,
         coarse_points,
         xatol,
@@ -104,36 +103,19 @@ def _compute_cell_min_ep(args: tuple) -> tuple:
     t_params["omega_tilde"] = float(omega_val)
     t_params["theta_tilde"] = float(theta_val)
 
-    if compare_both:
-        # Use new API to compare match and optimized_match_bounded internally
-        res = optimize_mismatch_gammaP(
-            t_params,
-            s_params,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            compare_both=True,
-            two_stage=two_stage,
-            coarse_points=coarse_points,
-            xatol=xatol,
-            maxiter=maxiter,
-        )
-        return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
-    else:
-        res = optimize_mismatch_gammaP(
-            t_params,
-            s_params,
-            f_min=f_min,
-            delta_f=delta_f,
-            psd=psd,
-            use_opt_match=use_opt_match,
-            compare_both=False,
-            two_stage=two_stage,
-            coarse_points=coarse_points,
-            xatol=xatol,
-            maxiter=maxiter,
-        )
-        return float(res["ep_min"]), float(res["ep_min_gammaP"])  # epsilon, gammaP
+    res = optimize_mismatch_gammaP(
+        t_params,
+        s_params,
+        f_min=f_min,
+        delta_f=delta_f,
+        psd=psd,
+        match_method=match_method,
+        two_stage=two_stage,
+        coarse_points=coarse_points,
+        xatol=xatol,
+        maxiter=maxiter,
+    )
+    return float(res["ep_min"]), float(res["ep_min_gammaP"])
 
 
 @timer_decorator
@@ -153,8 +135,7 @@ def main(
     theta_points: int = 151,
     f_min: float = 20.0,
     delta_f: float = 0.25,
-    use_opt_match: bool = False,
-    compare_both: bool = False,
+    match_method: "MatchMethod" = MatchMethod.OPTIMIZED_BOUNDED,
     n_workers: int = None,
     no_plot: bool = False,
     tag: str = "",
@@ -197,8 +178,7 @@ def main(
                     f_min,
                     delta_f,
                     psd,
-                    compare_both,
-                    use_opt_match,
+                    match_method,
                     two_stage,
                     int(coarse_points),
                     float(xatol),
@@ -240,7 +220,7 @@ def main(
             "theta_J": theta_J,
             "phi_J": phi_J,
         },
-        "compare_both": compare_both,
+        "compare_both": match_method is MatchMethod.COMPARE_BOTH,
     }
 
     base_name = (
@@ -308,11 +288,12 @@ if __name__ == "__main__":
     parser.add_argument("--theta_points", type=int, default=151)
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--delta_f", type=float, default=0.25)
-    parser.add_argument("--use_opt_match", action="store_true")
     parser.add_argument(
-        "--compare_both",
-        action="store_true",
-        help="Use both match and optimized_match_bounded internally and take the best.",
+        "--match_method",
+        type=str,
+        choices=[m.value for m in MatchMethod],
+        default=MatchMethod.OPTIMIZED_BOUNDED.value,
+        help="Match method to use. Default: optimized_bounded",
     )
     parser.add_argument("--n_workers", type=int, default=None)
     parser.add_argument("--no_plot", action="store_true")
@@ -347,8 +328,7 @@ if __name__ == "__main__":
         theta_points=args.theta_points,
         f_min=args.f_min,
         delta_f=args.delta_f,
-        use_opt_match=args.use_opt_match,
-        compare_both=args.compare_both,
+        match_method=MatchMethod(args.match_method),
         n_workers=args.n_workers,
         no_plot=args.no_plot,
         tag=args.tag,

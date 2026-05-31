@@ -7,6 +7,7 @@ from modules.Classes import *  # noqa: F401,F403
 from modules.default_params import *  # noqa: F401,F403
 from modules.geometry import *  # noqa: F401,F403
 from modules.match_utils import (
+    MatchMethod,
     find_optimized_coalescence_params,
     mismatch_from_params,
     mismatch_from_strains,

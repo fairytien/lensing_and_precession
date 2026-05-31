@@ -276,22 +276,24 @@ def write_source_attrs(
 def write_match_provenance_attrs(
     h5: h5py.File,
     *,
-    compare_both: bool,
-    use_opt_match: bool,
+    match_method: "MatchMethod",
 ) -> None:
     """Write match method/minimizer provenance attrs for mismatch outputs."""
-    if compare_both:
-        _write_attrs(
-            h5,
-            {"match_method": "compare_both", "minimizer": "bounded_and_discrete"},
-        )
-    elif use_opt_match:
-        _write_attrs(
-            h5,
-            {"match_method": "optimized_match_bounded", "minimizer": "bounded"},
-        )
-    else:
-        _write_attrs(h5, {"match_method": "match", "minimizer": "none"})
+    from modules.match_utils import MatchMethod
+
+    _MINIMIZER = {
+        MatchMethod.MATCH: "discrete",
+        MatchMethod.OPTIMIZED_BRENT: "brent",
+        MatchMethod.OPTIMIZED_BOUNDED: "bounded",
+        MatchMethod.COMPARE_BOTH: "brent_and_discrete",
+    }
+    _write_attrs(
+        h5,
+        {
+            "match_method": match_method.value,
+            "minimizer": _MINIMIZER[match_method],
+        },
+    )
 
 
 def read_source_attrs(h5: h5py.File) -> Dict[str, Any]:

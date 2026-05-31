@@ -15,10 +15,11 @@ repeated boilerplate in optimization loops.
 
 import numpy as np
 import h5py
+from enum import Enum
 from typing import Tuple, Union, List, Optional, cast
 
 from scipy.optimize import OptimizeResult, minimize_scalar
-from pycbc.filter import match
+from pycbc.filter import match, optimized_match
 from pycbc.filter.matchedfilter import (
     make_frequency_series,
     get_cutoff_indices,
@@ -29,6 +30,21 @@ from pycbc.types import FrequencySeries
 
 
 PsdLike = Union[np.ndarray, FrequencySeries]
+
+
+class MatchMethod(Enum):
+    """Which low-level match function to use in mismatch computations.
+
+    MATCH              – pycbc.filter.match (FFT discrete argmax)
+    OPTIMIZED_BRENT    – pycbc.filter.optimized_match (Brent minimizer)
+    OPTIMIZED_BOUNDED  – optimized_match_bounded (scipy bounded minimizer)
+    COMPARE_BOTH       – run MATCH + OPTIMIZED_BRENT, take best
+    """
+
+    MATCH = "match"
+    OPTIMIZED_BRENT = "optimized_brent"
+    OPTIMIZED_BOUNDED = "optimized_bounded"
+    COMPARE_BOTH = "compare_both"
 
 
 # ============================================================================
@@ -274,11 +290,10 @@ def mismatch_from_strains(
     f_min: float = 20,
     delta_f: float = 0.25,
     psd: Optional[PsdLike] = None,
-    use_opt_match=True,
-    compare_both=False,
+    match_method: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED,
     sn_func=None,
 ) -> dict:
-    """Compute mismatch between two strains with optional bounded optimization."""
+    """Compute mismatch between two strains using the specified match method."""
 
     if sn_func is None:
         from modules.snr import Sn as sn_func
@@ -296,11 +311,11 @@ def mismatch_from_strains(
         delta_f=delta_f,
     )
 
-    if compare_both:
+    if match_method is MatchMethod.COMPARE_BOTH:
         results = []
-        for func, name in zip(
-            [match, optimized_match_bounded],
-            ["match", "optimized_match_bounded"],
+        for method, func in (
+            (MatchMethod.MATCH, match),
+            (MatchMethod.OPTIMIZED_BRENT, optimized_match),
         ):
             try:
                 match_val, index, phi = func(t_strain, s_strain, psd, return_phase=True)  # type: ignore
@@ -310,23 +325,27 @@ def mismatch_from_strains(
                         "index": index,
                         "phi": phi,
                         "match_val": match_val,
-                        "match_method": name,
+                        "match_method": method.value,
                     }
                 )
             except Exception:
                 continue
         if not results:
-            raise RuntimeError("Both match and optimized_match_bounded failed.")
+            raise RuntimeError("Both match and optimized_match failed.")
         best_result = max(results, key=lambda x: x["match_val"])
         return {k: v for k, v in best_result.items() if k != "match_val"}
 
-    if use_opt_match:
-        match_val, index, phi = optimized_match_bounded(  # type: ignore
+    if match_method is MatchMethod.MATCH:
+        match_val, index, phi = match(  # type: ignore
+            t_strain, s_strain, psd, return_phase=True
+        )
+    elif match_method is MatchMethod.OPTIMIZED_BRENT:
+        match_val, index, phi = optimized_match(  # type: ignore
             t_strain, s_strain, psd=psd, return_phase=True
         )
     else:
-        match_val, index, phi = match(  # type: ignore
-            t_strain, s_strain, psd, return_phase=True
+        match_val, index, phi = optimized_match_bounded(  # type: ignore
+            t_strain, s_strain, psd=psd, return_phase=True
         )
 
     return {"mismatch": 1 - match_val, "index": index, "phi": phi}
@@ -340,8 +359,7 @@ def mismatch_from_params(
     psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
-    use_opt_match=True,
-    compare_both=False,
+    match_method: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED,
     get_gw_func=None,
     sn_func=None,
 ) -> dict:
@@ -378,8 +396,7 @@ def mismatch_from_params(
         f_min=f_min,
         delta_f=delta_f,
         psd=psd,
-        use_opt_match=use_opt_match,
-        compare_both=compare_both,
+        match_method=match_method,
         sn_func=sn_func,
     )
 
@@ -397,8 +414,7 @@ def optimize_mismatch_mcz(
     psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
-    use_opt_match=True,
-    compare_both=False,
+    match_method: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED,
     set_to_params_func=None,
     get_gw_func=None,
     sn_func=None,
@@ -463,8 +479,7 @@ def optimize_mismatch_mcz(
             f_min=f_min,
             delta_f=delta_f,
             psd=psd,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
+            match_method=match_method,
         )
         ep_arr[i] = res["mismatch"]
         idx_arr[i] = res["index"]
@@ -488,8 +503,7 @@ def optimize_mismatch_gammaP(
     psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
-    use_opt_match=True,
-    compare_both=False,
+    match_method: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED,
     grid_points: int = 101,
     gamma_grid: Optional[np.ndarray] = None,
     two_stage=False,
@@ -576,8 +590,7 @@ def optimize_mismatch_gammaP(
                 f_min=f_min,
                 delta_f=delta_f,
                 psd=psd_local,
-                use_opt_match=use_opt_match,
-                compare_both=compare_both,
+                match_method=match_method,
             )
             ep_arr[i] = res["mismatch"]
             idx_arr[i] = res["index"]
@@ -615,8 +628,7 @@ def optimize_mismatch_gammaP(
             f_min=f_min,
             delta_f=delta_f,
             psd=psd_local,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
+            match_method=match_method,
         )
         return float(res_local["mismatch"])
 
@@ -670,8 +682,7 @@ def optimize_mismatch_gammaP(
         f_min=f_min,
         delta_f=delta_f,
         psd=psd_local,
-        use_opt_match=use_opt_match,
-        compare_both=compare_both,
+        match_method=match_method,
     )
 
     return {
@@ -690,8 +701,7 @@ def find_optimized_coalescence_params(
     psd: Optional[PsdLike] = None,
     lens_Class=None,
     prec_Class=None,
-    use_opt_match=True,
-    compare_both=False,
+    match_method: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED,
     optimize_gammaP=True,
     verify_optimization=False,
     set_to_params_func=None,
@@ -732,13 +742,12 @@ def find_optimized_coalescence_params(
         return mismatch_from_params_func(
             t_params_copy,
             s_params_copy,
-            f_min,
-            delta_f,
-            psd,
-            lens_Class,
-            prec_Class,
-            use_opt_match,
-            compare_both,
+            f_min=f_min,
+            delta_f=delta_f,
+            psd=psd,
+            lens_Class=lens_Class,
+            prec_Class=prec_Class,
+            match_method=match_method,
         )
 
     if psd is None:
@@ -764,8 +773,7 @@ def find_optimized_coalescence_params(
             psd=psd,
             lens_Class=lens_Class,
             prec_Class=prec_Class,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
+            match_method=match_method,
             **kwargs,
         )
         ep_min_gammaP = gammaP_results["ep_min_gammaP"]
@@ -878,8 +886,7 @@ def build_source_strain_for_td(
 _S_STRAIN: Optional[np.ndarray] = None
 _PSD: Optional[PsdLike] = None
 _DELTA_F: Optional[float] = None
-_COMPARE_BOTH = False
-_USE_OPT_MATCH = True
+_MATCH_METHOD: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED
 _BANK_H5: Optional[h5py.File] = None
 _BANK_DSET: Optional[h5py.Dataset] = None
 _GAMMA_ARR: Optional[np.ndarray] = None
@@ -901,8 +908,7 @@ def _require_worker_state() -> tuple:
         _S_STRAIN,
         _PSD,
         _DELTA_F,
-        _COMPARE_BOTH,
-        _USE_OPT_MATCH,
+        _MATCH_METHOD,
         _BANK_DSET,
         _GAMMA_ARR,
         _GAMMA_CHUNK,
@@ -913,8 +919,7 @@ def init_mismatch_worker(
     s_strain,
     psd,
     delta_f,
-    compare_both,
-    use_opt_match,
+    match_method,
     bank_path,
     gamma_arr,
     gamma_chunk,
@@ -929,15 +934,14 @@ def init_mismatch_worker(
         s_strain: Complex frequency-domain source strain array.
         psd: Frequency-domain PSD array (compatible with delta_f and frequency grid).
         delta_f: Frequency spacing in Hz.
-        compare_both: If True, compare both lensed parities when computing mismatch.
-        use_opt_match: If True, use optimal match configuration in mismatch routine.
+        match_method: MatchMethod enum value controlling which match function to use.
         bank_path: Path to the HDF5 bank file to read templates from.
         gamma_arr: 1D array of gamma values corresponding to bank axis 2.
         gamma_chunk: Optional int for gamma tiling size per worker iteration.
     """
     import atexit
 
-    global _S_STRAIN, _PSD, _DELTA_F, _COMPARE_BOTH, _USE_OPT_MATCH, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
+    global _S_STRAIN, _PSD, _DELTA_F, _MATCH_METHOD, _BANK_H5, _BANK_DSET, _GAMMA_ARR, _GAMMA_CHUNK
     bank_h5 = h5py.File(bank_path, "r")
     bank_obj = bank_h5["bank"]
     if not isinstance(bank_obj, h5py.Dataset):
@@ -947,8 +951,7 @@ def init_mismatch_worker(
     _S_STRAIN = cast_to_match_precision(s_strain)
     _PSD = psd
     _DELTA_F = float(delta_f)
-    _COMPARE_BOTH = bool(compare_both)
-    _USE_OPT_MATCH = bool(use_opt_match)
+    _MATCH_METHOD = match_method
     _BANK_H5 = bank_h5
     _BANK_DSET = cast(h5py.Dataset, bank_obj)
     _GAMMA_ARR = np.asarray(gamma_arr)
@@ -975,8 +978,7 @@ def mismatch_gamma_job(args: tuple) -> tuple:
         s_strain,
         psd,
         delta_f,
-        compare_both,
-        use_opt_match,
+        match_method,
         bank_dset,
         gamma_arr,
         gamma_chunk,
@@ -1003,8 +1005,7 @@ def mismatch_gamma_job(args: tuple) -> tuple:
                 f_min=20.0,
                 delta_f=delta_f,
                 psd=psd,
-                use_opt_match=use_opt_match,
-                compare_both=compare_both,
+                match_method=match_method,
             )
             ep = float(res["mismatch"])
             ep_vec[k] = ep
