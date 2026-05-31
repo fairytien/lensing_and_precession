@@ -12,7 +12,13 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.waveform_plotting import customize_2x1_axes_ratio
-from modules.plot_utils import apply_physics_paper_style, save_figure, LBL_F
+from modules.plot_utils import (
+    apply_physics_paper_style,
+    save_figure,
+    LBL_BRATIO_TS,
+    LBL_F,
+    LBL_PHASE_TS,
+)
 from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
 DEFAULT_INPUTS = [
@@ -153,12 +159,12 @@ def plot_combined(
         ax.set_xlabel(LBL_F, fontsize=24, labelpad=2)
 
     axes[0, 0].set_ylabel(
-        r"$\left(\mathit{B}_{\mathrm{t}}/\mathit{B}_{\mathrm{s}}\right) - 1$",
+        LBL_BRATIO_TS,
         fontsize=24,
         labelpad=4,
     )
     axes[1, 0].set_ylabel(
-        r"$\Phi_{\mathrm{t}} - \Phi_{\mathrm{s}}\,[\mathrm{rad}]$",
+        LBL_PHASE_TS,
         fontsize=24,
         labelpad=4,
     )

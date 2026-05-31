@@ -20,7 +20,16 @@ from modules.waveform import (
 from modules.match_utils import find_optimized_coalescence_params
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision
-from modules.plot_utils import apply_physics_paper_style, angle_to_pi_string
+from modules.plot_utils import (
+    apply_physics_paper_style,
+    angle_to_pi_string,
+    LBL_BRATIO_LNP,
+    LBL_BRATIO_RPNP,
+    LBL_OMEGA,
+    LBL_PHASE_LNP,
+    LBL_PHASE_RPNP,
+    LBL_THETA,
+)
 
 AxesArray = np.ndarray  # Array of matplotlib Axes returned by plt.subplots.
 
@@ -360,12 +369,10 @@ def plot_lensing_figure(
         amp_label = r"$\left|\tilde{\mathit{h}}\right|$"
         customize_2x2_axes(axes)
     else:
-        amp_label = (
-            r"$\left(\mathit{B}_{\mathrm{L}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"
-        )
+        amp_label = LBL_BRATIO_LNP
         customize_2x2_axes_ratio(axes)
 
-    phase_label = r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
+    phase_label = LBL_PHASE_LNP
     _add_vertical_axis_labels(
         fig,
         axes,
@@ -523,14 +530,14 @@ def plot_precessing_figure(
         "omega_tilde",
         np.atleast_1d(omega_vals),
         {"theta_tilde": fixed_theta},
-        r"$\tilde{\Omega}$",
+        LBL_OMEGA,
     )
     sweep(
         1,
         "theta_tilde",
         np.atleast_1d(theta_vals),
         {"omega_tilde": fixed_omega},
-        r"$\tilde{\theta}$",
+        LBL_THETA,
     )
     sweep(
         2,
@@ -545,12 +552,10 @@ def plot_precessing_figure(
         amp_label = r"$\left|\tilde{\mathit{h}}\right|$"
         customize_3x2_axes_abs(axes)
     else:
-        amp_label = (
-            r"$\left(\mathit{B}_{\mathrm{RP}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"
-        )
+        amp_label = LBL_BRATIO_RPNP
         customize_3x2_axes_ratio(axes)
 
-    phase_label = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
+    phase_label = LBL_PHASE_RPNP
     _add_vertical_axis_labels(
         fig,
         axes,

@@ -102,6 +102,16 @@ LBL_MIN_EPS_ST = (
     r"\epsilon\left(\tilde{h}_{\mathrm{s}},\,\tilde{h}_{\mathrm{t}}\right)$"
 )
 
+# -- Amplitude-ratio and phase-difference axis labels -------------------------
+LBL_BRATIO_LNP = r"$\left(\mathit{B}_{\mathrm{L}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"
+LBL_BRATIO_RPNP = (
+    r"$\left(\mathit{B}_{\mathrm{RP}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"
+)
+LBL_BRATIO_TS = r"$\left(\mathit{B}_{\mathrm{t}}/\mathit{B}_{\mathrm{s}}\right) - 1$"
+LBL_PHASE_LNP = r"$\Phi_{\mathrm{L}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
+LBL_PHASE_RPNP = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
+LBL_PHASE_TS = r"$\Phi_{\mathrm{t}} - \Phi_{\mathrm{s}}\,[\mathrm{rad}]$"
+
 
 def add_colorbar_axes(fig, target_axes, *, pad=COLORBAR_PAD, width=COLORBAR_WIDTH):
     """Add and return a colorbar axes (cax) aligned to the right of target_axes.
@@ -259,10 +269,10 @@ def angle_to_pi_string(
 def _draw_mismatch_contour(X, Y, Z, n_levels):
     """Draw contourf with standard mismatch axes and colorbar."""
     plt.contourf(X, Y, Z, levels=n_levels, cmap="jet")
-    plt.xlabel(r"$\~\Omega$", fontsize=14)
-    plt.ylabel(r"$\~\theta$", fontsize=14)
+    plt.xlabel(LBL_OMEGA, fontsize=14)
+    plt.ylabel(LBL_THETA, fontsize=14)
     plt.colorbar(cmap="jet", norm=colors.Normalize(vmin=0, vmax=1)).set_label(
-        label=r"$\epsilon(\~h_{\mathrm{L}}, \~h_{\mathrm{P}})$", size=14
+        label=LBL_EPS_LP, size=14
     )
 
 
