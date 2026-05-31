@@ -42,7 +42,6 @@ from modules.match_utils import (
     MatchMethod,
     build_source_strain_for_td,
     init_mismatch_worker,
-    mismatch_gamma_block_serial,
     mismatch_gamma_job,
 )
 from modules.bank_io import (
@@ -248,23 +247,6 @@ def main(
                 )
                 continue
 
-            single_grid_cell = n_theta == 1 and n_omega == 1
-            serial_template_block = (
-                np.asarray(bank[0, 0, :, :]) if single_grid_cell else None
-            )
-            template_family = "RP"
-            template_params_snapshot = dict(
-                extract_prefixed_params(h5.attrs, "template_param_")
-            )
-            if single_grid_cell:
-                template_params_snapshot["theta_tilde"] = float(theta_arr[0])
-                template_params_snapshot["omega_tilde"] = float(omega_arr[0])
-                if float(theta_arr[0]) == 0.0 and float(omega_arr[0]) == 0.0:
-                    template_family = "NP"
-                    template_params_snapshot["gamma_P"] = 0.0
-                elif n_gamma == 1:
-                    template_params_snapshot["gamma_P"] = float(gamma_arr[0])
-
             mlz_arr = np.array(
                 [float(get_MLz_from_td(td, y) * SOLMASS2SEC) for td in td_arr],
                 dtype=np.float64,
@@ -335,11 +317,10 @@ def main(
                 # Carry template-generation metadata from the source bank file.
                 write_parameter_attrs(
                     mmh5,
-                    template_params_snapshot,
+                    extract_prefixed_params(h5.attrs, "template_param_"),
                     prefix="template_param_",
                     include_units=True,
                 )
-                mmh5.attrs["template_family"] = template_family
                 # Store the intended mcz grid so aggregation can detect missing rows
                 # from the actual compute configuration (not inferred from filenames).
                 write_mcz_td_grid_attrs(mmh5, mcz_min, mcz_max, mcz_pts_eff)
@@ -363,59 +344,44 @@ def main(
                         get_gw, lens_params_j, f_min=f_min, delta_f=delta_f
                     )
 
+                    # Prepare jobs across (theta, omega) using indices only
+                    total_jobs = int(n_theta) * int(n_omega)
+                    n_workers_eff = (
+                        int(n_workers)
+                        if n_workers is not None
+                        else min(cpu_count(), total_jobs)
+                    )
+
                     Zgrid = np.zeros((n_theta, n_omega), dtype=np.float32)
                     Ggrid = np.zeros_like(Zgrid)
 
+                    # Stream results to reduce memory; open bank inside workers
+                    gamma_chunk = choose_gamma_chunk(int(n_gamma))
                     try:
-                        if single_grid_cell:
-                            ep_vec, ep_min, g_best = mismatch_gamma_block_serial(
-                                serial_template_block,
-                                gamma_arr,
+                        with Pool(
+                            n_workers_eff,
+                            initializer=init_mismatch_worker,
+                            initargs=(
                                 s_strain,
                                 psd,
-                                f_min,
                                 delta_f,
                                 match_method,
+                                bank_path,
+                                gamma_arr,
+                                gamma_chunk,
+                            ),
+                            maxtasksperchild=256,
+                        ) as pool:
+                            job_iter = (
+                                (r, c) for r in range(n_theta) for c in range(n_omega)
                             )
-                            if save_full_mismatch and mm_dset is not None:
-                                mm_dset[j, 0, 0, :] = ep_vec
-                            Zgrid[0, 0] = ep_min
-                            Ggrid[0, 0] = g_best
-                        else:
-                            # Stream results to reduce memory; open bank inside workers
-                            total_jobs = int(n_theta) * int(n_omega)
-                            n_workers_eff = (
-                                int(n_workers)
-                                if n_workers is not None
-                                else min(cpu_count(), total_jobs)
-                            )
-                            gamma_chunk = choose_gamma_chunk(int(n_gamma))
-                            with Pool(
-                                n_workers_eff,
-                                initializer=init_mismatch_worker,
-                                initargs=(
-                                    s_strain,
-                                    psd,
-                                    delta_f,
-                                    match_method,
-                                    bank_path,
-                                    gamma_arr,
-                                    gamma_chunk,
-                                ),
-                                maxtasksperchild=256,
-                            ) as pool:
-                                job_iter = (
-                                    (r, c)
-                                    for r in range(n_theta)
-                                    for c in range(n_omega)
-                                )
-                                for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
-                                    mismatch_gamma_job, job_iter, chunksize=1
-                                ):
-                                    if save_full_mismatch and mm_dset is not None:
-                                        mm_dset[j, r, c, :] = ep_vec
-                                    Zgrid[r, c] = ep_min
-                                    Ggrid[r, c] = g_best
+                            for r, c, ep_vec, ep_min, g_best in pool.imap_unordered(
+                                mismatch_gamma_job, job_iter, chunksize=1
+                            ):
+                                if save_full_mismatch and mm_dset is not None:
+                                    mm_dset[j, r, c, :] = ep_vec
+                                Zgrid[r, c] = ep_min
+                                Ggrid[r, c] = g_best
                     except Exception as exc:
                         mcz_failed_exc = exc
                         break
