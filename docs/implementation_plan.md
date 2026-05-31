@@ -72,8 +72,8 @@ Key layout decisions:
 
 #### [MODIFY] [results.tex](../../../paper_lens_prec/sections/results.tex)
 
-- **Lines 12–22** (Figure 4 — contours): Replace with new combined figure.
-- **Lines 56–70** (Figure 5 — waveforms): Remove; content merged into combined figure.
+- (Figure 4 — contours, anchor on `\label{fig: sys2 contours mcz}`): Replace with new combined figure.
+- (Figure 5 — waveforms, anchor on `\label{fig: sys2 waveforms mcz}`): Remove; content merged into combined figure.
 - New caption describes the 3-row layout with $\mathcal{M} = 5, 15, 25\,M_\odot$.
 - Rename `\epsilon_{\min}` → `\epsilon_{\mathrm{RP}}` in caption and surrounding prose (note: use `\epsilon`, not `\varepsilon`).
 - Merge labels into `\label{fig: sys2 contour waveform combined}`.

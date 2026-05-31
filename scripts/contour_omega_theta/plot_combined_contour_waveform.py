@@ -20,6 +20,8 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.bank_io import extract_prefixed_params
+from modules.cli_utils import add_redshift_arg
+from modules.filenames import find_mismatch_mcz_cube_files
 from modules.plot_utils import (
     LBL_BRATIO_TS,
     LBL_F,
@@ -31,10 +33,7 @@ from modules.plot_utils import (
     add_colorbar_axes,
     format_colorbar_ticks,
 )
-from modules.waveform_plotting import (
-    plot_best_match_overlay_from_contour,
-    customize_2x1_axes_ratio,
-)
+from modules.waveform_plotting import plot_best_match_overlay_from_contour
 
 SHARED_DATA_ROOT = "/work/10000/fairytien33/gw_shared_data"
 DEFAULT_RUN_DIR = os.path.join(
@@ -44,7 +43,6 @@ DEFAULT_RUN_DIR = os.path.join(
 DEFAULT_MCZ_LIST = [5, 15, 25]
 
 LINE_COLORS = ["black", "blue", "magenta"]
-LINE_STYLES = ["-", "--", ":"]
 
 
 # ============================================================================
@@ -52,13 +50,26 @@ LINE_STYLES = ["-", "--", ":"]
 # ============================================================================
 
 
-def _build_cube_path(run_dir: str, mcz_msun: float) -> str:
-    mcz_token = str(int(mcz_msun)) if mcz_msun == int(mcz_msun) else str(mcz_msun)
-    fname = (
-        f"mismatch_cubes_z1_mcz{mcz_token}_I0p5"
-        f"_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5"
-    )
-    return os.path.join(run_dir, "mismatch_cubes", fname)
+def _resolve_cube_paths(
+    run_dir: str, mcz_list: list, orientation_tag: str, z: float
+) -> list:
+    """Discover cube paths under run_dir for each requested mcz."""
+    paths = []
+    for mcz in mcz_list:
+        found = find_mismatch_mcz_cube_files(
+            run_dir,
+            td_min_ms=None,
+            td_max_ms=None,
+            orientation_tag=orientation_tag,
+            z=z,
+            mcz_msun=mcz,
+        )
+        if not found:
+            raise FileNotFoundError(
+                f"No mismatch cube found for mcz={mcz} in {run_dir}"
+            )
+        paths.append(found[0])
+    return paths
 
 
 def load_contour_slice(cube_path: str, td_ms: float) -> dict:
@@ -143,7 +154,7 @@ def plot_contour_panel(
         markersize=10,
         markeredgewidth=2.5,
         label=(
-            rf"$\varepsilon_{{\mathrm{{RP}}}}$ min"
+            rf"$\epsilon_{{\mathrm{{RP}}}}$ min"
             rf" $({min_omega:.2f},\,{min_theta:.2f})$"
         ),
     )
@@ -200,18 +211,15 @@ def plot_waveform_panel(
         lensed_color=LINE_COLORS[0],
         np_label="NP",
         rp_color=LINE_COLORS[2],
-        rp_linestyle=LINE_STYLES[0],
+        rp_linestyle="-",
         rp_label="best RP",
     )
 
-    customize_2x1_axes_ratio([ax_amp, ax_phase])
-
-    ax_phase.axhline(0.0, color=LINE_COLORS[0], linestyle=LINE_STYLES[0])
+    ax_phase.axhline(0.0, color=LINE_COLORS[0], linestyle="-")
 
     for ax in (ax_amp, ax_phase):
         ax.set_xlim(f_min, float(summary["f_cut"]))
 
-    ax_amp.set_xlabel("")
     ax_amp.tick_params(axis="x", labelbottom=False)
 
     if show_xlabel:
@@ -230,7 +238,6 @@ def plot_waveform_panel(
         labelpad=4,
     )
 
-    mcz = contour_data["mcz_msun"]
     omega = summary["omega_tilde"]
     theta = summary["theta_tilde"]
     gamma = summary["gamma_P"]
@@ -240,7 +247,7 @@ def plot_waveform_panel(
         rf"$\tilde{{\Omega}}={omega:.2f}$, "
         rf"$\tilde{{\theta}}={theta:.2f}$, "
         rf"$\gamma_{{\mathrm{{P}}}}={gamma:.2f}$, "
-        rf"$\varepsilon_{{\mathrm{{RP}}}}={epsilon:.2g}$"
+        rf"$\epsilon_{{\mathrm{{RP}}}}={epsilon:.2g}$"
     )
     ax_amp.text(
         0.5,
@@ -292,6 +299,7 @@ def plot_combined(
 
     contour_axes = []
     cf_last = None
+    first_wf_ax_amp = None
     summaries = []
 
     for row, data in enumerate(contour_datasets):
@@ -316,6 +324,8 @@ def plot_combined(
         )
         ax_amp = fig.add_subplot(inner_gs[0])
         ax_phase = fig.add_subplot(inner_gs[1], sharex=ax_amp)
+        if first_wf_ax_amp is None:
+            first_wf_ax_amp = ax_amp
 
         summary = plot_waveform_panel(
             ax_amp,
@@ -330,28 +340,22 @@ def plot_combined(
     cax = add_colorbar_axes(fig, contour_axes, pad=0.015, width=0.015)
     cbar = fig.colorbar(cf_last, cax=cax)
     cbar.set_label(
-        r"$\varepsilon_{\mathrm{RP}}$",
+        r"$\epsilon_{\mathrm{RP}}$",
         fontsize=14,
     )
     format_colorbar_ticks(cbar, vmin, vmax, decimals=2)
 
-    handles, labels = contour_axes[0].get_legend_handles_labels()
-
-    wf_axes_first_row = fig.axes
-    for ax in wf_axes_first_row:
-        if ax not in contour_axes and ax is not cax:
-            h, l = ax.get_legend_handles_labels()
-            if h:
-                fig.legend(
-                    h,
-                    l,
-                    loc="upper center",
-                    bbox_to_anchor=(0.72, 0.99),
-                    ncol=3,
-                    frameon=True,
-                    fontsize=11,
-                )
-                break
+    h, l = first_wf_ax_amp.get_legend_handles_labels()
+    if h:
+        fig.legend(
+            h,
+            l,
+            loc="upper center",
+            bbox_to_anchor=(0.72, 0.99),
+            ncol=3,
+            frameon=True,
+            fontsize=11,
+        )
 
     save_figure(fig, output_path)
 
@@ -382,41 +386,43 @@ def main():
     parser.add_argument(
         "--input",
         nargs="+",
-        default=None,
-        help="Mismatch cube HDF5 paths (one per chirp mass). "
-        "If omitted, auto-resolved from --run_dir and --mcz_list.",
-    )
-    parser.add_argument(
-        "--run_dir",
-        default=DEFAULT_RUN_DIR,
-        help="Pipeline run directory containing mismatch_cubes/.",
+        default=[DEFAULT_RUN_DIR],
+        help=(
+            "HDF5 cube paths (one per chirp mass), or a single run directory "
+            "from which cubes are auto-discovered using --mcz_list, "
+            "--orientation_tag, and --z."
+        ),
     )
     parser.add_argument(
         "--mcz_list",
         nargs="+",
         type=float,
         default=DEFAULT_MCZ_LIST,
-        help="Chirp masses (Msun) to include as rows.",
+        help="Chirp masses (Msun) to plot as rows (directory mode only).",
     )
+    parser.add_argument(
+        "--orientation_tag",
+        default="Taman_edgeon",
+        help="Orientation tag for cube discovery (directory mode only).",
+    )
+    add_redshift_arg(parser, default_z=1.0)
     parser.add_argument("--td_ms", type=float, default=30.0, help="Time delay in ms.")
-    parser.add_argument("--f_min", type=float, default=20.0)
-    parser.add_argument("--npoints", type=int, default=10000)
     parser.add_argument(
-        "--output_dir",
-        default="figures/contour_omega_theta",
-        help="Output directory.",
-    )
-    parser.add_argument(
-        "--output_prefix",
-        default="combined_contour_waveform",
-        help="Output filename prefix.",
+        "--output",
+        default=None,
+        help=(
+            "Output PDF path. Defaults to "
+            "figures/contour_omega_theta/combined_contour_waveform_mcz<...>_td<...>ms.pdf"
+        ),
     )
     args = parser.parse_args()
 
-    if args.input is not None:
-        cube_paths = args.input
+    if len(args.input) == 1 and os.path.isdir(args.input[0]):
+        cube_paths = _resolve_cube_paths(
+            args.input[0], args.mcz_list, args.orientation_tag, args.z
+        )
     else:
-        cube_paths = [_build_cube_path(args.run_dir, mcz) for mcz in args.mcz_list]
+        cube_paths = args.input
 
     for p in cube_paths:
         if not os.path.exists(p):
@@ -424,19 +430,16 @@ def main():
 
     contour_datasets = [load_contour_slice(p, args.td_ms) for p in cube_paths]
 
-    os.makedirs(args.output_dir, exist_ok=True)
-    mcz_token = "-".join(str(int(d["mcz_msun"])) for d in contour_datasets)
-    output_path = os.path.join(
-        args.output_dir,
-        f"{args.output_prefix}_mcz{mcz_token}_td{int(args.td_ms)}ms.pdf",
-    )
+    if args.output is not None:
+        output_path = args.output
+    else:
+        mcz_token = "-".join(str(int(d["mcz_msun"])) for d in contour_datasets)
+        output_path = os.path.join(
+            "figures/contour_omega_theta",
+            f"combined_contour_waveform_mcz{mcz_token}_td{int(args.td_ms)}ms.pdf",
+        )
 
-    plot_combined(
-        contour_datasets,
-        output_path,
-        f_min=args.f_min,
-        npoints=args.npoints,
-    )
+    plot_combined(contour_datasets, output_path)
 
 
 if __name__ == "__main__":
