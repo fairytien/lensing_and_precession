@@ -39,6 +39,7 @@ from modules.filenames import (
     contour_run_dir,
 )
 from modules.match_utils import (
+    MatchMethod,
     build_source_strain_for_td,
     init_mismatch_worker,
     mismatch_gamma_block_serial,
@@ -102,8 +103,7 @@ def main(
     bank_dir: str,
     bank_prefix: str,
     n_workers: Optional[int],
-    compare_both: bool,
-    use_opt_match: bool,
+    match_method: "MatchMethod",
     save_full_mismatch: bool,
     run_dir: str,
     mcz_chunk_index: Optional[int] = None,
@@ -346,8 +346,7 @@ def main(
                 write_scalar_attr_with_unit(mmh5, "z", z_val, none_as_nan=True)
                 write_match_provenance_attrs(
                     mmh5,
-                    compare_both=compare_both,
-                    use_opt_match=use_opt_match,
+                    match_method=match_method,
                 )
                 mmh5.create_dataset("MLz", data=mlz_arr)
                 write_dataset_units(mmh5, {"MLz": "s"})
@@ -376,8 +375,7 @@ def main(
                                 psd,
                                 f_min,
                                 delta_f,
-                                compare_both,
-                                use_opt_match,
+                                match_method,
                             )
                             if save_full_mismatch and mm_dset is not None:
                                 mm_dset[j, 0, 0, :] = ep_vec
@@ -399,8 +397,7 @@ def main(
                                     s_strain,
                                     psd,
                                     delta_f,
-                                    compare_both,
-                                    use_opt_match,
+                                    match_method,
                                     bank_path,
                                     gamma_arr,
                                     gamma_chunk,
@@ -492,8 +489,13 @@ if __name__ == "__main__":
     )
     p.add_argument("--bank_prefix", type=str, default="rp_bank")
     p.add_argument("--n_workers", type=int, default=None)
-    p.add_argument("--compare_both", action="store_true")
-    p.add_argument("--use_opt_match", action="store_true")
+    p.add_argument(
+        "--match_method",
+        type=str,
+        choices=[m.value for m in MatchMethod],
+        default=MatchMethod.OPTIMIZED_BOUNDED.value,
+        help="Match method to use. Default: optimized_bounded",
+    )
     p.add_argument("--save_full_mismatch", action="store_true")
     p.add_argument(
         "--run_dir",
@@ -536,8 +538,7 @@ if __name__ == "__main__":
         bank_dir=args.bank_dir,
         bank_prefix=args.bank_prefix,
         n_workers=args.n_workers,
-        compare_both=args.compare_both,
-        use_opt_match=args.use_opt_match,
+        match_method=MatchMethod(args.match_method),
         save_full_mismatch=args.save_full_mismatch,
         run_dir=args.run_dir,
         mcz_chunk_index=args.mcz_chunk_index,

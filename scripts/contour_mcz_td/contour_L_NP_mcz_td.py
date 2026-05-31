@@ -18,7 +18,7 @@ from modules.waveform import (
     get_gw,
 )
 from modules.snr import Sn
-from modules.match_utils import mismatch_gamma_block_serial
+from modules.match_utils import MatchMethod, mismatch_gamma_block_serial
 from modules.runtime_helpers import timer_decorator
 from modules.default_params import (
     SOLMASS2SEC,
@@ -90,7 +90,13 @@ def _compute_mismatch_row(args) -> Tuple[np.ndarray, np.ndarray]:
         try:
             s_strain = get_gw(lens_params, f_min, delta_f)["strain"]
             _, ep_min, g_best = mismatch_gamma_block_serial(
-                template_block, gamma_arr, s_strain, psd, f_min, delta_f, False, True
+                template_block,
+                gamma_arr,
+                s_strain,
+                psd,
+                f_min,
+                delta_f,
+                MatchMethod.OPTIMIZED_BRENT,
             )
             ep_min_arr[j] = ep_min
             gamma_best_arr[j] = g_best

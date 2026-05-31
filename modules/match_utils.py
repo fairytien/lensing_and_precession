@@ -883,8 +883,7 @@ def mismatch_gamma_block_serial(
     psd: Optional[PsdLike],
     f_min: float,
     delta_f: float,
-    compare_both: bool,
-    use_opt_match: bool,
+    match_method: MatchMethod = MatchMethod.OPTIMIZED_BOUNDED,
 ) -> Tuple[np.ndarray, float, float]:
     """Serial equivalent of mismatch_gamma_job for one (theta, omega) bank slice."""
 
@@ -912,8 +911,7 @@ def mismatch_gamma_block_serial(
             f_min=f_min,
             delta_f=delta_f,
             psd=psd,
-            use_opt_match=use_opt_match,
-            compare_both=compare_both,
+            match_method=match_method,
         )
         ep = float(res["mismatch"])
         ep_vec[idx] = ep
