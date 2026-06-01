@@ -388,7 +388,7 @@ def plot_combined(
         first_wf_ax_amp.legend(
             h,
             l,
-            loc="upper right",
+            loc="upper left" if colorbar_side == "right" else "upper right",
             ncol=1,
             frameon=True,
             framealpha=0.7,
