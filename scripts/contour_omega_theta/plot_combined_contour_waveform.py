@@ -265,13 +265,14 @@ def plot_combined(
 
     fig = plt.figure(figsize=(16, 5.5 * nrows))
 
-    left_margin = 0.12 if colorbar_side == "left" else 0.07
+    left_margin = 0.16 if colorbar_side == "left" else 0.07
+    col_wspace = 0.18 if colorbar_side == "left" else 0.30
     outer_gs = gridspec.GridSpec(
         nrows,
         2,
         figure=fig,
         width_ratios=[1, 1.3],
-        wspace=0.30,
+        wspace=col_wspace,
         hspace=0.25,
         left=left_margin,
         right=0.88,
