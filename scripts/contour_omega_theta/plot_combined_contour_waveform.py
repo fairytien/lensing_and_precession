@@ -90,7 +90,7 @@ def load_contour_slice(cube_path: str, td_ms: float) -> dict:
         gamma_best_grid = np.asarray(h5["gamma_best_grid"], dtype=np.float64)
 
         epsilon_2d = epsilon_min_grid[td_idx, :, :]
-        gamma_2d = gamma_best_grid[td_idx, :, :]
+        gamma_2d = gamma_best_grid[td_idx, :, :]  # γ_P at the best-match template
 
         omega_matrix, theta_matrix = np.meshgrid(omega_arr, theta_arr)
 
@@ -139,12 +139,14 @@ def plot_contour_panel(
         Z,
         levels=np.linspace(vmin, vmax, levels),
         cmap="jet",
-        extend="both",
+        extend="max",
     )
 
     min_idx = np.unravel_index(np.nanargmin(Z), Z.shape)
     min_omega = float(X[min_idx])
     min_theta = float(Y[min_idx])
+    min_epsilon = float(Z[min_idx])
+    gamma_P = float(contour_data["gammaP_min_matrix"][min_idx])
 
     ax.plot(
         min_omega,
@@ -154,8 +156,11 @@ def plot_contour_panel(
         markersize=10,
         markeredgewidth=2.5,
         label=(
-            rf"$\epsilon_{{\mathrm{{RP}}}}$ min"
-            rf" $({min_omega:.2f},\,{min_theta:.2f})$"
+            rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$"
+            "\n"
+            rf"$\tilde{{\theta}}={min_theta:.2f}$, "
+            rf"$\tilde{{\Omega}}={min_omega:.2f}$, "
+            rf"$\gamma_{{\mathrm{{P}}}}={gamma_P:.2f}$"
         ),
     )
     ax.legend(
@@ -236,27 +241,6 @@ def plot_waveform_panel(
         LBL_PHASE_TS,
         fontsize=12,
         labelpad=4,
-    )
-
-    omega = summary["omega_tilde"]
-    theta = summary["theta_tilde"]
-    gamma = summary["gamma_P"]
-    epsilon = summary["epsilon"]
-
-    box_text = (
-        rf"$\tilde{{\Omega}}={omega:.2f}$, "
-        rf"$\tilde{{\theta}}={theta:.2f}$, "
-        rf"$\gamma_{{\mathrm{{P}}}}={gamma:.2f}$, "
-        rf"$\epsilon_{{\mathrm{{RP}}}}={epsilon:.2g}$"
-    )
-    ax_amp.text(
-        0.5,
-        1.08,
-        box_text,
-        transform=ax_amp.transAxes,
-        fontsize=9,
-        ha="center",
-        va="bottom",
     )
 
     return summary

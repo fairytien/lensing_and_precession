@@ -240,6 +240,20 @@ def add_frequency_args(
     return parser
 
 
+def add_match_method_arg(parser: ArgumentParser) -> ArgumentParser:
+    """Attach the --match_method choice argument."""
+    from modules.match_utils import MatchMethod
+
+    parser.add_argument(
+        "--match_method",
+        type=str,
+        choices=[m.value for m in MatchMethod],
+        default=MatchMethod.OPTIMIZED_BOUNDED.value,
+        help="Match method to use. Default: optimized_bounded",
+    )
+    return parser
+
+
 def add_redshift_arg(
     parser: ArgumentParser,
     default_z: Optional[float] = None,

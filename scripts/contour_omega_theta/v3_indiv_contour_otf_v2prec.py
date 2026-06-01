@@ -17,6 +17,7 @@ from modules.waveform import (
 )
 from modules.snr import Sn
 from modules.match_utils import MatchMethod, optimize_mismatch_gammaP
+from modules.cli_utils import add_match_method_arg
 from modules.runtime_helpers import pickle_data, timer_decorator
 from modules.default_params import (
     lens_params_1,
@@ -283,13 +284,7 @@ if __name__ == "__main__":
     parser.add_argument("--theta_points", type=int, default=101)
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--delta_f", type=float, default=0.25)
-    parser.add_argument(
-        "--match_method",
-        type=str,
-        choices=[m.value for m in MatchMethod],
-        default=MatchMethod.OPTIMIZED_BOUNDED.value,
-        help="Match method to use. Default: optimized_bounded",
-    )
+    add_match_method_arg(parser)
     parser.add_argument("--n_workers", type=int, default=None)
     parser.add_argument("--no_plot", action="store_true")
     parser.add_argument("--tag", type=str, default="")

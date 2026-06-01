@@ -31,7 +31,7 @@ from modules.default_params import (
 from modules.cosmology import apply_z
 from modules.filenames import _format_min_precision, contour_mcz_td_filename
 from modules.plot_utils import apply_physics_paper_style, LBL_EPS_LNP, LBL_MCZ, LBL_TD
-from modules.cli_utils import resolve_grid_array
+from modules.cli_utils import add_match_method_arg, resolve_grid_array
 
 apply_physics_paper_style()
 
@@ -392,13 +392,7 @@ if __name__ == "__main__":
     parser.add_argument("--no_plot", action="store_true")
     parser.add_argument("--f_min", type=float, default=20.0)
     parser.add_argument("--delta_f", type=float, default=0.25)
-    parser.add_argument(
-        "--match_method",
-        type=str,
-        choices=[m.value for m in MatchMethod],
-        default=MatchMethod.OPTIMIZED_BOUNDED.value,
-        help="Match method to use. Default: optimized_bounded",
-    )
+    add_match_method_arg(parser)
     parser.add_argument(
         "--n_processes",
         type=int,

@@ -66,6 +66,7 @@ from modules.cli_utils import (
     add_td_grid_args,
     add_template_grid_args,
     add_frequency_args,
+    add_match_method_arg,
     add_redshift_arg,
     add_mcz_chunking_args,
     resolve_grid_array,
@@ -489,13 +490,7 @@ if __name__ == "__main__":
     )
     p.add_argument("--bank_prefix", type=str, default="rp_bank")
     p.add_argument("--n_workers", type=int, default=None)
-    p.add_argument(
-        "--match_method",
-        type=str,
-        choices=[m.value for m in MatchMethod],
-        default=MatchMethod.OPTIMIZED_BOUNDED.value,
-        help="Match method to use. Default: optimized_bounded",
-    )
+    add_match_method_arg(p)
     p.add_argument("--save_full_mismatch", action="store_true")
     p.add_argument(
         "--run_dir",
