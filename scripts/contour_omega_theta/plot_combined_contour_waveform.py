@@ -21,7 +21,11 @@ if REPO_ROOT not in sys.path:
 
 from modules.bank_io import extract_prefixed_params
 from modules.cli_utils import add_redshift_arg
-from modules.filenames import find_mismatch_mcz_cube_files
+from modules.filenames import (
+    find_mismatch_mcz_cube_files,
+    _canonical_token,
+    _canonical_z_token,
+)
 from modules.plot_utils import (
     LBL_BRATIO_TS,
     LBL_EPS_LP,
@@ -212,6 +216,7 @@ def plot_waveform_panel(
     f_min: float = 20.0,
     npoints: int = 10000,
     show_xlabel: bool = False,
+    ylabel_right: bool = False,
 ) -> dict:
     summary = plot_best_match_overlay_from_contour(
         contour_data,
@@ -248,6 +253,11 @@ def plot_waveform_panel(
         fontsize=12,
         labelpad=4,
     )
+
+    if ylabel_right:
+        for ax in (ax_amp, ax_phase):
+            ax.yaxis.set_ticks_position("right")
+            ax.yaxis.set_label_position("right")
 
     return summary
 
@@ -350,6 +360,7 @@ def plot_combined(
             f_min=f_min,
             npoints=npoints,
             show_xlabel=is_last,
+            ylabel_right=(colorbar_side == "right"),
         )
         summaries.append(summary)
 
@@ -478,10 +489,13 @@ def main():
     if args.output is not None:
         output_path = args.output
     else:
+        I_val = contour_datasets[0]["I"]
+        I_token = _canonical_token(I_val)
+        z_token = _canonical_z_token(args.z)
         mcz_token = "-".join(str(int(d["mcz_msun"])) for d in contour_datasets)
         output_path = os.path.join(
             "figures/contour_omega_theta",
-            f"combined_contour_waveform_mcz{mcz_token}_td{int(args.td_ms)}ms.pdf",
+            f"combined_contour_waveform_I{I_token}_td{int(args.td_ms)}ms_z{z_token}_mcz{mcz_token}_{args.orientation_tag}.pdf",
         )
 
     plot_combined(
