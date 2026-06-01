@@ -125,6 +125,7 @@ def plot_contour_panel(
     *,
     vmin: float,
     vmax: float,
+    saturated: bool = True,
     levels: int = 100,
     show_xlabel: bool = False,
     show_ylabel: bool = True,
@@ -139,7 +140,7 @@ def plot_contour_panel(
         Z,
         levels=np.linspace(vmin, vmax, levels),
         cmap="jet",
-        extend="max",
+        extend="max" if saturated else "neither",
     )
 
     min_idx = np.unravel_index(np.nanargmin(Z), Z.shape)
@@ -259,6 +260,7 @@ def plot_combined(
     f_min: float = 20.0,
     npoints: int = 10000,
     colorbar_side: str = "right",
+    vmax_cap: float | None = 0.5,
 ) -> str:
     nrows = len(contour_datasets)
 
@@ -274,7 +276,7 @@ def plot_combined(
         figure=fig,
         width_ratios=[1, 1.3],
         wspace=col_wspace,
-        hspace=0.10,
+        hspace=0.08,
         left=left_margin,
         right=0.88,
         bottom=0.06,
@@ -283,7 +285,9 @@ def plot_combined(
 
     vmin = min(float(np.nanmin(d["epsilon_matrix"])) for d in contour_datasets)
     vmax = max(float(np.nanmax(d["epsilon_matrix"])) for d in contour_datasets)
-    vmax = min(vmax, 0.5)
+    saturated = vmax_cap is not None and vmax_cap < vmax
+    if saturated:
+        vmax = vmax_cap
 
     contour_axes = []
     cf_last = None
@@ -301,6 +305,7 @@ def plot_combined(
             data,
             vmin=vmin,
             vmax=vmax,
+            saturated=saturated,
             show_xlabel=is_last,
         )
 
@@ -420,6 +425,16 @@ def main():
     )
     parser.add_argument("--td_ms", type=float, default=30.0, help="Time delay in ms.")
     parser.add_argument(
+        "--vmax",
+        type=float,
+        default=0.5,
+        dest="vmax_cap",
+        help=(
+            "Saturate the colorbar at this ε_RP value (default: 0.5). "
+            "Pass a larger value or the actual data max to disable saturation."
+        ),
+    )
+    parser.add_argument(
         "--output",
         default=None,
         help=(
@@ -451,7 +466,12 @@ def main():
             f"combined_contour_waveform_mcz{mcz_token}_td{int(args.td_ms)}ms.pdf",
         )
 
-    plot_combined(contour_datasets, output_path, colorbar_side=args.colorbar_side)
+    plot_combined(
+        contour_datasets,
+        output_path,
+        colorbar_side=args.colorbar_side,
+        vmax_cap=args.vmax_cap,
+    )
 
 
 if __name__ == "__main__":
