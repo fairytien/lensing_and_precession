@@ -933,20 +933,15 @@ def best_match_I_td_filename(
     gamma_pts: Optional[int],
     orientation_tag: str,
     z: Optional[float] = None,
-    file_prefix: str = "best_match",
 ) -> str:
     """Build the HDF5 path for aggregated best-match outputs across all I (I-td pipeline).
 
     Returns a path under results_dir/best_match; creates directories.
     Order: aggregate prefix, z, mcz, I range, td range, optional grid, orientation tag.
     """
-    prefix = str(file_prefix).strip()
-    if not prefix:
-        raise ValueError("file_prefix must be a non-empty string.")
-
     z_token = _canonical_z_token(z)
     name_parts = [
-        prefix,
+        "best_match",
         f"z{z_token}",
         f"mcz{_format_min_precision(mcz_msun)}",
         f"I{_range_token(I_min, I_max, I_pts)}",
@@ -1153,19 +1148,14 @@ def find_best_match_I_td_file(
     orientation_tag: str,
     z: Optional[float] = None,
     tolerance: float = 1e-6,
-    file_prefix: str = "best_match",
 ) -> Optional[str]:
     """Return the newest aggregated file for the requested I-td contour run."""
-    prefix = str(file_prefix).strip()
-    if not prefix:
-        raise ValueError("file_prefix must be a non-empty string.")
-
     z_token = _canonical_z_token(z)
     pattern = os.path.join(
         results_dir,
         "best_match",
         (
-            f"{prefix}_z{z_token}_mcz{_canonical_token(mcz_msun)}"
+            f"best_match_z{z_token}_mcz{_canonical_token(mcz_msun)}"
             f"_I{_range_token(I_min, I_max)}x*_td{_range_token(td_min_ms, td_max_ms)}x*"
             f"_omega*-*x*_theta*-*x*_gamma0-2pix*_{orientation_tag}.h5"
         ),

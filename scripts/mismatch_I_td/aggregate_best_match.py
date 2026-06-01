@@ -248,7 +248,6 @@ def main(
     # Save combined best-match file with resolution encoded
     I_min_out = float(np.min(desired_I))
     I_max_out = float(np.max(desired_I))
-    summary_prefix = "np" if template_family == "NP" else "best_match"
     summary_path = best_match_I_td_filename(
         run_dir,
         mcz_msun=mcz_msun,
@@ -267,7 +266,6 @@ def main(
         gamma_pts=gamma_pts,
         orientation_tag=orientation_tag,
         z=z_val,
-        file_prefix=summary_prefix,
     )
     with h5py.File(summary_path, "w") as h5:
         h5.create_dataset("I", data=desired_I)
