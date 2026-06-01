@@ -151,10 +151,11 @@ def plot_contour_panel(
     ax.plot(
         min_omega,
         min_theta,
-        "x",
+        "*",
         color="white",
-        markersize=10,
-        markeredgewidth=2.5,
+        markersize=12,
+        markeredgewidth=0.8,
+        markeredgecolor="0.3",
         label=(
             rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$"
             "\n"
@@ -265,7 +266,7 @@ def plot_combined(
 
     fig = plt.figure(figsize=(16, 5.5 * nrows))
 
-    left_margin = 0.16 if colorbar_side == "left" else 0.07
+    left_margin = 0.22 if colorbar_side == "left" else 0.07
     col_wspace = 0.18 if colorbar_side == "left" else 0.30
     outer_gs = gridspec.GridSpec(
         nrows,
@@ -335,7 +336,7 @@ def plot_combined(
         y0 = min(pos.y0 for pos in positions)
         y1 = max(pos.y1 for pos in positions)
         fig.set_layout_engine("none")
-        cax = fig.add_axes([x0 - 0.030, y0, 0.015, y1 - y0])
+        cax = fig.add_axes([x0 - 0.060, y0, 0.015, y1 - y0])
     else:
         cax = add_colorbar_axes(fig, contour_axes, pad=0.015, width=0.015)
     cbar = fig.colorbar(cf_last, cax=cax)
