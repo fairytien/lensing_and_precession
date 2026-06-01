@@ -158,9 +158,9 @@ def plot_contour_panel(
         label=(
             rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$"
             "\n"
-            rf"$\tilde{{\theta}}={min_theta:.2f}$, "
-            rf"$\tilde{{\Omega}}={min_omega:.2f}$, "
-            rf"$\gamma_{{\mathrm{{P}}}}={gamma_P:.2f}$"
+            rf"$\tilde{{\theta}}={min_theta:.3g}$, "
+            rf"$\tilde{{\Omega}}={min_omega:.3g}$, "
+            rf"$\gamma_{{\mathrm{{P}}}}={gamma_P:.3g}$"
         ),
     )
     ax.legend(
@@ -257,6 +257,7 @@ def plot_combined(
     *,
     f_min: float = 20.0,
     npoints: int = 10000,
+    colorbar_side: str = "right",
 ) -> str:
     nrows = len(contour_datasets)
 
@@ -264,6 +265,7 @@ def plot_combined(
 
     fig = plt.figure(figsize=(16, 5.5 * nrows))
 
+    left_margin = 0.12 if colorbar_side == "left" else 0.07
     outer_gs = gridspec.GridSpec(
         nrows,
         2,
@@ -271,7 +273,7 @@ def plot_combined(
         width_ratios=[1, 1.3],
         wspace=0.30,
         hspace=0.25,
-        left=0.07,
+        left=left_margin,
         right=0.88,
         bottom=0.06,
         top=0.94,
@@ -284,6 +286,7 @@ def plot_combined(
     contour_axes = []
     cf_last = None
     first_wf_ax_amp = None
+    all_wf_axes = []
     summaries = []
 
     for row, data in enumerate(contour_datasets):
@@ -310,6 +313,7 @@ def plot_combined(
         ax_phase = fig.add_subplot(inner_gs[1], sharex=ax_amp)
         if first_wf_ax_amp is None:
             first_wf_ax_amp = ax_amp
+        all_wf_axes.extend([ax_amp, ax_phase])
 
         summary = plot_waveform_panel(
             ax_amp,
@@ -321,8 +325,22 @@ def plot_combined(
         )
         summaries.append(summary)
 
-    cax = add_colorbar_axes(fig, contour_axes, pad=0.015, width=0.015)
+    fig.align_ylabels(all_wf_axes)
+
+    if colorbar_side == "left":
+        fig.canvas.draw()
+        positions = [ax.get_position() for ax in contour_axes]
+        x0 = min(pos.x0 for pos in positions)
+        y0 = min(pos.y0 for pos in positions)
+        y1 = max(pos.y1 for pos in positions)
+        fig.set_layout_engine("none")
+        cax = fig.add_axes([x0 - 0.030, y0, 0.015, y1 - y0])
+    else:
+        cax = add_colorbar_axes(fig, contour_axes, pad=0.015, width=0.015)
     cbar = fig.colorbar(cf_last, cax=cax)
+    if colorbar_side == "left":
+        cbar.ax.yaxis.set_ticks_position("left")
+        cbar.ax.yaxis.set_label_position("left")
     cbar.set_label(
         r"$\epsilon_{\mathrm{RP}}$",
         fontsize=14,
@@ -331,14 +349,15 @@ def plot_combined(
 
     h, l = first_wf_ax_amp.get_legend_handles_labels()
     if h:
-        fig.legend(
+        first_wf_ax_amp.legend(
             h,
             l,
-            loc="upper center",
-            bbox_to_anchor=(0.72, 0.99),
-            ncol=3,
+            loc="upper right",
+            ncol=1,
             frameon=True,
-            fontsize=11,
+            framealpha=0.7,
+            edgecolor="none",
+            fontsize=9,
         )
 
     save_figure(fig, output_path)
@@ -390,6 +409,13 @@ def main():
         help="Orientation tag for cube discovery (directory mode only).",
     )
     add_redshift_arg(parser, default_z=1.0)
+    parser.add_argument(
+        "--colorbar-side",
+        choices=["left", "right"],
+        default="right",
+        dest="colorbar_side",
+        help="Side of the contour column to place the shared colorbar (default: right).",
+    )
     parser.add_argument("--td_ms", type=float, default=30.0, help="Time delay in ms.")
     parser.add_argument(
         "--output",
@@ -423,7 +449,7 @@ def main():
             f"combined_contour_waveform_mcz{mcz_token}_td{int(args.td_ms)}ms.pdf",
         )
 
-    plot_combined(contour_datasets, output_path)
+    plot_combined(contour_datasets, output_path, colorbar_side=args.colorbar_side)
 
 
 if __name__ == "__main__":
