@@ -31,6 +31,7 @@ from modules.plot_utils import (
     LBL_THETA,
     apply_physics_paper_style,
     save_figure,
+    set_square_axes,
     add_colorbar_axes,
     format_colorbar_ticks,
 )
@@ -181,7 +182,7 @@ def plot_contour_panel(
     if show_ylabel:
         ax.set_ylabel(LBL_THETA, fontsize=14)
 
-    ax.set_box_aspect(1)
+    set_square_axes(ax)
 
     mcz = contour_data["mcz_msun"]
     ax.text(
@@ -269,21 +270,38 @@ def plot_combined(
 
     apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
 
-    fig = plt.figure(figsize=(16, 5.5 * nrows))
-
     left_margin = 0.22 if colorbar_side == "left" else 0.07
     col_wspace = 0.18 if colorbar_side == "left" else 0.30
+    fig_width = 16.0
+    gs_right, gs_top, gs_bottom = 0.88, 0.94, 0.06
+    gs_hspace = 0.08
+    width_ratios = [1, 1.3]
+    # Size figure height so each outer row height = contour column width,
+    # which makes set_box_aspect(1) fill the row and match the waveform pair height.
+    # Formula: row_height = (gs_top-gs_bottom)*fig_height / (nrows + (nrows-1)*gs_hspace)
+    ncols = len(width_ratios)
+    _contour_w_in = (
+        (gs_right - left_margin)
+        * fig_width
+        * width_ratios[0]
+        / (sum(width_ratios) * (1.0 + col_wspace * (ncols - 1) / ncols))
+    )
+    fig_height = (
+        _contour_w_in * (nrows + (nrows - 1) * gs_hspace) / (gs_top - gs_bottom)
+    )
+    fig = plt.figure(figsize=(fig_width, fig_height))
+
     outer_gs = gridspec.GridSpec(
         nrows,
         2,
         figure=fig,
-        width_ratios=[1, 1.3],
+        width_ratios=width_ratios,
         wspace=col_wspace,
-        hspace=0.08,
+        hspace=gs_hspace,
         left=left_margin,
-        right=0.88,
-        bottom=0.06,
-        top=0.94,
+        right=gs_right,
+        bottom=gs_bottom,
+        top=gs_top,
     )
 
     vmin = min(float(np.nanmin(d["epsilon_matrix"])) for d in contour_datasets)
