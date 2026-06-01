@@ -159,9 +159,9 @@ def plot_contour_panel(
         label=(
             rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$"
             "\n"
-            rf"$\tilde{{\theta}}={min_theta:.3g}$, "
-            rf"$\tilde{{\Omega}}={min_omega:.3g}$, "
-            rf"$\gamma_{{\mathrm{{P}}}}={gamma_P:.3g}$"
+            rf"$\tilde{{\theta}}={min_theta:.2f}$, "
+            rf"$\tilde{{\Omega}}={min_omega:.2f}$, "
+            rf"$\gamma_{{\mathrm{{P}}}}={gamma_P:.2f}$"
         ),
     )
     ax.legend(
@@ -274,7 +274,7 @@ def plot_combined(
         figure=fig,
         width_ratios=[1, 1.3],
         wspace=col_wspace,
-        hspace=0.25,
+        hspace=0.10,
         left=left_margin,
         right=0.88,
         bottom=0.06,
