@@ -24,6 +24,7 @@ from modules.cli_utils import add_redshift_arg
 from modules.filenames import find_mismatch_mcz_cube_files
 from modules.plot_utils import (
     LBL_BRATIO_TS,
+    LBL_EPS_LP,
     LBL_F,
     LBL_OMEGA,
     LBL_PHASE_TS,
@@ -179,6 +180,8 @@ def plot_contour_panel(
         ax.tick_params(axis="x", labelbottom=False)
     if show_ylabel:
         ax.set_ylabel(LBL_THETA, fontsize=14)
+
+    ax.set_box_aspect(1)
 
     mcz = contour_data["mcz_msun"]
     ax.text(
@@ -348,10 +351,7 @@ def plot_combined(
     if colorbar_side == "left":
         cbar.ax.yaxis.set_ticks_position("left")
         cbar.ax.yaxis.set_label_position("left")
-    cbar.set_label(
-        r"$\epsilon_{\mathrm{RP}}$",
-        fontsize=14,
-    )
+    cbar.set_label(LBL_EPS_LP, fontsize=14)
     format_colorbar_ticks(cbar, vmin, vmax, decimals=2)
 
     h, l = first_wf_ax_amp.get_legend_handles_labels()
