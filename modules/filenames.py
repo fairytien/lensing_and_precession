@@ -937,7 +937,7 @@ def best_match_I_td_filename(
     """Build the HDF5 path for aggregated best-match outputs across all I (I-td pipeline).
 
     Returns a path under results_dir/best_match; creates directories.
-    Order: aggregate prefix, z, mcz, I range, td range, optional grid, orientation tag.
+    Order: best_match family, z, mcz, I range, td range, optional grid, orientation tag.
     """
     z_token = _canonical_z_token(z)
     name_parts = [
@@ -1149,7 +1149,7 @@ def find_best_match_I_td_file(
     z: Optional[float] = None,
     tolerance: float = 1e-6,
 ) -> Optional[str]:
-    """Return the newest aggregated file for the requested I-td contour run."""
+    """Return the newest best-match file for the requested I-td contour run."""
     z_token = _canonical_z_token(z)
     pattern = os.path.join(
         results_dir,
