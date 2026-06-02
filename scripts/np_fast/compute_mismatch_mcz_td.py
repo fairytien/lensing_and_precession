@@ -44,7 +44,11 @@ from modules.match_utils import (
     init_mismatch_worker,
     mismatch_gamma_job,
 )
-from scripts.np_fast.match_utils_np import mismatch_gamma_block_serial
+from scripts.np_fast.match_utils_np import (
+    mismatch_block_serial,
+    precompute_lensing_factors,
+    build_lensed_source_strain,
+)
 from modules.bank_io import (
     safe_open_bank_readonly,
     create_mcz_mismatch_cube,
@@ -356,12 +360,13 @@ def main(
                 ep_min_grid_dset = dsets["epsilon_min_grid"]
                 g_best_grid_dset = dsets["gamma_best_grid"]
 
+                # Precompute unlensed source waveform and magnification factors
+                h_I, sqrt_mu_p, sqrt_mu_m = precompute_lensing_factors(lens_params, y, s_f)
+
                 # Iterate over td values
                 for j, td in enumerate(td_arr):
-                    lens_params_j = dict(lens_params)
-                    lens_params_j["MLz"] = float(mlz_arr[j])
-                    s_strain = build_source_strain_for_td(
-                        get_gw, lens_params_j, f_min=f_min, delta_f=delta_f
+                    s_strain = build_lensed_source_strain(
+                        h_I, sqrt_mu_p, sqrt_mu_m, s_f, td, delta_f
                     )
 
                     Zgrid = np.zeros((n_theta, n_omega), dtype=np.float32)
@@ -369,7 +374,7 @@ def main(
 
                     try:
                         if single_grid_cell:
-                            ep_vec, ep_min, g_best = mismatch_gamma_block_serial(
+                            ep_vec, ep_min, g_best = mismatch_block_serial(
                                 serial_template_block,
                                 gamma_arr,
                                 s_strain,

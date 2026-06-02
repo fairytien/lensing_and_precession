@@ -18,8 +18,12 @@ from modules.waveform import (
     get_gw,
 )
 from modules.snr import Sn
-from modules.match_utils import MatchMethod
-from scripts.np_fast.match_utils_np import mismatch_gamma_block_serial
+from modules.match_utils import MatchMethod, ensure_same_length
+from scripts.np_fast.match_utils_np import (
+    mismatch_block_serial,
+    precompute_lensing_factors,
+    build_lensed_source_strain,
+)
 from modules.runtime_helpers import timer_decorator
 from modules.default_params import (
     SOLMASS2SEC,
@@ -80,19 +84,27 @@ def _compute_mismatch_row(args) -> Tuple[np.ndarray, np.ndarray]:
     # Build NP template once for this mcz
     np_strain = get_gw(NP_params, f_min, delta_f)["strain"]
     template_block = np.array([np.asarray(np_strain)])  # shape (1, n_freq)
-    gamma_arr = np.array([0.0])
+    labels = np.array([0.0])
+
+    # Precompute unlensed source waveform and magnification factors
+    h_I, sqrt_mu_p, sqrt_mu_m = precompute_lensing_factors(lens_params, y, f_array)
+
+    # Pre-resize/ensure_same_length for template_block to match source length f_array.size
+    template_block_resized, _ = ensure_same_length(template_block[0], h_I)
+    template_block_resized = template_block_resized.reshape(1, -1)
 
     ep_min_arr = np.zeros(len(td_arr), dtype=np.float32)
     gamma_best_arr = np.zeros(len(td_arr), dtype=np.float32)
 
     for j, td in enumerate(td_arr):
-        lens_params["y"] = y
-        lens_params["MLz"] = get_MLz_from_td(td, y) * SOLMASS2SEC
         try:
-            s_strain = get_gw(lens_params, f_min, delta_f)["strain"]
-            _, ep_min, g_best = mismatch_gamma_block_serial(
-                template_block,
-                gamma_arr,
+            s_strain = build_lensed_source_strain(
+                h_I, sqrt_mu_p, sqrt_mu_m, f_array, td, delta_f
+            )
+
+            _, ep_min, label_best = mismatch_block_serial(
+                template_block_resized,
+                labels,
                 s_strain,
                 psd,
                 f_min,
@@ -100,7 +112,7 @@ def _compute_mismatch_row(args) -> Tuple[np.ndarray, np.ndarray]:
                 MatchMethod.OPTIMIZED_BRENT,
             )
             ep_min_arr[j] = ep_min
-            gamma_best_arr[j] = g_best
+            gamma_best_arr[j] = label_best
         except Exception:
             ep_min_arr[j] = np.nan
             gamma_best_arr[j] = np.nan

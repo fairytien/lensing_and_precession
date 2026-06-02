@@ -29,7 +29,11 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
 > 1. **Parallelize across rows** (current pattern): each worker self-contained, no cross-row cache. Simple, HPC-friendly.
 > 2. **Serial outer loop with parallel td inner loop**: enables cross-row cache but changes the parallelism axis.
 >
-> I'll go with **option 1** (parallel across rows) since HPC parallelism across rows is the bigger win. Each worker generates its 51 templates independently. Cross-row caching is a constant-factor saving (at most 51 `get_gw` calls per row) that doesn't justify the complexity of option 2.
+> ### Lensed source caching via unlensed waveform caching
+
+Since the source unlensed waveform depends only on `mcz` (which is fixed for a given row/computation) and is independent of the time delay `td`, it can be generated once per row/run. For each `td` value, the lensed source strain is algebraically constructed by multiplying this unlensed waveform by the analytical point-mass lensing amplification factor $F(f)$ (in the geometric optics limit, which depends on `td`). This eliminates redundant unlensed waveform generation and parameter-handling overhead, making the inner loop significantly faster. 
+
+For maximum DRYness, the `LensingGeo` class is imported directly from [waveform.py](../modules/waveform.py) where it is already imported, rather than importing it from `modules.Classes` separately. Variables are named `unlensed_wf` (using `wf` rather than `wave`). This optimization has been implemented across the `contour_L_NP_mcz_td.py`, `compute_mismatch_mcz_td.py`, and `compute_mismatch_I_td.py` scripts.
 
 ## Proposed Changes
 
@@ -43,10 +47,14 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
    - Build NP parameter dict, apply redshift.
    - Compute PSD from source f\_cut (once, reused for all td and all template mcz).
    - Generate 51 NP template strains at `linspace(mcz_s - 0.5, mcz_s + 0.5, 51)`. Each is a single `get_gw` call. Pad all templates to source-strain length and stack into a 2D `template_block`.
-   - Loop over td values: generate lensed source strain via `get_gw`, then call `mismatch_gamma_block_serial(template_block, mcz_t_arr, s_strain, psd, f_min, delta_f, OPTIMIZED_BOUNDED)`. This returns `(ep_vec, ep_min, best_mcz_t)`.
+   - Precompute unlensed source waveform $h_{\mathrm{unlensed}}$ once.
+   - Precompute constant magnification factors $\sqrt{|\mu_+|}$ and $\sqrt{|\mu_-|}$.
+   - Loop over td values:
+     - Algebraically construct the lensed source strain: `s_strain = h_I * (sqrt_mu_p - 1j * sqrt_mu_m * exp(2j * pi * f_array * td))`.
+     - Call `mismatch_block_serial(template_block, mcz_t_arr, s_strain, psd, f_min, delta_f, OPTIMIZED_BOUNDED)`. This returns `(ep_vec, ep_min, best_mcz_t)`.
    - Return arrays: `ep_min_arr[n_td]` and `mcz_best_arr[n_td]`.
 
-   This delegates the inner min-over-templates loop to [mismatch_gamma_block_serial](../scripts/np_fast/match_utils_np.py) — the same function already used for the fixed-mcz pass. Its `gamma_arr` parameter is repurposed as the template mcz array (it's just a label array for identifying the best template).
+   This delegates the inner min-over-templates loop to [mismatch_block_serial](../scripts/np_fast/match_utils_np.py) — the same function already used for the fixed-mcz pass. Its `labels` parameter acts as the template mcz array (serving as a label array for identifying the best template).
 
 **3. Add CLI arguments:**
    - `--compute_opt_mcz` (flag, default False): whether to run the optimized pass.
@@ -64,7 +72,7 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
    - Attrs: `I`, `z`, `template_family=NP`, `orientation_tag`, `optimized_over=mcz`, `opt_mcz_window`, `opt_mcz_pts`, `match_method=optimized_bounded`.
    - Output path via `best_match_mcz_td_filename` with `run_dir` resolved from `contour_run_dir(opt_mcz_run_dir, ...)`.
 
-**5. Import `mismatch_from_strains` from `modules.match_utils`** (used inside `mismatch_gamma_block_serial` already; no new module dependency). Import `ensure_same_length`, `cast_to_match_precision` from `modules.match_utils` for pre-padding template block.
+**5. Import `mismatch_from_strains`, `ensure_same_length` from `modules.match_utils`, `LensingGeo` from `modules.Classes`, and `FrequencySeries` from `pycbc.types`** (used for optimization and template padding).
 
 ---
 
@@ -119,10 +127,12 @@ Attributes:
 
 | File | Action | Description |
 |------|--------|-------------|
-| [contour_L_NP_mcz_td.py](../scripts/np_fast/contour_L_NP_mcz_td.py) | MODIFY | Add optimized-mcz pass, switch to OPTIMIZED_BOUNDED, write second HDF5 |
+| [contour_L_NP_mcz_td.py](../scripts/np_fast/contour_L_NP_mcz_td.py) | MODIFY | Add optimized-mcz pass, switch to OPTIMIZED_BOUNDED, write second HDF5. Optimizes td loop by caching unlensed waveform. |
+| [compute_mismatch_mcz_td.py](../scripts/np_fast/compute_mismatch_mcz_td.py) | MODIFY | Optimizes td loop by caching unlensed waveform and constructing lensed source algebraically. |
+| [compute_mismatch_I_td.py](../scripts/np_fast/compute_mismatch_I_td.py) | MODIFY | Optimizes td loop by caching unlensed waveform and constructing lensed source algebraically. |
 | [plot_np_rp_mcz_slice.py](../scripts/np_fast/plot_np_rp_mcz_slice.py) | MODIFY | Fix import, add 3rd input, 3 curves, white bg, teal troughs |
 
-No new files. No changes to modules — the script imports existing functions from [match_utils.py](../modules/match_utils.py), [match_utils_np.py](../scripts/np_fast/match_utils_np.py), [bank_io.py](../modules/bank_io.py), and [filenames.py](../modules/filenames.py).
+No new files. No changes to modules — the scripts import existing functions from [match_utils.py](../modules/match_utils.py), [match_utils_np.py](../scripts/np_fast/match_utils_np.py), [bank_io.py](../modules/bank_io.py), and [filenames.py](../modules/filenames.py).
 
 ## Verification Plan
 
