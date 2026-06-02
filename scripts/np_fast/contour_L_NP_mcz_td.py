@@ -109,7 +109,7 @@ def _compute_mismatch_row(args) -> Tuple[np.ndarray, np.ndarray]:
                 psd,
                 f_min,
                 delta_f,
-                MatchMethod.OPTIMIZED_BRENT,
+                MatchMethod.OPTIMIZED_BOUNDED,
             )
             ep_min_arr[j] = ep_min
             gamma_best_arr[j] = label_best
@@ -118,6 +118,102 @@ def _compute_mismatch_row(args) -> Tuple[np.ndarray, np.ndarray]:
             gamma_best_arr[j] = np.nan
 
     return ep_min_arr, gamma_best_arr
+
+
+def _compute_opt_mcz_row(args) -> Tuple[np.ndarray, np.ndarray]:
+    mcz, td_arr, y, f_min, delta_f, z, opt_mcz_window, opt_mcz_pts = args
+
+    # Build fresh parameter dictionaries for this process
+    lens_params, NP_params = set_orientation(
+        orient_params["Taman"]["edgeon"], lens_params_1, NP_params_1
+    )
+
+    # Set chirp mass for source (convert Msun -> sec)
+    lens_params["mcz"] = mcz * SOLMASS2SEC
+
+    # Apply redshift if provided
+    if z is not None:
+        lens_params = apply_z(lens_params, z)
+        NP_params = apply_z(NP_params, z)
+
+    # Precompute PSD for this source mcz once
+    mcz_for_fcut = float(lens_params["mcz"] / SOLMASS2SEC)
+    f_cut = get_fcut_from_mcz(mcz_for_fcut, lens_params["eta"])
+    nan_row = (
+        np.full(len(td_arr), np.nan, dtype=np.float32),
+        np.full(len(td_arr), np.nan, dtype=np.float32),
+    )
+    if f_cut <= f_min + delta_f:
+        print(
+            "Dropping mcz row due to insufficient bandwidth: "
+            f"mcz_src={float(mcz):.6g} Msun, "
+            f"mcz_det={mcz_for_fcut:.6g} Msun, "
+            f"f_cut={f_cut:.6g} Hz <= f_min+delta_f={f_min + delta_f:.6g} Hz",
+            flush=True,
+        )
+        return nan_row
+    f_array = np.arange(f_min, f_cut, delta_f)
+    if f_array.size < 2:
+        return nan_row
+    psd = Sn(f_array, f_min=f_min, delta_f=delta_f)
+
+    # Generate 51 NP template strains at linspace(mcz_s - 0.5, mcz_s + 0.5, 51)
+    mcz_t_arr = np.linspace(mcz - opt_mcz_window, mcz + opt_mcz_window, opt_mcz_pts)
+    templates_list = []
+    valid_mcz_t = []
+    for mcz_t in mcz_t_arr:
+        if mcz_t <= 0:
+            continue
+        t_params = dict(NP_params)
+        t_params["mcz"] = mcz_t * SOLMASS2SEC
+        if z is not None:
+            t_params = apply_z(t_params, z)
+        try:
+            t_strain = get_gw(t_params, f_min, delta_f)["strain"]
+            templates_list.append(np.asarray(t_strain))
+            valid_mcz_t.append(mcz_t)
+        except Exception:
+            pass
+
+    if not valid_mcz_t:
+        return nan_row
+
+    # Precompute unlensed source waveform and magnification factors
+    h_I, sqrt_mu_p, sqrt_mu_m = precompute_lensing_factors(lens_params, y, f_array)
+
+    # Pad all templates to source-strain length and stack into 2D block
+    resized_templates = []
+    for t_arr in templates_list:
+        padded_t, _ = ensure_same_length(t_arr, h_I)
+        resized_templates.append(padded_t)
+    template_block = np.vstack(resized_templates)
+    labels = np.array(valid_mcz_t)
+
+    ep_min_arr = np.zeros(len(td_arr), dtype=np.float32)
+    mcz_best_arr = np.zeros(len(td_arr), dtype=np.float32)
+
+    for j, td in enumerate(td_arr):
+        try:
+            s_strain = build_lensed_strain(
+                h_I, sqrt_mu_p, sqrt_mu_m, f_array, td, delta_f
+            )
+
+            _, ep_min, label_best = mismatch_block_serial(
+                template_block,
+                labels,
+                s_strain,
+                psd,
+                f_min,
+                delta_f,
+                MatchMethod.OPTIMIZED_BOUNDED,
+            )
+            ep_min_arr[j] = ep_min
+            mcz_best_arr[j] = label_best
+        except Exception:
+            ep_min_arr[j] = np.nan
+            mcz_best_arr[j] = np.nan
+
+    return ep_min_arr, mcz_best_arr
 
 
 @timer_decorator
@@ -136,6 +232,10 @@ def main(
     n_processes: Optional[int] = None,
     z: Optional[float] = None,
     run_dir: str = "data/mismatch_L_NP",
+    compute_opt_mcz: bool = False,
+    opt_mcz_run_dir: str = "data/mismatch_L_NP_opt_mcz",
+    opt_mcz_window: float = 0.5,
+    opt_mcz_pts: int = 51,
 ):
     if I <= 0:
         raise ValueError("I must be > 0")
@@ -269,6 +369,94 @@ def main(
 
     print("HDF5 saved as", h5_path)
 
+    # Optimized over template mcz pass
+    if compute_opt_mcz:
+        print("Running template-mcz optimized mismatch pass...")
+        args_list_opt = [
+            (mcz, td_arr, y, f_min, delta_f, z, opt_mcz_window, opt_mcz_pts)
+            for mcz in mcz_arr
+        ]
+        with Pool(n_processes) as pool:
+            opt_results = pool.map(_compute_opt_mcz_row, args_list_opt)
+
+        opt_Zmap = np.array([r[0] for r in opt_results], dtype=np.float32)  # (mcz, td)
+        opt_Mmap = np.array([r[1] for r in opt_results], dtype=np.float32)  # (mcz, td)
+        opt_Gmap = np.zeros_like(opt_Zmap)
+        opt_Omap = np.zeros_like(opt_Zmap)
+        opt_Tmap = np.zeros_like(opt_Zmap)
+
+        opt_run_dir_abs = contour_run_dir(
+            os.path.join(base_dir, opt_mcz_run_dir),
+            I=I,
+            mcz_min=mcz_min,
+            mcz_max=mcz_max,
+            td_min_ms=td_min_ms,
+            td_max_ms=td_max_ms,
+            z=z,
+            orientation_tag=ORIENTATION_TAG,
+        )
+        opt_h5_path = best_match_mcz_td_filename(
+            opt_run_dir_abs,
+            I=I,
+            mcz_min=float(mcz_arr[0]),
+            mcz_max=float(mcz_arr[-1]),
+            mcz_pts=int(len(mcz_arr)),
+            td_min_ms=td_min_ms,
+            td_max_ms=td_max_ms,
+            td_pts=int(len(td_arr)),
+            omega_min=0.0,
+            omega_max=0.0,
+            omega_pts=1,
+            theta_min=0.0,
+            theta_max=0.0,
+            theta_pts=1,
+            gamma_pts=1,
+            orientation_tag=ORIENTATION_TAG,
+            z=z,
+        )
+
+        with h5py.File(opt_h5_path, "w") as h5:
+            h5.create_dataset("mcz", data=mcz_arr.astype(np.float64))
+            h5.create_dataset("td", data=td_arr.astype(np.float64))
+            h5.create_dataset("MLz", data=mlz_arr.astype(np.float64))
+            h5.create_dataset("epsilon_min", data=opt_Zmap)
+            h5.create_dataset("mcz_best", data=opt_Mmap)
+            h5.create_dataset("omega_best", data=opt_Omap)
+            h5.create_dataset("theta_best", data=opt_Tmap)
+            h5.create_dataset("gamma_best", data=opt_Gmap)
+            write_dataset_units(
+                h5,
+                {
+                    "mcz": "Msun",
+                    "td": "s",
+                    "MLz": "s",
+                    "mcz_best": "Msun",
+                    "omega_best": "dimensionless",
+                    "theta_best": "dimensionless",
+                    "gamma_best": "rad",
+                },
+            )
+            h5["epsilon_min"].attrs["axis_order"] = "mcz,td"
+            h5["mcz_best"].attrs["axis_order"] = "mcz,td"
+            h5["omega_best"].attrs["axis_order"] = "mcz,td"
+            h5["theta_best"].attrs["axis_order"] = "mcz,td"
+            h5["gamma_best"].attrs["axis_order"] = "mcz,td"
+            write_missing_mcz_td_metadata(
+                h5,
+                expected_mcz=mcz_arr.astype(np.float64),
+                missing_mcz=mcz_arr[dropped_mask].astype(np.float64),
+            )
+            h5.attrs["I"] = float(I)
+            h5.attrs["template_family"] = "NP"
+            h5.attrs["optimized_over"] = "mcz"
+            write_scalar_attr_with_unit(h5, "opt_mcz_window", opt_mcz_window)
+            write_scalar_attr_with_unit(h5, "opt_mcz_pts", opt_mcz_pts)
+            h5.attrs["match_method"] = "optimized_bounded"
+            write_scalar_attr_with_unit(h5, "z", z, none_as_nan=True)
+            write_orientation_attr(h5, ORIENTATION_TAG)
+
+        print("Optimized HDF5 saved as", opt_h5_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -316,6 +504,29 @@ if __name__ == "__main__":
         default="data/mismatch_L_NP",
         help="Base output directory (relative to project root). Default: data/mismatch_L_NP",
     )
+    parser.add_argument(
+        "--compute_opt_mcz",
+        action="store_true",
+        help="Whether to run the mcz-optimized L-vs-NP mismatch pass.",
+    )
+    parser.add_argument(
+        "--opt_mcz_run_dir",
+        type=str,
+        default="data/mismatch_L_NP_opt_mcz",
+        help="Base output directory for the optimized pass.",
+    )
+    parser.add_argument(
+        "--opt_mcz_window",
+        type=float,
+        default=0.5,
+        help="Half-width of template mcz window in Msun.",
+    )
+    parser.add_argument(
+        "--opt_mcz_pts",
+        type=int,
+        default=51,
+        help="Number of template mcz grid points.",
+    )
 
     args = parser.parse_args()
     main(
@@ -333,4 +544,8 @@ if __name__ == "__main__":
         z=args.redshift,
         n_processes=args.n_processes,
         run_dir=args.run_dir,
+        compute_opt_mcz=args.compute_opt_mcz,
+        opt_mcz_run_dir=args.opt_mcz_run_dir,
+        opt_mcz_window=args.opt_mcz_window,
+        opt_mcz_pts=args.opt_mcz_pts,
     )

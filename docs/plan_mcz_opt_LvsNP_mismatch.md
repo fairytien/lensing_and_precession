@@ -98,17 +98,25 @@ This optimization has been implemented across the `contour_L_NP_mcz_td.py`, `com
 
 **3. Update `_build_curves`** to accept and load the third input, extracting its td slice.
 
-**4. Update `_plot`** to draw three curves using the imported label constants:
+**4. Update `_plot`** to draw three curves using the imported label constants, draw the curves above all other lines (using `zorder=4`), and include custom handles for all vertical/horizontal helper lines in the legend:
 
-| Curve | Color | Style | Legend |
+| Curve / Line | Color | Style | Legend |
 |-------|-------|-------|--------|
 | L-vs-NP (fixed mcz) | red | solid | `LBL_EPS_LNP` |
 | L-vs-NP (opt mcz) | green | dashed | `LBL_MIN_MCZ_EPS_LNP` |
 | L-vs-RP | blue | solid | `LBL_EPS_LRP` |
+| 1 cycle | black | solid | $N_{\mathrm{lensed}}=1$ |
+| 2 cycles | black | dashed | $N_{\mathrm{lensed}}=2$ |
+| 3 cycles | black | dotted | $N_{\mathrm{lensed}}=3$ |
+| peaks | magenta | dotted | peak |
+| troughs | cyan | dotted | trough |
+| analytical limit | gray | dashed-dotted | $1 - (1 + I)^{-1/2}$ |
 
-**5. Visual changes:**
+**5. Visual and Naming changes:**
    - Plot background: **white** instead of grey (`#d9d9d9`).
    - Trough lines: **teal/cyan dotted** instead of white dotted.
+   - Horizontal limit line: **gray dashed-dotted** instead of dotted.
+   - Default output filename format: `compare_LvsNP_RP_{I}_{td}_{z}_mcz{min}-{max}_{orientation_preset}.pdf`.
 
 ---
 

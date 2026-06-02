@@ -7,17 +7,23 @@ from typing import Any, Dict, Optional, Tuple, cast
 import matplotlib.pyplot as plt
 import numpy as np
 
-from modules.bank_io import read_best_match_mcz_td_contour_data
+from modules.bank_io import read_best_match_mcz_td_data
 from modules.default_params import lens_params_1
 from modules.filenames import compare_mcz_td_figure_filename
 from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
-from modules.plot_utils import apply_physics_paper_style, save_figure
+from modules.plot_utils import (
+    apply_physics_paper_style,
+    save_figure,
+    LBL_EPS_LNP,
+    LBL_MIN_MCZ_EPS_LNP,
+    LBL_EPS_LRP,
+)
 from modules.waveform import mcz_for_n_lens_cycles
 from scripts.utils.plot_cycles_and_extrema import FIXED_MCZ_CYCLE_STYLES
 
 # Extrema overlay style conventions mirror scripts/utils/plot_cycles_and_extrema.py.
 PEAK_COLOR = "magenta"
-TROUGH_COLOR = "white"
+TROUGH_COLOR = "cyan"
 EXTREMA_LINESTYLE = ":"
 
 
@@ -41,7 +47,7 @@ def _extract_rp_curve_from_best_match(
     best_match_path: str,
     td_target_s: float,
 ) -> Tuple[np.ndarray, np.ndarray, Optional[float], str]:
-    ds = read_best_match_mcz_td_contour_data(best_match_path, "epsilon_min")
+    ds = read_best_match_mcz_td_data(best_match_path, "epsilon_min")
     mcz_arr = np.asarray(ds["mcz"], dtype=float)
     td_arr = np.asarray(ds["td"], dtype=float)
     eps = np.asarray(ds["values"], dtype=float)
@@ -54,26 +60,33 @@ def _extract_rp_curve_from_best_match(
 
 
 def _default_output_path(
-    I_val: float, z_val: Optional[float], orientation_tag: str
+    I_val: float,
+    td_ms: float,
+    z_val: float,
+    mcz_min: float,
+    mcz_max: float,
+    orientation_tag: str,
 ) -> str:
-    base = compare_mcz_td_figure_filename(
-        fig_dir="figures/contour_mcz_td",
-        I=I_val,
-        z=z_val,
-        orientation_tags=[orientation_tag],
-        ext="pdf",
+    from modules.filenames import _canonical_token, _range_token
+
+    I_str = f"I{_canonical_token(I_val)}"
+    td_str = f"td{int(td_ms)}"
+    z_str = f"z{_canonical_token(z_val)}"
+    mcz_str = f"mcz{_range_token(mcz_min, mcz_max)}"
+    filename = (
+        f"compare_LvsNP_RP_{I_str}_{td_str}_{z_str}_{mcz_str}_{orientation_tag}.pdf"
     )
-    stem, ext = os.path.splitext(base)
-    return f"{stem}_mcz_slice_l_np_rp.{ext.lstrip('.')}"
+    return os.path.join("figures/contour_mcz_td", filename)
 
 
 def _build_curves(
     l_np_path: str,
+    l_np_opt_path: str,
     td_ms: float,
     rp_best_match: str,
     z: float,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
-    l_np = read_best_match_mcz_td_contour_data(l_np_path, "epsilon_min")
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
+    l_np = read_best_match_mcz_td_data(l_np_path, "epsilon_min")
 
     mcz_arr = np.asarray(l_np["mcz"], dtype=float)
     td_arr = np.asarray(l_np["td"], dtype=float)
@@ -82,13 +95,21 @@ def _build_curves(
     td_idx = _nearest_index(td_arr, td_target_s)
     td_actual_s = float(td_arr[td_idx])
 
-    red_curve = np.asarray(l_np["values"][:, td_idx], dtype=float)
+    fixed_np_curve = np.asarray(l_np["values"][:, td_idx], dtype=float)
 
     z_lnp = cast(Optional[float], l_np["z"])
     if z_lnp is None or not np.isclose(z_lnp, z, rtol=0.0, atol=1e-12):
         raise ValueError(
             f"L-vs-NP contour redshift mismatch: file z={z_lnp}, requested z={z}. "
             "Provide an L-vs-NP contour file generated at the requested redshift."
+        )
+
+    l_np_opt = read_best_match_mcz_td_data(l_np_opt_path, "epsilon_min")
+    opt_np_curve = np.asarray(l_np_opt["values"][:, td_idx], dtype=float)
+    z_lnp_opt = cast(Optional[float], l_np_opt["z"])
+    if z_lnp_opt is None or not np.isclose(z_lnp_opt, z, rtol=0.0, atol=1e-12):
+        raise ValueError(
+            f"L-vs-NP optimized contour redshift mismatch: file z={z_lnp_opt}, requested z={z}."
         )
 
     if not os.path.isfile(rp_best_match):
@@ -111,36 +132,50 @@ def _build_curves(
         "orientation_tag": orientation_tag,
         "rp_source": f"best_match:{rp_best_match}",
     }
-    return mcz_arr, mcz_rp, red_curve, blue_curve, meta
+    return mcz_arr, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta
 
 
 def _plot(
     mcz_arr: np.ndarray,
     mcz_rp: np.ndarray,
-    red_curve: np.ndarray,
+    fixed_np_curve: np.ndarray,
+    opt_np_curve: np.ndarray,
     blue_curve: np.ndarray,
     meta: Dict[str, Any],
     output_path: str,
     z: float = 0.0,
+    one_column: bool = False,
 ) -> None:
-    apply_physics_paper_style(base_font=16, label_font=20, tick_font=17, legend_font=16)
+    apply_physics_paper_style(base_font=16, label_font=20, tick_font=17, legend_font=14)
     fig, ax = plt.subplots(figsize=(8.8, 6.6))
-    ax.set_facecolor("#d9d9d9")
+    ax.set_facecolor("white")
 
     ax.plot(
         mcz_arr,
-        red_curve,
+        fixed_np_curve,
         color="red",
         lw=2.2,
+        ls="-",
+        label=LBL_EPS_LNP,
+        zorder=4,
+    )
+    ax.plot(
+        mcz_arr,
+        opt_np_curve,
+        color="green",
+        lw=2.2,
         ls="--",
-        label=r"$\min_{\mathcal{M}_{\mathrm{t}}}\,\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{NP}})$",
+        label=LBL_MIN_MCZ_EPS_LNP,
+        zorder=4,
     )
     ax.plot(
         mcz_rp,
         blue_curve,
         color="blue",
         lw=2.2,
-        label=r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$",
+        ls="-",
+        label=LBL_EPS_LRP,
+        zorder=4,
     )
 
     td_s = float(meta["td_s"])
@@ -164,7 +199,7 @@ def _plot(
                 x=x_val_src, color="black", ls=ls_style, lw=1.6, alpha=0.9, zorder=2
             )
 
-    # Extrema-line convention: peaks=magenta dotted, troughs=white dotted.
+    # Extrema-line convention: peaks=magenta dotted, troughs=cyan dotted.
     for x_val in (
         find_mcz_peaks(
             np.array([td_s]), eta=eta, mcz_min=mcz_min_det, mcz_max=mcz_max_det
@@ -196,15 +231,72 @@ def _plot(
         )
 
     ep_horizontal = 1.0 - (1.0 + float(meta["I"])) ** (-0.5)
-    ax.axhline(y=ep_horizontal, color="gray", ls=":", lw=2.0)
+    ax.axhline(
+        y=ep_horizontal,
+        color="gray",
+        ls="-.",
+        lw=2.0,
+        label=r"$1 - (1 + I)^{-1/2}$",
+        zorder=2,
+    )
 
     ax.set_xlim(mcz_min_src - 1.0, mcz_max_src + 1.0)
-    y_max = float(np.nanmax(np.concatenate([red_curve, blue_curve])))
+    y_max = float(np.nanmax(np.concatenate([fixed_np_curve, opt_np_curve, blue_curve])))
     ax.set_ylim(-0.01, max(0.24, y_max + 0.01))
 
     ax.set_xlabel(r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$")
     ax.set_ylabel(r"$\epsilon$")
-    ax.legend(loc="center right", framealpha=0.85)
+
+    from matplotlib.lines import Line2D
+
+    cycle_legend_handles = []
+    for n_cycles, ls_style in FIXED_MCZ_CYCLE_STYLES.items():
+        cycle_legend_handles.append(
+            Line2D(
+                [0],
+                [0],
+                color="black",
+                ls=ls_style,
+                lw=1.6,
+                label=rf"$N_{{\mathrm{{lensed}}}}={n_cycles}$",
+            )
+        )
+
+    extrema_legend_handles = [
+        Line2D(
+            [0],
+            [0],
+            color=PEAK_COLOR,
+            ls=EXTREMA_LINESTYLE,
+            lw=1.6,
+            label=r"$\mathrm{peak}$",
+        ),
+        Line2D(
+            [0],
+            [0],
+            color=TROUGH_COLOR,
+            ls=EXTREMA_LINESTYLE,
+            lw=1.6,
+            label=r"$\mathrm{trough}$",
+        ),
+    ]
+
+    handles, labels = ax.get_legend_handles_labels()
+    if one_column:
+        all_handles = handles + cycle_legend_handles + extrema_legend_handles
+        ax.legend(handles=all_handles, loc="best", framealpha=0.85)
+    else:
+        col1 = handles
+        col2 = cycle_legend_handles + extrema_legend_handles
+
+        n_rows = max(len(col1), len(col2))
+        dummy = Line2D([], [], color="none", label="")
+
+        padded_col1 = list(col1) + [dummy] * (n_rows - len(col1))
+        padded_col2 = list(col2) + [dummy] * (n_rows - len(col2))
+
+        all_handles = padded_col1 + padded_col2
+        ax.legend(handles=all_handles, ncol=2, loc="best", framealpha=0.85)
 
     save_figure(fig, output_path, dpi=300)
 
@@ -223,6 +315,12 @@ def parse_args() -> argparse.Namespace:
             "data/contour_mcz_td/"
             "contour_L_NP_I0.5_z1_mcz10-90Msun_td20-70ms_min_mismatch_Taman_edgeon.h5"
         ),
+        help="Path to L-vs-NP contour HDF5 (fixed mcz).",
+    )
+    parser.add_argument(
+        "--l-np-opt-contour",
+        type=str,
+        required=True,
         help="Path to L-vs-NP contour HDF5 (optimized over template mcz).",
     )
     parser.add_argument(
@@ -244,14 +342,20 @@ def parse_args() -> argparse.Namespace:
         help="Time-delay slice in ms (nearest available grid bin is used).",
     )
     parser.add_argument("--output", type=str, default=None)
+    parser.add_argument(
+        "--one-column",
+        action="store_true",
+        help="Use a single-column layout for the legend instead of two columns.",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
 
-    mcz_arr, mcz_rp, red_curve, blue_curve, meta = _build_curves(
+    mcz_arr, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta = _build_curves(
         l_np_path=args.l_np_contour,
+        l_np_opt_path=args.l_np_opt_contour,
         td_ms=args.td_ms,
         rp_best_match=args.rp_best_match,
         z=args.z,
@@ -261,18 +365,23 @@ def main() -> None:
     if output_path is None:
         output_path = _default_output_path(
             I_val=float(meta["I"]),
+            td_ms=args.td_ms,
             z_val=args.z,
+            mcz_min=mcz_arr.min(),
+            mcz_max=mcz_arr.max(),
             orientation_tag=str(meta["orientation_tag"]),
         )
 
     _plot(
         mcz_arr=mcz_arr,
         mcz_rp=mcz_rp,
-        red_curve=red_curve,
+        fixed_np_curve=fixed_np_curve,
+        opt_np_curve=opt_np_curve,
         blue_curve=blue_curve,
         meta=meta,
         output_path=output_path,
         z=args.z,
+        one_column=args.one_column,
     )
 
     print(f"RP source used: {meta['rp_source']}")

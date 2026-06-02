@@ -1,0 +1,21 @@
+- [x] Switch `MatchMethod` in fixed-mcz computation to `OPTIMIZED_BOUNDED`
+- [x] Implement template-mcz optimization grid scan pass in `contour_L_NP_mcz_td.py`
+  - [x] Add `_compute_opt_mcz_row` worker function
+  - [x] Scan template mcz values in window with 51 points
+  - [x] Incorporate unlensed waveform caching optimization
+  - [x] Add CLI arguments and `main()` branch to write the optimized HDF5 file
+- [x] Update plotting script `plot_np_rp_mcz_slice.py`
+  - [x] Fix imports of `read_best_match_mcz_td_data`
+  - [x] Add `--l-np-opt-contour` argument to CLI
+  - [x] Load and slice 3 curves from HDF5
+  - [x] Plot 3 curves using `plot_utils` label constants:
+    - [x] Red Solid for `LBL_EPS_LNP`
+    - [x] Green Dashed for `LBL_MIN_MCZ_EPS_LNP`
+    - [x] Blue Solid for `LBL_EPS_LRP`
+  - [x] Apply visual style changes (white plot background, cyan dotted troughs)
+  - [x] Show legend entries for the cycle and extrema vertical lines
+  - [x] Set default output filename with formatted parameters ("compare_LvsNP_RP_", I, td, z, mcz range, orientation)
+- [x] Verification
+  - [x] Perform compile check on both files
+  - [x] Run full-grid sweep locally to verify output data
+  - [x] Run plotting script and verify PDF generation
