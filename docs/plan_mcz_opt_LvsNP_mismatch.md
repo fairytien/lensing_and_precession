@@ -4,6 +4,13 @@
 
 Extend `contour_L_NP_mcz_td.py` to produce a **second HDF5 output** containing the L-vs-NP mismatch **optimized over template mcz**, alongside its existing fixed-mcz contour output. Then extend `plot_np_rp_mcz_slice.py` to accept **3 data inputs** and plot three curves.
 
+The lensed sources will be built using the following parameters:
+* **Flux ratio:** $I = 0.5$
+* **Time delay:** $\Delta t_{\mathrm{d}} = 30\text{ ms}$ (slice value for plotting)
+* **Redshift:** $z = 1$
+* **Chirp mass:** $\mathcal{M}_{\mathrm{s}}$ from $5$ to $45\,\mathrm{M}_{\odot}$ (81 points)
+* **Orientation Preset:** `Taman_edgeon`
+
 ## Background
 
 Currently:
