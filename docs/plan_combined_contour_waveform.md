@@ -31,7 +31,7 @@ For a fixed `td` (default 30 ms), the script slices out a 2D `(theta, omega)` co
 
 ### New plotting script
 
-#### [IN PROGRESS] [plot_combined_contour_waveform.py](../scripts/contour_omega_theta/plot_combined_contour_waveform.py)
+#### [DONE] [plot_combined_contour_waveform.py](../scripts/contour_omega_theta/plot_combined_contour_waveform.py)
 
 A single script that:
 
@@ -48,7 +48,7 @@ A single script that:
 3. **Follows AGENTS.md conventions:**
    - Imports from `modules.*`, uses `apply_physics_paper_style()`, APS/REVTeX math typography.
    - Uses $\epsilon_{\mathrm{RP}}$ (not $\epsilon_{\min}$) in all labels.
-   - All axis and colorbar labels are drawn from `LBL_*` constants in `modules/plot_utils.py` (e.g. `LBL_OMEGA`, `LBL_THETA`, `LBL_F`, `LBL_BRATIO_TS`, `LBL_PHASE_TS`). The colorbar label uses a `LBL_EPS_RP` constant — **add `LBL_EPS_RP = r"$\epsilon_{\mathrm{RP}}$"` to `plot_utils.py`** if it does not yet exist, and import it in the script instead of writing the LaTeX inline.
+   - All axis and colorbar labels are drawn from `LBL_*` constants in `modules/plot_utils.py` (e.g. `LBL_OMEGA`, `LBL_THETA`, `LBL_F`, `LBL_BRATIO_TS`, `LBL_PHASE_TS`). The colorbar label uses `LBL_EPS_LP` (= `$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$`).
    - Uses `save_figure()` from `plot_utils`.
    - CLI via argparse; defaults match the production config.
 
@@ -56,21 +56,21 @@ Key layout decisions:
 - `GridSpec(nrows, 2)` outer grid; right column uses `GridSpecFromSubplotSpec(2, 1)` for amplitude/phase sub-rows.
 - Colorbar controlled by `--colorbar {shared,individual}` (default `shared`). Shared: single colorbar via `add_colorbar_axes()` spanning all contour panels with a unified `vmin`/`vmax`. Individual: one colorbar per row, each with its own range.
 - Row labels show $\mathcal{M}_{\mathrm{s}}$ values.
-- Output: single PDF in `figures/contour_omega_theta/`.
+- Output: `--output` sets the PDF file path directly. If omitted, the script writes a single PDF in `figures/contour_omega_theta/` named `combined_contour_waveform_I<...>_td<...>_z<...>_mcz<...>_<orientation_tag>.pdf`.
 
 ---
 
 ### ε_min → ε_RP rename in existing code
 
-#### [MODIFY] [plot_bestmatch_waveform_overlays.py](../scripts/contour_omega_theta/plot_bestmatch_waveform_overlays.py)
+#### [DONE] [plot_bestmatch_waveform_overlays.py](../scripts/contour_omega_theta/plot_bestmatch_waveform_overlays.py)
 
-- Line 57: Change `$\epsilon_{\mathrm{min}}$` → `$\epsilon_{\mathrm{RP}}$` in `_row_parameter_box_text()`.
+- Line 57: Change `$\epsilon_{\mathrm{min}}$` → `$\epsilon_{\mathrm{RP}}$` in `_row_parameter_box_text()`. ✓
 
 ---
 
 ### Paper LaTeX update
 
-#### [MODIFY] [results.tex](../../../paper_lens_prec/sections/results.tex)
+#### [DONE] [results.tex](../../../paper_lens_prec/sections/results.tex)
 
 - (Figure 4 — contours, anchor on `\label{fig: sys2 contours mcz}`): Replace with new combined figure.
 - (Figure 5 — waveforms, anchor on `\label{fig: sys2 waveforms mcz}`): Remove; content merged into combined figure.

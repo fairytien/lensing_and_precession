@@ -154,6 +154,8 @@ def plot_contour_panel(
     min_theta = float(Y[min_idx])
     min_epsilon = float(Z[min_idx])
     gamma_P = float(contour_data["gammaP_min_matrix"][min_idx])
+    epsilon_NP = float(Z[0, 0])
+    ratio = epsilon_NP / min_epsilon if min_epsilon > 0 else float("nan")
 
     ax.plot(
         min_omega,
@@ -164,7 +166,8 @@ def plot_contour_panel(
         markeredgewidth=0.8,
         markeredgecolor="0.3",
         label=(
-            rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$"
+            rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$, "
+            rf"$\epsilon_{{\mathrm{{NP}}}}/\epsilon_{{\mathrm{{RP}}}}={ratio:.2f}$"
             "\n"
             rf"$\tilde{{\theta}}={min_theta:.2f}$, "
             rf"$\tilde{{\Omega}}={min_omega:.2f}$, "
@@ -281,7 +284,7 @@ def plot_combined(
     apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
 
     left_margin = 0.22 if colorbar_side == "left" else 0.07
-    col_wspace = 0.18 if colorbar_side == "left" else 0.30
+    col_wspace = 0.18 if colorbar_side == "left" else 0.22
     fig_width = 16.0
     gs_right, gs_top, gs_bottom = 0.88, 0.94, 0.06
     gs_hspace = 0.08
@@ -467,8 +470,8 @@ def main():
         "--output",
         default=None,
         help=(
-            "Output PDF path. Defaults to "
-            "figures/contour_omega_theta/combined_contour_waveform_mcz<...>_td<...>ms.pdf"
+            "Output PDF file path. If omitted, saves to "
+            "figures/contour_omega_theta/combined_contour_waveform_I<...>_td<...>_z<...>_mcz<...>_<orientation_tag>.pdf"
         ),
     )
     args = parser.parse_args()
@@ -495,7 +498,7 @@ def main():
         mcz_token = "-".join(str(int(d["mcz_msun"])) for d in contour_datasets)
         output_path = os.path.join(
             "figures/contour_omega_theta",
-            f"combined_contour_waveform_I{I_token}_td{int(args.td_ms)}ms_z{z_token}_mcz{mcz_token}_{args.orientation_tag}.pdf",
+            f"combined_contour_waveform_I{I_token}_td{int(args.td_ms)}_z{z_token}_mcz{mcz_token}_{args.orientation_tag}.pdf",
         )
 
     plot_combined(
