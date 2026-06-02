@@ -125,7 +125,7 @@ def precompute_lensing_factors(
     return h_I, sqrt_mu_p, sqrt_mu_m
 
 
-def build_lensed_source_strain(
+def build_lensed_strain(
     h_I: np.ndarray,
     sqrt_mu_p: float,
     sqrt_mu_m: float,

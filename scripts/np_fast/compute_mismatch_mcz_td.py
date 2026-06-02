@@ -47,7 +47,7 @@ from modules.match_utils import (
 from scripts.np_fast.match_utils_np import (
     mismatch_block_serial,
     precompute_lensing_factors,
-    build_lensed_source_strain,
+    build_lensed_strain,
 )
 from modules.bank_io import (
     safe_open_bank_readonly,
@@ -365,7 +365,7 @@ def main(
 
                 # Iterate over td values
                 for j, td in enumerate(td_arr):
-                    s_strain = build_lensed_source_strain(
+                    s_strain = build_lensed_strain(
                         h_I, sqrt_mu_p, sqrt_mu_m, s_f, td, delta_f
                     )
 

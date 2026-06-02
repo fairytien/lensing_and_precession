@@ -28,12 +28,16 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
 > With multiprocessing across rows, each worker has its own memory space, so cross-row caching only works in serial mode. The script uses multiprocessing for the outer loop. Two approaches:
 > 1. **Parallelize across rows** (current pattern): each worker self-contained, no cross-row cache. Simple, HPC-friendly.
 > 2. **Serial outer loop with parallel td inner loop**: enables cross-row cache but changes the parallelism axis.
->
-> ### Lensed source caching via unlensed waveform caching
+
+### Lensed source caching via unlensed waveform caching
 
 Since the source unlensed waveform depends only on `mcz` (which is fixed for a given row/computation) and is independent of the time delay `td`, it can be generated once per row/run. For each `td` value, the lensed source strain is algebraically constructed by multiplying this unlensed waveform by the analytical point-mass lensing amplification factor $F(f)$ (in the geometric optics limit, which depends on `td`). This eliminates redundant unlensed waveform generation and parameter-handling overhead, making the inner loop significantly faster. 
 
-For maximum DRYness, the `LensingGeo` class is imported directly from [waveform.py](../modules/waveform.py) where it is already imported, rather than importing it from `modules.Classes` separately. Variables are named `unlensed_wf` (using `wf` rather than `wave`). This optimization has been implemented across the `contour_L_NP_mcz_td.py`, `compute_mismatch_mcz_td.py`, and `compute_mismatch_I_td.py` scripts.
+For maximum DRYness and modularity, this optimization is implemented via two shared helper functions in [match_utils_np.py](../scripts/np_fast/match_utils_np.py):
+* [precompute_lensing_factors](../scripts/np_fast/match_utils_np.py): Instantiates `LensingGeo` using a dummy `MLz` once per row/run and returns `h_I`, `sqrt_mu_p`, and `sqrt_mu_m`.
+* [build_lensed_strain](../scripts/np_fast/match_utils_np.py): Algebraically constructs the lensed strain `s_strain` for a given `td` using the precomputed factors and wraps it in a `FrequencySeries`.
+
+This optimization has been implemented across the `contour_L_NP_mcz_td.py`, `compute_mismatch_mcz_td.py`, and `compute_mismatch_I_td.py` scripts.
 
 ## Proposed Changes
 
@@ -47,10 +51,9 @@ For maximum DRYness, the `LensingGeo` class is imported directly from [waveform.
    - Build NP parameter dict, apply redshift.
    - Compute PSD from source f\_cut (once, reused for all td and all template mcz).
    - Generate 51 NP template strains at `linspace(mcz_s - 0.5, mcz_s + 0.5, 51)`. Each is a single `get_gw` call. Pad all templates to source-strain length and stack into a 2D `template_block`.
-   - Precompute unlensed source waveform $h_{\mathrm{unlensed}}$ once.
-   - Precompute constant magnification factors $\sqrt{|\mu_+|}$ and $\sqrt{|\mu_-|}$.
+   - Precompute unlensed source waveform $h_{\mathrm{unlensed}}$ and magnification factors once using `precompute_lensing_factors`.
    - Loop over td values:
-     - Algebraically construct the lensed source strain: `s_strain = h_I * (sqrt_mu_p - 1j * sqrt_mu_m * exp(2j * pi * f_array * td))`.
+     - Algebraically construct the lensed source strain using `build_lensed_strain`.
      - Call `mismatch_block_serial(template_block, mcz_t_arr, s_strain, psd, f_min, delta_f, OPTIMIZED_BOUNDED)`. This returns `(ep_vec, ep_min, best_mcz_t)`.
    - Return arrays: `ep_min_arr[n_td]` and `mcz_best_arr[n_td]`.
 
@@ -72,7 +75,7 @@ For maximum DRYness, the `LensingGeo` class is imported directly from [waveform.
    - Attrs: `I`, `z`, `template_family=NP`, `orientation_tag`, `optimized_over=mcz`, `opt_mcz_window`, `opt_mcz_pts`, `match_method=optimized_bounded`.
    - Output path via `best_match_mcz_td_filename` with `run_dir` resolved from `contour_run_dir(opt_mcz_run_dir, ...)`.
 
-**5. Import `mismatch_from_strains`, `ensure_same_length` from `modules.match_utils`, `LensingGeo` from `modules.Classes`, and `FrequencySeries` from `pycbc.types`** (used for optimization and template padding).
+**5. Import `mismatch_from_strains`, `ensure_same_length` from `modules.match_utils`, and `mismatch_block_serial`, `precompute_lensing_factors`, `build_lensed_strain` from `scripts.np_fast.match_utils_np`** (used for optimization and template padding).
 
 ---
 

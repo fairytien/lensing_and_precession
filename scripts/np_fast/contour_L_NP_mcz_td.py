@@ -22,7 +22,7 @@ from modules.match_utils import MatchMethod, ensure_same_length
 from scripts.np_fast.match_utils_np import (
     mismatch_block_serial,
     precompute_lensing_factors,
-    build_lensed_source_strain,
+    build_lensed_strain,
 )
 from modules.runtime_helpers import timer_decorator
 from modules.default_params import (
@@ -98,7 +98,7 @@ def _compute_mismatch_row(args) -> Tuple[np.ndarray, np.ndarray]:
 
     for j, td in enumerate(td_arr):
         try:
-            s_strain = build_lensed_source_strain(
+            s_strain = build_lensed_strain(
                 h_I, sqrt_mu_p, sqrt_mu_m, f_array, td, delta_f
             )
 
