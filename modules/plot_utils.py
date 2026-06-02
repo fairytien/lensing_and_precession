@@ -92,6 +92,7 @@ LBL_H_T = r"$\tilde{h}_{\mathrm{t}}$"  # generic template waveform
 # -- Mismatch labels ----------------------------------------------------------
 LBL_EPS_LP = r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{P}})$"
 LBL_EPS_LNP = r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{NP}})$"
+LBL_EPS_LRP = r"$\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{RP}})$"
 LBL_EPS_ST = r"$\epsilon\left(\tilde{h}_{\mathrm{s}},\,\tilde{h}_{\mathrm{t}}\right)$"
 LBL_MIN_EPS_LP = (
     r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
@@ -101,6 +102,7 @@ LBL_MIN_EPS_ST = (
     r"$\min_{\tilde{\Omega},\,\tilde{\theta},\,\gamma_{\mathrm{P}}}\,"
     r"\epsilon\left(\tilde{h}_{\mathrm{s}},\,\tilde{h}_{\mathrm{t}}\right)$"
 )
+LBL_MIN_MCZ_EPS_LNP = r"$\min_{\mathcal{M}_{\mathrm{t}}}\,\epsilon(\tilde{h}_{\mathrm{L}}, \tilde{h}_{\mathrm{NP}})$"
 
 # -- Amplitude-ratio and phase-difference axis labels -------------------------
 LBL_BRATIO_LNP = r"$\left(\mathit{B}_{\mathrm{L}}/\mathit{B}_{\mathrm{NP}}\right) - 1$"

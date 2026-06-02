@@ -72,19 +72,21 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
 
 #### [MODIFY] [plot_np_rp_mcz_slice.py](../scripts/np_fast/plot_np_rp_mcz_slice.py)
 
-**1. Fix import**: `read_best_match_mcz_td_contour_data` → `read_best_match_mcz_td_data` (the actual function in [bank_io.py](../modules/bank_io.py#L497-L531)).
+**1. Fix and add imports**:
+   - `read_best_match_mcz_td_contour_data` → `read_best_match_mcz_td_data` (the actual function in [bank_io.py](../modules/bank_io.py#L497-L531)).
+   - Import `LBL_EPS_LNP`, `LBL_MIN_MCZ_EPS_LNP`, and `LBL_EPS_LRP` from [plot_utils.py](../modules/plot_utils.py).
 
 **2. Add `--l-np-opt-contour` CLI argument** for the mcz-optimized HDF5 path.
 
 **3. Update `_build_curves`** to accept and load the third input, extracting its td slice.
 
-**4. Update `_plot`** to draw three curves:
+**4. Update `_plot`** to draw three curves using the imported label constants:
 
 | Curve | Color | Style | Legend |
 |-------|-------|-------|--------|
-| L-vs-NP (fixed mcz) | red | solid | $\epsilon(\tilde{h}\_{\mathrm{L}}, \tilde{h}\_{\mathrm{NP}})$ |
-| L-vs-NP (opt mcz) | green | dashed | $\min\_{\mathcal{M}\_{\mathrm{t}}}\,\epsilon(\tilde{h}\_{\mathrm{L}}, \tilde{h}\_{\mathrm{NP}})$ |
-| L-vs-RP | blue | solid | $\epsilon(\tilde{h}\_{\mathrm{L}}, \tilde{h}\_{\mathrm{RP}})$ |
+| L-vs-NP (fixed mcz) | red | solid | `LBL_EPS_LNP` |
+| L-vs-NP (opt mcz) | green | dashed | `LBL_MIN_MCZ_EPS_LNP` |
+| L-vs-RP | blue | solid | `LBL_EPS_LRP` |
 
 **5. Visual changes:**
    - Plot background: **white** instead of grey (`#d9d9d9`).
