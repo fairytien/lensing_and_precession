@@ -18,7 +18,7 @@ class MatchMethod(Enum):
 
 ### `match_utils.py` — Enum definition and core API
 
-#### [MODIFY] [match_utils.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py)
+#### [MODIFY] [match_utils.py](../modules/match_utils.py)
 
 **1. Add `MatchMethod` enum and import `optimized_match`** (top of file, after existing imports):
 
@@ -33,7 +33,7 @@ class MatchMethod(Enum):
     COMPARE_BOTH = "compare_both"
 ```
 
-**2. Update [mismatch_from_strains](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L271-L332)** — replace `use_opt_match`/`compare_both` with `match_method`:
+**2. Update [mismatch_from_strains](../modules/match_utils.py#L271-L332)** — replace `use_opt_match`/`compare_both` with `match_method`:
 
 ```python
 def mismatch_from_strains(
@@ -90,27 +90,27 @@ Dispatch logic:
 
 | Function | Lines | Change |
 |----------|-------|--------|
-| [mismatch_from_params](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L335-L384) | 343–384 | Replace 2 params → 1; forward `match_method` to `mismatch_from_strains` |
-| [optimize_mismatch_mcz](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L392-L479) | 400–468 | Same |
-| [optimize_mismatch_gammaP](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L482-L682) | 491–675 | Same |
-| [find_optimized_coalescence_params](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L685-L803) | 693–803 | Same; inner `_evaluate_current_mismatch` passes `match_method` |
+| [mismatch_from_params](../modules/match_utils.py#L335-L384) | 343–384 | Replace 2 params → 1; forward `match_method` to `mismatch_from_strains` |
+| [optimize_mismatch_mcz](../modules/match_utils.py#L392-L479) | 400–468 | Same |
+| [optimize_mismatch_gammaP](../modules/match_utils.py#L482-L682) | 491–675 | Same |
+| [find_optimized_coalescence_params](../modules/match_utils.py#L685-L803) | 693–803 | Same; inner `_evaluate_current_mismatch` passes `match_method` |
 
 **4. Update multiprocessing worker globals** — collapse `_COMPARE_BOTH` + `_USE_OPT_MATCH` into single `_MATCH_METHOD`:
 
 | Symbol | Lines | Change |
 |--------|-------|--------|
 | Globals `_COMPARE_BOTH`, `_USE_OPT_MATCH` | 881–882 | → `_MATCH_METHOD: Optional[MatchMethod] = None` |
-| [init_mismatch_worker](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L912-L956) | 912–956 | Accept `match_method` instead of `compare_both, use_opt_match` |
-| [_require_worker_state](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L889-L909) | 889–909 | Return `_MATCH_METHOD` instead of both globals |
-| [mismatch_gamma_job](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L959-L1015) | 959–1015 | Pass `match_method=` to `mismatch_from_strains` |
+| [init_mismatch_worker](../modules/match_utils.py#L912-L956) | 912–956 | Accept `match_method` instead of `compare_both, use_opt_match` |
+| [_require_worker_state](../modules/match_utils.py#L889-L909) | 889–909 | Return `_MATCH_METHOD` instead of both globals |
+| [mismatch_gamma_job](../modules/match_utils.py#L959-L1015) | 959–1015 | Pass `match_method=` to `mismatch_from_strains` |
 
 ---
 
 ### `bank_io.py` — Provenance attrs
 
-#### [MODIFY] [bank_io.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/bank_io.py)
+#### [MODIFY] [bank_io.py](../modules/bank_io.py)
 
-Update [write_match_provenance_attrs](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/bank_io.py#L276-L294):
+Update [write_match_provenance_attrs](../modules/bank_io.py#L276-L294):
 
 ```python
 def write_match_provenance_attrs(
@@ -132,50 +132,70 @@ def write_match_provenance_attrs(
 ```
 
 ---
+### `cli_utils.py` — Centralized CLI Argument Helper
+
+#### [NEW] [add_match_method_arg](../modules/cli_utils.py#L243-L254)
+
+Add centralized CLI argument helper function to attach the `--match_method` option to an argparse parser:
+
+```python
+def add_match_method_arg(parser: ArgumentParser) -> ArgumentParser:
+    """Attach the --match_method choice argument."""
+    from modules.match_utils import MatchMethod
+
+    parser.add_argument(
+        "--match_method",
+        type=str,
+        choices=[m.value for m in MatchMethod],
+        default=MatchMethod.OPTIMIZED_BOUNDED.value,
+        help="Match method to use. Default: optimized_bounded",
+    )
+    return parser
+```
+
+---
 
 ### Caller scripts
 
-All follow the same pattern: replace `--compare_both` (store_true) + `--use_opt_match` (store_true) with a single `--match_method` choices arg defaulting to `optimized_bounded`.
+Instead of declaring `--match_method` inline, all caller scripts import `add_match_method_arg` from `modules.cli_utils` to register the new argument, replacing the two legacy boolean flags (`--compare_both` and `--use_opt_match`). They then parse with `match_method=MatchMethod(args.match_method)`.
 
-#### [MODIFY] [compute_mismatch_cubes.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/mismatch_mcz_td/compute_mismatch_cubes.py)
+#### [MODIFY] [compute_mismatch_cubes.py](../scripts/mismatch_mcz_td/compute_mismatch_cubes.py)
 
 - Function signature: `compare_both: bool, use_opt_match: bool` → `match_method: MatchMethod`
-- CLI: replace two flags with:
-  ```python
-  p.add_argument(
-      "--match_method",
-      type=str,
-      choices=[m.value for m in MatchMethod],
-      default=MatchMethod.OPTIMIZED_BOUNDED.value,
-  )
-  ```
-  Parse with `match_method=MatchMethod(args.match_method)`
-- `init_mismatch_worker` call (line 369): pass `match_method` instead of `compare_both, use_opt_match`
-- `write_match_provenance_attrs` call (line 328): pass `match_method=match_method`
+- CLI: replace the two flags with `add_match_method_arg(p)`
+- `init_mismatch_worker` call: pass `match_method` instead of `compare_both, use_opt_match`
+- `write_match_provenance_attrs` call: pass `match_method=match_method`
 
-#### [MODIFY] [v4_indiv_contour_otf.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/contour_omega_theta/v4_indiv_contour_otf.py)
+#### [MODIFY] [v4_indiv_contour_otf.py](../scripts/contour_omega_theta/v4_indiv_contour_otf.py)
 
-- Collapse the `if compare_both: ... else: ...` branch in `_compute_cell_min_ep` (lines 122–152) into a single `optimize_mismatch_gammaP` call with `match_method=...`
-- Function signature + CLI: same pattern as compute_mismatch_cubes
+- Collapse the `if compare_both: ... else: ...` branch in `_compute_cell_min_ep` into a single `optimize_mismatch_gammaP` call with `match_method=...`
+- Function signature + CLI: same pattern as `compute_mismatch_cubes.py` (using `add_match_method_arg`)
 
-#### [MODIFY] [v3_indiv_contour_otf.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/contour_omega_theta/v3_indiv_contour_otf.py)
+#### [MODIFY] [v3_indiv_contour_otf.py](../scripts/contour_omega_theta/v3_indiv_contour_otf.py)
 
-- Same: collapse branch in `_compute_cell_min_ep` (lines 107–136), update signature + CLI
+- Same: collapse branch in `_compute_cell_min_ep`, update signature + CLI (using `add_match_method_arg`)
 
-#### [MODIFY] [v3_indiv_contour_otf_v2prec.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/contour_omega_theta/v3_indiv_contour_otf_v2prec.py)
+#### [MODIFY] [v3_indiv_contour_otf_v2prec.py](../scripts/contour_omega_theta/v3_indiv_contour_otf_v2prec.py)
 
-- Same: collapse branch in `_compute_cell_min_ep` (lines 100–131), update signature + CLI
+- Same: collapse branch in `_compute_cell_min_ep`, update signature + CLI (using `add_match_method_arg`)
 
-#### [MODIFY] [contour_L_NP_mcz_td.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/contour_mcz_td/contour_L_NP_mcz_td.py)
+#### [MODIFY] [contour_L_NP_mcz_td.py](../scripts/contour_mcz_td/contour_L_NP_mcz_td.py)
 
-- Function signature + CLI: same pattern
+- Function signature + CLI: same pattern (using `add_match_method_arg`)
 - `_compute_mismatch_row`: unpack `match_method` instead of `compare_both`; pass to `mismatch_from_params`/`optimize_mismatch_mcz`
+
+#### [MODIFY] `mismatch_I_td` and `np_fast` Sweep/Pipeline Scripts
+
+The same CLI refactoring pattern (using `add_match_method_arg`) is applied to:
+- [compute_mismatch_cubes.py (I_td)](../scripts/mismatch_I_td/compute_mismatch_cubes.py)
+- [compute_mismatch_mcz_td.py (np_fast)](../scripts/np_fast/compute_mismatch_mcz_td.py)
+- [compute_mismatch_I_td.py (np_fast)](../scripts/np_fast/compute_mismatch_I_td.py)
 
 ---
 
 ### Compatibility shims
 
-#### [MODIFY] [functions.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/functions.py)
+#### [MODIFY] [functions.py](../modules/functions.py)
 
 Add `MatchMethod` to the re-export list:
 
@@ -187,7 +207,7 @@ from modules.match_utils import (
 )
 ```
 
-#### [MODIFY] [functions_v3.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/functions_v3.py)
+#### [MODIFY] [functions_v3.py](../modules/functions_v3.py)
 
 Same — add `MatchMethod` to the re-export list.
 

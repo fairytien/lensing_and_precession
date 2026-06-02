@@ -7,14 +7,14 @@ Extend `contour_L_NP_mcz_td.py` to produce a **second HDF5 output** containing t
 ## Background
 
 Currently:
-- [contour_L_NP_mcz_td.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/contour_L_NP_mcz_td.py) computes ε(h\_L, h\_NP) on a (mcz\_s, td) grid where source and template share the same mcz. Uses `MatchMethod.OPTIMIZED_BRENT`.
-- [plot_np_rp_mcz_slice.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/plot_np_rp_mcz_slice.py) reads 2 inputs (L-vs-NP contour, RP best\_match) and plots two curves at a fixed td slice. Uses a broken import (`read_best_match_mcz_td_contour_data` which does not exist in `bank_io.py`).
+- [contour_L_NP_mcz_td.py](../scripts/np_fast/contour_L_NP_mcz_td.py) computes ε(h\_L, h\_NP) on a (mcz\_s, td) grid where source and template share the same mcz. Uses `MatchMethod.OPTIMIZED_BRENT`.
+- [plot_np_rp_mcz_slice.py](../scripts/np_fast/plot_np_rp_mcz_slice.py) reads 2 inputs (L-vs-NP contour, RP best\_match) and plots two curves at a fixed td slice. Uses a broken import (`read_best_match_mcz_td_contour_data` which does not exist in `bank_io.py`).
 
 ## Key Design Decisions
 
 ### Inline mcz scan instead of `optimize_mismatch_mcz`
 
-The existing [optimize_mismatch_mcz](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py#L409-L494) in `match_utils.py` rebuilds full parameter dicts via `set_to_params` / `_resolve_deps` / `Classes` on every call. For the simpler NP case, an inline scan that directly calls `get_gw` + `mismatch_from_strains` avoids that overhead.
+The existing [optimize_mismatch_mcz](../modules/match_utils.py#L409-L494) in `match_utils.py` rebuilds full parameter dicts via `set_to_params` / `_resolve_deps` / `Classes` on every call. For the simpler NP case, an inline scan that directly calls `get_gw` + `mismatch_from_strains` avoids that overhead.
 
 ### NP templates are td-independent
 
@@ -35,7 +35,7 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
 
 ### Computation: `contour_L_NP_mcz_td.py`
 
-#### [MODIFY] [contour_L_NP_mcz_td.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/contour_L_NP_mcz_td.py)
+#### [MODIFY] [contour_L_NP_mcz_td.py](../scripts/np_fast/contour_L_NP_mcz_td.py)
 
 **1. Switch `MatchMethod` from `OPTIMIZED_BRENT` to `OPTIMIZED_BOUNDED`** in `_compute_mismatch_row` (line 100).
 
@@ -46,7 +46,7 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
    - Loop over td values: generate lensed source strain via `get_gw`, then call `mismatch_gamma_block_serial(template_block, mcz_t_arr, s_strain, psd, f_min, delta_f, OPTIMIZED_BOUNDED)`. This returns `(ep_vec, ep_min, best_mcz_t)`.
    - Return arrays: `ep_min_arr[n_td]` and `mcz_best_arr[n_td]`.
 
-   This delegates the inner min-over-templates loop to [mismatch_gamma_block_serial](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/match_utils_np.py) — the same function already used for the fixed-mcz pass. Its `gamma_arr` parameter is repurposed as the template mcz array (it's just a label array for identifying the best template).
+   This delegates the inner min-over-templates loop to [mismatch_gamma_block_serial](../scripts/np_fast/match_utils_np.py) — the same function already used for the fixed-mcz pass. Its `gamma_arr` parameter is repurposed as the template mcz array (it's just a label array for identifying the best template).
 
 **3. Add CLI arguments:**
    - `--compute_opt_mcz` (flag, default False): whether to run the optimized pass.
@@ -70,9 +70,9 @@ With source mcz step < 1.0 M☉ and a ±0.5 M☉ template window, consecutive ro
 
 ### Plotting: `plot_np_rp_mcz_slice.py`
 
-#### [MODIFY] [plot_np_rp_mcz_slice.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/plot_np_rp_mcz_slice.py)
+#### [MODIFY] [plot_np_rp_mcz_slice.py](../scripts/np_fast/plot_np_rp_mcz_slice.py)
 
-**1. Fix import**: `read_best_match_mcz_td_contour_data` → `read_best_match_mcz_td_data` (the actual function in [bank_io.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/bank_io.py#L497-L531)).
+**1. Fix import**: `read_best_match_mcz_td_contour_data` → `read_best_match_mcz_td_data` (the actual function in [bank_io.py](../modules/bank_io.py#L497-L531)).
 
 **2. Add `--l-np-opt-contour` CLI argument** for the mcz-optimized HDF5 path.
 
@@ -117,10 +117,10 @@ Attributes:
 
 | File | Action | Description |
 |------|--------|-------------|
-| [contour_L_NP_mcz_td.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/contour_L_NP_mcz_td.py) | MODIFY | Add optimized-mcz pass, switch to OPTIMIZED_BOUNDED, write second HDF5 |
-| [plot_np_rp_mcz_slice.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/plot_np_rp_mcz_slice.py) | MODIFY | Fix import, add 3rd input, 3 curves, white bg, teal troughs |
+| [contour_L_NP_mcz_td.py](../scripts/np_fast/contour_L_NP_mcz_td.py) | MODIFY | Add optimized-mcz pass, switch to OPTIMIZED_BOUNDED, write second HDF5 |
+| [plot_np_rp_mcz_slice.py](../scripts/np_fast/plot_np_rp_mcz_slice.py) | MODIFY | Fix import, add 3rd input, 3 curves, white bg, teal troughs |
 
-No new files. No changes to modules — the script imports existing functions from [match_utils.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/match_utils.py), [match_utils_np.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/scripts/np_fast/match_utils_np.py), [bank_io.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/bank_io.py), and [filenames.py](file:///Users/fairytien/Documents/TEXAS_Bridge_2324/code/lensing_and_precession/modules/filenames.py).
+No new files. No changes to modules — the script imports existing functions from [match_utils.py](../modules/match_utils.py), [match_utils_np.py](../scripts/np_fast/match_utils_np.py), [bank_io.py](../modules/bank_io.py), and [filenames.py](../modules/filenames.py).
 
 ## Verification Plan
 
