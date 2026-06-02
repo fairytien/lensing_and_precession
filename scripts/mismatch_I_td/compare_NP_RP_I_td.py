@@ -82,7 +82,6 @@ def _add_mass_box(ax, mcz_source_msun: float) -> None:
         handlelength=0,
         handletextpad=0.0,
         borderpad=0.35,
-        fontsize=10.5,
     )
     legend.get_frame().set_facecolor("white")
     legend.get_frame().set_edgecolor("black")
@@ -126,7 +125,7 @@ def create_figure(
         stem = f"compare_LensingvsNP_RP_{orientation_tag}_z{z_token}_mcz{mcz_token}"
         output_path = os.path.join("figures/contour_I_td", f"{stem}.pdf")
 
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+    apply_physics_paper_style()
 
     fig, axes = plt.subplots(
         2,
@@ -189,7 +188,6 @@ def create_figure(
             ha="right",
             va="top",
             fontsize=12,
-            fontweight="bold",
             zorder=7,
             bbox=dict(
                 facecolor="white",
@@ -198,7 +196,7 @@ def create_figure(
                 boxstyle="round,pad=0.3",
             ),
         )
-        axes[row_idx][0].set_ylabel(LBL_I, fontsize=13)
+        axes[row_idx][0].set_ylabel(LBL_I)
 
     # Column headers (chirp mass) and bottom row x-axis labels
     for col_idx in range(3):

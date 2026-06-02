@@ -176,7 +176,7 @@ def plot_contour_panel(
     )
     ax.legend(
         loc="upper right",
-        fontsize=9,
+        fontsize=11,
         framealpha=0.7,
         edgecolor="none",
         handletextpad=0.3,
@@ -248,12 +248,12 @@ def plot_waveform_panel(
 
     ax_amp.set_ylabel(
         LBL_BRATIO_TS,
-        fontsize=12,
+        fontsize=14,
         labelpad=4,
     )
     ax_phase.set_ylabel(
         LBL_PHASE_TS,
-        fontsize=12,
+        fontsize=14,
         labelpad=4,
     )
 
@@ -396,7 +396,7 @@ def plot_combined(
             frameon=True,
             framealpha=0.7,
             edgecolor="none",
-            fontsize=9,
+            fontsize=11,
         )
 
     save_figure(fig, output_path)

@@ -299,7 +299,7 @@ def _plot_line_pair_figure(
     output_path: str,
     selection_lines: List[str],
 ) -> None:
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=10)
+    apply_physics_paper_style()
     fig, axes = plt.subplots(2, 1, figsize=(8.0, 7.2), sharex=True)
     colors = _axis_colors(len(labels))
     kw = dict(linewidth=2.0, marker="o", markersize=3.4)
@@ -485,7 +485,7 @@ def create_figure(
         datasets, "theta_best", levels_count, vmax=theta_vmax
     )
 
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=10)
+    apply_physics_paper_style()
 
     fig, axes = plt.subplots(
         2,

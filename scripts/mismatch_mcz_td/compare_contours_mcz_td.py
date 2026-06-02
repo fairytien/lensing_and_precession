@@ -163,7 +163,7 @@ def create_figure(
             ha="left",
             va="top",
             color="black",
-            fontsize=11,
+            fontsize=12,
             fontweight="normal",
             bbox={
                 "facecolor": "white",

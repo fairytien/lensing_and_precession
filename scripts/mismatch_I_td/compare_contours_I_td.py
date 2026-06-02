@@ -174,7 +174,6 @@ def _add_panel_box(ax, label: str) -> None:
         handlelength=0,
         handletextpad=0.0,
         borderpad=0.35,
-        fontsize=10.5,
     )
     legend.get_frame().set_facecolor("white")
     legend.get_frame().set_edgecolor("black")
@@ -263,7 +262,7 @@ def create_figure(
     else:
         vmax = float(np.ceil(global_max / 0.05) * 0.05)
 
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+    apply_physics_paper_style()
 
     ncols = len(datasets)
     fig, axes = plt.subplots(
