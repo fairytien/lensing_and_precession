@@ -33,7 +33,7 @@ python -m scripts.mismatch_I_td.compute_mismatch_cubes \
   --theta_min "${THETA_MIN}" --theta_max "${THETA_MAX}" --theta_pts "${THETA_PTS}" \
   --gamma_pts "${GAMMA_PTS}" \
   --n_workers ${NWORKERS} \
-  --use_opt_match \
+  --match_method optimized_bounded \
   --bank_dir "${BANK_DIR}" \
   --run_dir "${RUN_DIR}" \
   --I_chunk_index ${SLURM_ARRAY_TASK_ID} \

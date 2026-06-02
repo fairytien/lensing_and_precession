@@ -33,4 +33,4 @@ srun python -m scripts.contour_omega_theta.v3_indiv_contour_otf \
     --f_min 20.0 \
     --delta_f 0.25 \
     --redshift 1 \
-    --use_opt_match
+    --match_method optimized_bounded

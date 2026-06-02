@@ -1,5 +1,7 @@
 # Replace `use_opt_match`/`compare_both` with `MatchMethod` Enum
 
+> **Status: COMPLETE** — All modules, caller scripts, and batch scripts have been updated.
+
 Replace the two-boolean match-method selection (`use_opt_match`, `compare_both`) with a single `MatchMethod` enum across `match_utils.py`, `bank_io.py`, and all non-legacy caller scripts.
 
 ## Enum Definition
@@ -210,6 +212,34 @@ from modules.match_utils import (
 #### [MODIFY] [functions_v3.py](../modules/functions_v3.py)
 
 Same — add `MatchMethod` to the re-export list.
+
+---
+
+### Batch scripts
+
+#### [MODIFY] [contour_omega_theta_v4.sbatch](../batch_scripts/contour_omega_theta_v4.sbatch)
+
+- Replace `--compare_both` → `--match_method compare_both`
+
+#### [MODIFY] [compute_mismatch_mcz_td_cubes.sbatch](../batch_scripts/compute_mismatch_mcz_td_cubes.sbatch)
+
+- Replace `--use_opt_match` → `--match_method optimized_bounded`
+
+#### [MODIFY] [compute_mismatch_mcz_td_cubes_test.sbatch](../batch_scripts/compute_mismatch_mcz_td_cubes_test.sbatch)
+
+- Replace `--use_opt_match` → `--match_method optimized_bounded`
+
+#### [MODIFY] [contour_omega_theta.sbatch](../batch_scripts/contour_omega_theta.sbatch)
+
+- Replace `--use_opt_match` → `--match_method optimized_bounded`
+
+#### [MODIFY] [compute_mismatch_I_td_cubes.sbatch](../batch_scripts/compute_mismatch_I_td_cubes.sbatch)
+
+- Replace `--use_opt_match` → `--match_method optimized_bounded`
+
+#### [MODIFY] [compute_mismatch_I_td_cubes_test.sbatch](../batch_scripts/compute_mismatch_I_td_cubes_test.sbatch)
+
+- Replace `--use_opt_match` → `--match_method optimized_bounded`
 
 ---
 
