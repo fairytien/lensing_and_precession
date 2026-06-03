@@ -162,7 +162,7 @@ def plot_contour_panel(
         min_theta,
         "*",
         color="white",
-        markersize=12,
+        markersize=16,
         markeredgewidth=0.8,
         markeredgecolor="0.3",
         label=(
@@ -176,18 +176,17 @@ def plot_contour_panel(
     )
     ax.legend(
         loc="upper right",
-        fontsize=11,
         framealpha=0.7,
         edgecolor="none",
         handletextpad=0.3,
     )
 
     if show_xlabel:
-        ax.set_xlabel(LBL_OMEGA, fontsize=14)
+        ax.set_xlabel(LBL_OMEGA)
     else:
         ax.tick_params(axis="x", labelbottom=False)
     if show_ylabel:
-        ax.set_ylabel(LBL_THETA, fontsize=14)
+        ax.set_ylabel(LBL_THETA)
 
     set_square_axes(ax)
 
@@ -197,7 +196,6 @@ def plot_contour_panel(
         0.96,
         rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz:.3g}\,M_{{\odot}}$",
         transform=ax.transAxes,
-        fontsize=12,
         va="top",
         ha="left",
         bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"),
@@ -242,21 +240,12 @@ def plot_waveform_panel(
     ax_amp.tick_params(axis="x", labelbottom=False)
 
     if show_xlabel:
-        ax_phase.set_xlabel(LBL_F, fontsize=14)
+        ax_phase.set_xlabel(LBL_F)
     else:
         ax_phase.tick_params(axis="x", labelbottom=False)
 
-    ax_amp.set_ylabel(
-        LBL_BRATIO_TS,
-        fontsize=14,
-        labelpad=4,
-    )
-    ax_phase.set_ylabel(
-        LBL_PHASE_TS,
-        fontsize=14,
-        labelpad=4,
-    )
-
+    ax_amp.set_ylabel(LBL_BRATIO_TS, labelpad=4)
+    ax_phase.set_ylabel(LBL_PHASE_TS, labelpad=4)
     if ylabel_right:
         for ax in (ax_amp, ax_phase):
             ax.yaxis.set_ticks_position("right")
@@ -281,10 +270,10 @@ def plot_combined(
 ) -> str:
     nrows = len(contour_datasets)
 
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+    apply_physics_paper_style(base_font=16, label_font=20, tick_font=16, legend_font=14)
 
     left_margin = 0.22 if colorbar_side == "left" else 0.07
-    col_wspace = 0.18 if colorbar_side == "left" else 0.22
+    col_wspace = 0.18 if colorbar_side == "left" else 0.29
     fig_width = 16.0
     gs_right, gs_top, gs_bottom = 0.88, 0.94, 0.06
     gs_hspace = 0.08
@@ -383,7 +372,7 @@ def plot_combined(
     if colorbar_side == "left":
         cbar.ax.yaxis.set_ticks_position("left")
         cbar.ax.yaxis.set_label_position("left")
-    cbar.set_label(LBL_EPS_LP, fontsize=14)
+    cbar.set_label(LBL_EPS_LP)
     format_colorbar_ticks(cbar, vmin, vmax, decimals=2)
 
     h, l = first_wf_ax_amp.get_legend_handles_labels()
@@ -396,7 +385,6 @@ def plot_combined(
             frameon=True,
             framealpha=0.7,
             edgecolor="none",
-            fontsize=11,
         )
 
     save_figure(fig, output_path)
