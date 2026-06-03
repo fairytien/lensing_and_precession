@@ -608,24 +608,32 @@ def contour_mcz_td_filename(
 
 def compare_mcz_td_figure_filename(
     fig_dir: str,
-    I: float,
     orientation_tags: List[str],
-    z: Optional[float] = None,
+    I: float,
+    z: Optional[float],
+    mcz_min: float,
+    mcz_max: float,
+    td_min_ms: float,
+    td_max_ms: float,
     ext: str = "pdf",
 ) -> str:
     """Build the figure path for compare_Lensing outputs over (td, mcz).
 
-    Encodes the fixed flux ratio, redshift, and orientation tags of the
-    precessing panels.  Extrema-overlay style is intentionally not encoded.
+    Encodes the fixed flux ratio, redshift, orientation tags of the
+    precessing panels, and the swept parameter ranges.
     """
     z_token = _canonical_z_token(z)
-    tags_token = "_".join(str(t).strip() for t in orientation_tags)
+    # Exclude the orientation tag of the LvsNP panel (assuming it is the first tag if there are 4)
+    rp_tags = orientation_tags[1:] if len(orientation_tags) == 4 else orientation_tags
+    tags_token = "_".join(str(t).strip() for t in rp_tags)
     stem = "_".join(
         [
-            "compare_Lensing",
+            "compare_LvsNP_RP",
+            tags_token,
             f"I{_format_min_precision(I)}",
             f"z{z_token}",
-            tags_token,
+            f"mcz{_range_token(mcz_min, mcz_max, coerce_int=True)}",
+            f"td{_range_token(td_min_ms, td_max_ms, coerce_int=True)}",
         ]
     )
     return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")

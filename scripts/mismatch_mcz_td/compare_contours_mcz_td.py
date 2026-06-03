@@ -47,14 +47,12 @@ from scripts.utils.plot_cycles_and_extrema import (
     plot_mcz_extrema,
 )
 
-DEFAULT_PATHS = [
-    "data/contour_mcz_td/contour_L_NP_I0.5_z1_mcz5-45Msun_td20-70ms_min_mismatch_Taman_edgeon.h5",
-    "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5",
-    "data/mismatch_I0p5_z1e-08_mcz10-90_td20-70_Taman_edgeon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5",
-    "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5",
-]
-
-DEFAULT_PANEL_LABELS = ["Non-Precessing", "System 1", "System 2", "System 3"]
+DEFAULT_PANELS = {
+    "Non-Precessing": "data/mismatch_L_NP_I0p5_z1_mcz5-45_td20-70_Taman_edgeon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-0x1_theta0-0x1_gamma0-2pix1_Taman_edgeon.h5",
+    "System 1": "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_faceon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_faceon.h5",
+    "System 2": "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_edgeon/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5",
+    "System 3": "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_random/best_match/best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_random.h5",
+}
 
 
 def _validate_paths(paths: List[str]) -> List[str]:
@@ -84,7 +82,6 @@ def create_figure(
     paths: List[str],
     panel_labels: List[str],
     output_path: str | None,
-    fig_dir: str,
     decimals: int,
     levels_count: int,
     eta: float,
@@ -103,19 +100,32 @@ def create_figure(
     eps = [p[2] for p in panels]
     metas = [p[3] for p in panels]
 
-    if output_path is None:
+    if (
+        output_path is None
+        or os.path.isdir(output_path)
+        or not os.path.splitext(output_path)[1]
+    ):
+        fig_dir = output_path if output_path is not None else "figures/contour_mcz_td"
         orientation_tags = [m["orientation_tag"] for m in metas]
+        mcz_min = float(np.nanmin(ys[0]))
+        mcz_max = float(np.nanmax(ys[0]))
+        td_min_ms = float(np.nanmin(xs[0]))
+        td_max_ms = float(np.nanmax(xs[0]))
         output_path = compare_mcz_td_figure_filename(
             fig_dir,
-            I=metas[0]["I"],
-            z=metas[0]["z"],
-            orientation_tags=orientation_tags,
+            orientation_tags,
+            metas[0]["I"],
+            metas[0]["z"],
+            mcz_min,
+            mcz_max,
+            td_min_ms,
+            td_max_ms,
         )
 
     eps_masked, global_min, global_max = compute_color_scale(eps, "auto")
     overlay_mcz_scale = source_mass_redshift_scale(z_from, z_to)
 
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+    apply_physics_paper_style()
 
     fig, axes = plt.subplots(2, 2, figsize=(10.0, 8.8), sharex=True, sharey=True)
     axes = axes.reshape(-1)
@@ -215,17 +225,16 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--paths",
         nargs=4,
-        default=DEFAULT_PATHS,
+        default=list(DEFAULT_PANELS.values()),
         help="Exactly 4 input paths in panel order.",
     )
     parser.add_argument(
         "--panel-labels",
         nargs=4,
-        default=DEFAULT_PANEL_LABELS,
+        default=list(DEFAULT_PANELS.keys()),
         help="Exactly 4 in-panel box labels.",
     )
     parser.add_argument("--output", type=str, default=None)
-    parser.add_argument("--fig-dir", type=str, default="figures/contour_mcz_td")
     parser.add_argument("--decimals", type=int, default=2)
     parser.add_argument("--levels", type=int, default=160)
     parser.add_argument("--eta", type=float, default=0.25)
@@ -244,7 +253,6 @@ def main() -> None:
         paths=paths,
         panel_labels=args.panel_labels,
         output_path=args.output,
-        fig_dir=args.fig_dir,
         decimals=args.decimals,
         levels_count=args.levels,
         eta=args.eta,
