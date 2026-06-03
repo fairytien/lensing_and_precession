@@ -275,7 +275,7 @@ def plot_combined(
     col_wspace = 0.18 if colorbar_side == "left" else 0.29
     fig_width = 16.0
     gs_right, gs_top, gs_bottom = 0.88, 0.94, 0.06
-    gs_hspace = 0.10
+    gs_hspace = 0.09
     width_ratios = [1, 1.3]
     # Size figure height so each outer row height = contour column width,
     # which makes set_box_aspect(1) fill the row and match the waveform pair height.
