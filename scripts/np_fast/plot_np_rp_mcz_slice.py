@@ -26,6 +26,8 @@ from scripts.utils.plot_cycles_and_extrema import FIXED_MCZ_CYCLE_STYLES
 PEAK_COLOR = "magenta"
 TROUGH_COLOR = "cyan"
 EXTREMA_LINESTYLE = ":"
+PRIMARY_LW = 2.2
+SECONDARY_LW = 1.6
 
 
 def _normalize_orientation_tag(tag: str) -> str:
@@ -171,7 +173,7 @@ def _plot(
         mcz_fixed,
         fixed_np_curve,
         color="red",
-        lw=2.2,
+        lw=PRIMARY_LW,
         ls="-",
         label=LBL_EPS_LNP,
         zorder=4,
@@ -180,7 +182,7 @@ def _plot(
         mcz_opt,
         opt_np_curve,
         color="green",
-        lw=2.2,
+        lw=PRIMARY_LW,
         ls="--",
         label=LBL_MIN_MCZ_EPS_LNP,
         zorder=4,
@@ -189,7 +191,7 @@ def _plot(
         mcz_rp,
         blue_curve,
         color="blue",
-        lw=2.2,
+        lw=PRIMARY_LW,
         ls="-",
         label=LBL_EPS_LRP,
         zorder=4,
@@ -212,7 +214,7 @@ def _plot(
         )
         if mcz_min_src <= x_val_src <= mcz_max_src:
             ax.axvline(
-                x=x_val_src, color="black", ls=ls_style, lw=1.6, alpha=0.9, zorder=2
+                x=x_val_src, color="black", ls=ls_style, lw=PRIMARY_LW, alpha=0.9, zorder=2
             )
 
     # Extrema-line convention: peaks=magenta dotted, troughs=cyan dotted.
@@ -226,7 +228,7 @@ def _plot(
             x=float(x_val),
             color=PEAK_COLOR,
             ls=EXTREMA_LINESTYLE,
-            lw=1.6,
+            lw=SECONDARY_LW,
             alpha=0.95,
             zorder=2,
         )
@@ -241,7 +243,7 @@ def _plot(
             x=float(x_val),
             color=TROUGH_COLOR,
             ls=EXTREMA_LINESTYLE,
-            lw=1.6,
+            lw=SECONDARY_LW,
             alpha=0.95,
             zorder=2,
         )
@@ -251,7 +253,7 @@ def _plot(
         y=ep_horizontal,
         color="gray",
         ls="-.",
-        lw=2.0,
+        lw=SECONDARY_LW,
         label=r"$1 - (1 + I)^{-1/2}$",
         zorder=2,
     )
@@ -273,7 +275,7 @@ def _plot(
                 [0],
                 color="black",
                 ls=ls_style,
-                lw=1.6,
+                lw=PRIMARY_LW,
                 label=rf"$N_{{\mathrm{{lensed}}}}={n_cycles}$",
             )
         )
@@ -284,7 +286,7 @@ def _plot(
             [0],
             color=PEAK_COLOR,
             ls=EXTREMA_LINESTYLE,
-            lw=1.6,
+            lw=SECONDARY_LW,
             label=r"$\mathrm{peak}$",
         ),
         Line2D(
@@ -292,7 +294,7 @@ def _plot(
             [0],
             color=TROUGH_COLOR,
             ls=EXTREMA_LINESTYLE,
-            lw=1.6,
+            lw=SECONDARY_LW,
             label=r"$\mathrm{trough}$",
         ),
     ]

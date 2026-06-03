@@ -175,7 +175,7 @@ def plot_contour_panel(
         ),
     )
     ax.legend(
-        loc="upper right",
+        loc="lower right",
         framealpha=0.7,
         edgecolor="none",
         handletextpad=0.3,
@@ -216,7 +216,7 @@ def plot_waveform_panel(
     *,
     f_min: float = 20.0,
     npoints: int = 10000,
-    show_xlabel: bool = False,
+    show_xlabel: bool = True,
     ylabel_right: bool = False,
 ) -> dict:
     summary = plot_best_match_overlay_from_contour(
@@ -236,13 +236,12 @@ def plot_waveform_panel(
 
     for ax in (ax_amp, ax_phase):
         ax.set_xlim(f_min, float(summary["f_cut"]))
+        ax.grid(True)
 
     ax_amp.tick_params(axis="x", labelbottom=False)
 
     if show_xlabel:
         ax_phase.set_xlabel(LBL_F)
-    else:
-        ax_phase.tick_params(axis="x", labelbottom=False)
 
     ax_amp.set_ylabel(LBL_BRATIO_TS, labelpad=4)
     ax_phase.set_ylabel(LBL_PHASE_TS, labelpad=4)
@@ -276,7 +275,7 @@ def plot_combined(
     col_wspace = 0.18 if colorbar_side == "left" else 0.29
     fig_width = 16.0
     gs_right, gs_top, gs_bottom = 0.88, 0.94, 0.06
-    gs_hspace = 0.08
+    gs_hspace = 0.10
     width_ratios = [1, 1.3]
     # Size figure height so each outer row height = contour column width,
     # which makes set_box_aspect(1) fill the row and match the waveform pair height.
@@ -306,7 +305,7 @@ def plot_combined(
         top=gs_top,
     )
 
-    vmin = min(float(np.nanmin(d["epsilon_matrix"])) for d in contour_datasets)
+    vmin = 0.0
     vmax = max(float(np.nanmax(d["epsilon_matrix"])) for d in contour_datasets)
     saturated = vmax_cap is not None and vmax_cap < vmax
     if saturated:
