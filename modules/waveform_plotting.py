@@ -249,7 +249,7 @@ def plot_lensing_figure(
     save_path: optional file path to save the figure; format inferred by extension.
     Returns (fig, axes).
     """
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+    apply_physics_paper_style()
     _validate_amplitude_mode(amplitude_mode)
     if npoints < 2:
         raise ValueError("npoints must be >= 2")
@@ -430,7 +430,7 @@ def plot_precessing_figure(
     save_path: optional file path to save the figure; format inferred by extension.
     Returns (fig, axes).
     """
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=11)
+    apply_physics_paper_style()
     _validate_amplitude_mode(amplitude_mode)
     if delta_f <= 0:
         raise ValueError("delta_f must be > 0")
