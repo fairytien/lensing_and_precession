@@ -4,12 +4,13 @@ import argparse
 import os
 from typing import Any, Dict, Optional, Tuple, cast
 
+import h5py
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 
 from modules.bank_io import read_best_match_mcz_td_data
-from modules.default_params import lens_params_1
-from modules.filenames import compare_mcz_td_figure_filename
+from modules.filenames import _canonical_token, _range_token
 from modules.lens_cycle_extrema import find_mcz_peaks, find_mcz_troughs
 from modules.plot_utils import (
     apply_physics_paper_style,
@@ -67,7 +68,6 @@ def _default_output_path(
     mcz_max: float,
     orientation_tag: str,
 ) -> str:
-    from modules.filenames import _canonical_token, _range_token
 
     I_str = f"I{_canonical_token(I_val)}"
     td_str = f"td{int(td_ms)}"
@@ -85,10 +85,17 @@ def _build_curves(
     td_ms: float,
     rp_best_match: str,
     z: float,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, Dict[str, Any]]:
+) -> Tuple[
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    np.ndarray,
+    Dict[str, Any],
+]:
     l_np = read_best_match_mcz_td_data(l_np_path, "epsilon_min")
-
-    mcz_arr = np.asarray(l_np["mcz"], dtype=float)
+    mcz_fixed = np.asarray(l_np["mcz"], dtype=float)
     td_arr = np.asarray(l_np["td"], dtype=float)
 
     td_target_s = td_ms / 1e3
@@ -105,7 +112,11 @@ def _build_curves(
         )
 
     l_np_opt = read_best_match_mcz_td_data(l_np_opt_path, "epsilon_min")
-    opt_np_curve = np.asarray(l_np_opt["values"][:, td_idx], dtype=float)
+    mcz_opt = np.asarray(l_np_opt["mcz"], dtype=float)
+    td_arr_opt = np.asarray(l_np_opt["td"], dtype=float)
+    td_idx_opt = _nearest_index(td_arr_opt, td_target_s)
+    opt_np_curve = np.asarray(l_np_opt["values"][:, td_idx_opt], dtype=float)
+
     z_lnp_opt = cast(Optional[float], l_np_opt["z"])
     if z_lnp_opt is None or not np.isclose(z_lnp_opt, z, rtol=0.0, atol=1e-12):
         raise ValueError(
@@ -124,19 +135,25 @@ def _build_curves(
             "Provide a best_match file generated at the requested redshift."
         )
 
+    with h5py.File(l_np_path, "r") as h5:
+        eta_val = float(h5.attrs.get("source_param_eta", 0.25))
+
+    z_actual = float(z_lnp)
+
     meta = {
         "I": float(l_np["I"]),
-        "z": z,
+        "z": z_actual,
         "td_s": td_actual_s,
-        "eta": float(lens_params_1["eta"]),
+        "eta": eta_val,
         "orientation_tag": orientation_tag,
         "rp_source": f"best_match:{rp_best_match}",
     }
-    return mcz_arr, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta
+    return mcz_fixed, mcz_opt, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta
 
 
 def _plot(
-    mcz_arr: np.ndarray,
+    mcz_fixed: np.ndarray,
+    mcz_opt: np.ndarray,
     mcz_rp: np.ndarray,
     fixed_np_curve: np.ndarray,
     opt_np_curve: np.ndarray,
@@ -144,14 +161,14 @@ def _plot(
     meta: Dict[str, Any],
     output_path: str,
     z: float = 0.0,
-    one_column: bool = False,
+    one_col_legend: bool = False,
 ) -> None:
     apply_physics_paper_style(base_font=16, label_font=20, tick_font=17, legend_font=14)
     fig, ax = plt.subplots(figsize=(8.8, 6.6))
     ax.set_facecolor("white")
 
     ax.plot(
-        mcz_arr,
+        mcz_fixed,
         fixed_np_curve,
         color="red",
         lw=2.2,
@@ -160,7 +177,7 @@ def _plot(
         zorder=4,
     )
     ax.plot(
-        mcz_arr,
+        mcz_opt,
         opt_np_curve,
         color="green",
         lw=2.2,
@@ -180,10 +197,9 @@ def _plot(
 
     td_s = float(meta["td_s"])
     eta = float(meta["eta"])
-    z_scale = 1.0 + z
-    all_mcz = np.concatenate([mcz_arr, mcz_rp])
-    mcz_min_src = float(np.nanmin(all_mcz))
-    mcz_max_src = float(np.nanmax(all_mcz))
+    z_scale = 1.0 + float(meta["z"])
+    mcz_min_src = float(mcz_fixed.min())
+    mcz_max_src = float(mcz_fixed.max())
     # Detector-frame bounds for cycle/extrema helpers (they operate in detector frame).
     mcz_min_det = mcz_min_src * z_scale
     mcz_max_det = mcz_max_src * z_scale
@@ -247,7 +263,7 @@ def _plot(
     ax.set_xlabel(r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$")
     ax.set_ylabel(r"$\epsilon$")
 
-    from matplotlib.lines import Line2D
+
 
     cycle_legend_handles = []
     for n_cycles, ls_style in FIXED_MCZ_CYCLE_STYLES.items():
@@ -282,7 +298,7 @@ def _plot(
     ]
 
     handles, labels = ax.get_legend_handles_labels()
-    if one_column:
+    if one_col_legend:
         all_handles = handles + cycle_legend_handles + extrema_legend_handles
         ax.legend(handles=all_handles, loc="best", framealpha=0.85)
     else:
@@ -343,7 +359,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output", type=str, default=None)
     parser.add_argument(
-        "--one-column",
+        "--one-col-legend",
         action="store_true",
         help="Use a single-column layout for the legend instead of two columns.",
     )
@@ -353,7 +369,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    mcz_arr, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta = _build_curves(
+    mcz_fixed, mcz_opt, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta = _build_curves(
         l_np_path=args.l_np_contour,
         l_np_opt_path=args.l_np_opt_contour,
         td_ms=args.td_ms,
@@ -366,14 +382,15 @@ def main() -> None:
         output_path = _default_output_path(
             I_val=float(meta["I"]),
             td_ms=args.td_ms,
-            z_val=args.z,
-            mcz_min=mcz_arr.min(),
-            mcz_max=mcz_arr.max(),
+            z_val=float(meta["z"]),
+            mcz_min=mcz_fixed.min(),
+            mcz_max=mcz_fixed.max(),
             orientation_tag=str(meta["orientation_tag"]),
         )
 
     _plot(
-        mcz_arr=mcz_arr,
+        mcz_fixed=mcz_fixed,
+        mcz_opt=mcz_opt,
         mcz_rp=mcz_rp,
         fixed_np_curve=fixed_np_curve,
         opt_np_curve=opt_np_curve,
@@ -381,7 +398,7 @@ def main() -> None:
         meta=meta,
         output_path=output_path,
         z=args.z,
-        one_column=args.one_column,
+        one_col_legend=args.one_col_legend,
     )
 
     print(f"RP source used: {meta['rp_source']}")

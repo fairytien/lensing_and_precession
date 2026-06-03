@@ -39,6 +39,7 @@ from modules.bank_io import (
     write_orientation_attr,
     write_scalar_attr_with_unit,
     write_missing_mcz_td_metadata,
+    write_match_provenance_attrs,
 )
 
 ORIENTATION_TAG = "Taman_edgeon"
@@ -364,6 +365,7 @@ def main(
         )
         h5.attrs["I"] = float(I)
         h5.attrs["template_family"] = "NP"
+        write_match_provenance_attrs(h5, match_method=MatchMethod.OPTIMIZED_BOUNDED)
         write_scalar_attr_with_unit(h5, "z", z, none_as_nan=True)
         write_orientation_attr(h5, ORIENTATION_TAG)
 
@@ -451,7 +453,7 @@ def main(
             h5.attrs["optimized_over"] = "mcz"
             write_scalar_attr_with_unit(h5, "opt_mcz_window", opt_mcz_window)
             write_scalar_attr_with_unit(h5, "opt_mcz_pts", opt_mcz_pts)
-            h5.attrs["match_method"] = "optimized_bounded"
+            write_match_provenance_attrs(h5, match_method=MatchMethod.OPTIMIZED_BOUNDED)
             write_scalar_attr_with_unit(h5, "z", z, none_as_nan=True)
             write_orientation_attr(h5, ORIENTATION_TAG)
 
