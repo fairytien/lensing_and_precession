@@ -328,21 +328,27 @@ def parse_args() -> argparse.Namespace:
         "--l-np-contour",
         type=str,
         default=(
-            "data/contour_mcz_td/"
-            "contour_L_NP_I0.5_z1_mcz10-90Msun_td20-70ms_min_mismatch_Taman_edgeon.h5"
+            "data/mismatch_L_NP_I0p5_z1_mcz5-45_td20-70_Taman_edgeon/best_match/"
+            "best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-0x1_theta0-0x1_gamma0-2pix1_Taman_edgeon.h5"
         ),
         help="Path to L-vs-NP contour HDF5 (fixed mcz).",
     )
     parser.add_argument(
         "--l-np-opt-contour",
         type=str,
-        required=True,
+        default=(
+            "data/mismatch_L_NP_opt_mcz_I0p5_z1_mcz5-45_td20-70_Taman_edgeon/best_match/"
+            "best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-0x1_theta0-0x1_gamma0-2pix1_Taman_edgeon.h5"
+        ),
         help="Path to L-vs-NP contour HDF5 (optimized over template mcz).",
     )
     parser.add_argument(
         "--rp-best-match",
         type=str,
-        required=True,
+        default=(
+            "data/mismatch_I0p5_z1_mcz5-45_td20-70_Taman_edgeon/best_match/"
+            "best_match_I0p5_z1_mcz5-45x81_td20-70x51_omega0-6x61_theta0-15x151_gamma0-2pix51_Taman_edgeon.h5"
+        ),
         help="RP best-match HDF5 path.",
     )
     parser.add_argument(
