@@ -288,6 +288,115 @@ def _mark_contour_minima(X, Y, Z, n_minima):
         )
 
 
+def resolve_contour_vlim(eps_grid, *, vmax_cap=None):
+    """Return (vmin, vmax, saturated) for a contour stack."""
+    z = np.asarray(eps_grid, dtype=float)
+    z = z[np.isfinite(z)]
+    vmin = 0.0
+    zmax = float(np.max(z)) if z.size else 1.0
+    saturated = vmax_cap is not None and vmax_cap < zmax
+    if saturated:
+        zmax = float(vmax_cap)
+    return vmin, zmax, saturated
+
+
+def compute_best_match_point(X, Y, Z, gamma_P):
+    min_idx = np.unravel_index(np.nanargmin(Z), Z.shape)
+    min_epsilon = float(Z[min_idx])
+    epsilon_NP = float(Z[0, 0])
+    ratio = epsilon_NP / min_epsilon if min_epsilon > 0 else float("nan")
+    return {
+        "min_omega": float(X[min_idx]),
+        "min_theta": float(Y[min_idx]),
+        "min_epsilon": min_epsilon,
+        "gamma_P": float(gamma_P[min_idx]),
+        "epsilon_NP": epsilon_NP,
+        "ratio": ratio,
+    }
+
+
+def best_match_contour_legend_label(point, *, line_break="\n"):
+    return (
+        rf"$\epsilon_{{\mathrm{{RP}}}}={point['min_epsilon']:.3g}$, "
+        rf"$\epsilon_{{\mathrm{{NP}}}}/\epsilon_{{\mathrm{{RP}}}}={point['ratio']:.2f}$"
+        f"{line_break}"
+        rf"$\tilde{{\theta}}={point['min_theta']:.2f}$, "
+        rf"$\tilde{{\Omega}}={point['min_omega']:.2f}$, "
+        rf"$\gamma_{{\mathrm{{P}}}}={point['gamma_P']:.2f}$"
+    )
+
+
+def mcz_contour_panel_text(mcz_msun):
+    return rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_msun:.3g}\,M_{{\odot}}$"
+
+
+def draw_omega_theta_contour_panel(
+    ax,
+    X,
+    Y,
+    Z,
+    gamma_P,
+    *,
+    mcz_msun,
+    vmin,
+    vmax,
+    saturated=False,
+    levels=100,
+    cmap="jet",
+    show_xlabel=True,
+    show_ylabel=True,
+):
+    cf = ax.contourf(
+        X,
+        Y,
+        Z,
+        levels=np.linspace(vmin, vmax, levels),
+        cmap=cmap,
+        extend="max" if saturated else "neither",
+    )
+
+    point = compute_best_match_point(X, Y, Z, gamma_P)
+    ax.plot(
+        point["min_omega"],
+        point["min_theta"],
+        "*",
+        color="white",
+        markersize=16,
+        markeredgewidth=0.8,
+        markeredgecolor="0.3",
+        label=best_match_contour_legend_label(point),
+    )
+    ax.legend(
+        loc="lower right",
+        framealpha=0.7,
+        edgecolor="none",
+        handletextpad=0.3,
+    )
+
+    if show_xlabel:
+        ax.set_xlabel(LBL_OMEGA)
+    else:
+        ax.tick_params(axis="x", labelbottom=False)
+    if show_ylabel:
+        ax.set_ylabel(LBL_THETA)
+    else:
+        ax.tick_params(axis="y", labelleft=False)
+
+    set_square_axes(ax)
+
+    ax.text(
+        0.03,
+        0.96,
+        mcz_contour_panel_text(mcz_msun),
+        transform=ax.transAxes,
+        va="top",
+        ha="left",
+        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"),
+    )
+
+    return cf
+
+
 def _add_contour_title(src_params, td, I):
     """Add standard physics annotation title to the current contour plot."""
     plt.title(

@@ -24,14 +24,21 @@ from modules.filenames import (
     parse_mcz_from_mismatch_mcz_cube_path,
 )
 import matplotlib.pyplot as plt
-from modules.plot_utils import apply_physics_paper_style, save_figure
+from modules.plot_utils import (
+    LBL_EPS_LP,
+    apply_physics_paper_style,
+    draw_omega_theta_contour_panel,
+    format_colorbar_ticks,
+    resolve_contour_vlim,
+    save_figure,
+)
 from scripts.utils._cube_viz import (
     find_td_index,
     save_contour_movie,
     save_html_slider,
 )
 
-apply_physics_paper_style()
+apply_physics_paper_style(base_font=16, label_font=20, tick_font=16, legend_font=14)
 
 
 def _infer_mcz_msun_numeric(h5_file) -> float:
@@ -51,8 +58,13 @@ def save_grid_with_individual_colorbars(
     omega: np.ndarray,
     theta: np.ndarray,
     eps_grid_over_mcz: np.ndarray,
+    gamma_grid_over_mcz: np.ndarray,
     mcz_msun_list: np.ndarray,
     out_path: str,
+    *,
+    vmin: float,
+    vmax: float,
+    saturated: bool,
     cmap: str = "jet",
     levels: int = 100,
     cols: int = 4,
@@ -68,14 +80,13 @@ def save_grid_with_individual_colorbars(
     if n_frames == 0:
         raise ValueError("No frames available to plot")
 
-    # Choose indices evenly spaced across available frames
     panels = min(int(max_panels), n_frames)
     sel_idx = np.linspace(0, n_frames - 1, panels).round().astype(int)
     rows = int(np.ceil(panels / max(int(cols), 1)))
 
     X, Y = np.meshgrid(omega, theta)
     fig, axes = plt.subplots(
-        rows, int(cols), figsize=(3.2 * cols, 2.8 * rows), squeeze=False
+        rows, int(cols), figsize=(3.8 * cols, 3.4 * rows), squeeze=False
     )
 
     for k, ax in enumerate(axes.flat):
@@ -83,13 +94,22 @@ def save_grid_with_individual_colorbars(
             ax.axis("off")
             continue
         i = int(sel_idx[k])
-        Z = eps_grid_over_mcz[i]
-        cf = ax.contourf(X, Y, Z, levels=levels, cmap=cmap)
+        cf = draw_omega_theta_contour_panel(
+            ax,
+            X,
+            Y,
+            eps_grid_over_mcz[i],
+            gamma_grid_over_mcz[i],
+            mcz_msun=float(mcz_msun_list[i]),
+            vmin=vmin,
+            vmax=vmax,
+            saturated=saturated,
+            levels=levels,
+            cmap=cmap,
+        )
         cbar = fig.colorbar(cf, ax=ax)
-        cbar.set_label(r"$\epsilon$")
-        ax.set_xlabel(r"$\tilde{\Omega}$")
-        ax.set_ylabel(r"$\tilde{\theta}$")
-        ax.set_title(f"mcz = {mcz_msun_list[i]:.2f} Msun", fontsize=10)
+        cbar.set_label(LBL_EPS_LP)
+        format_colorbar_ticks(cbar, vmin, vmax, decimals=2)
 
     fig.tight_layout()
     save_figure(fig, out_path)
@@ -128,6 +148,12 @@ def main():
     p.add_argument("--levels", type=int, default=100)
     p.add_argument("--fps", type=int, default=5)
     p.add_argument(
+        "--vmax",
+        type=float,
+        default=0.5,
+        help="Saturate the colorbar at this epsilon value (default: 0.5)",
+    )
+    p.add_argument(
         "--mp4",
         action="store_true",
         help="Force MP4; fallback to GIF if ffmpeg missing",
@@ -161,9 +187,9 @@ def main():
             f"No mismatch cube files found in {args.input_dir}. Expected .h5 files directly inside mismatch_cubes/."
         )
 
-    # Load axes consistency and collect per-mcz slices at fixed td
     mcz_msun_vals: List[float] = []
     eps_slices: List[np.ndarray] = []
+    gamma_slices: List[np.ndarray] = []
     theta_ref: Optional[np.ndarray] = None
     omega_ref: Optional[np.ndarray] = None
     gamma_ref: Optional[np.ndarray] = None
@@ -171,7 +197,14 @@ def main():
 
     for fp in files:
         with h5py.File(fp, "r") as h5:
-            for ds in ("td", "theta", "omega", "gamma", "epsilon_min_grid"):
+            for ds in (
+                "td",
+                "theta",
+                "omega",
+                "gamma",
+                "epsilon_min_grid",
+                "gamma_best_grid",
+            ):
                 if ds not in h5:
                     raise KeyError(
                         f"Dataset '{ds}' missing in {fp}; found keys: {list(h5.keys())}"
@@ -182,6 +215,7 @@ def main():
             gamma = np.array(h5["gamma"], dtype=float)
             td = np.array(h5["td"], dtype=float)
             eps = np.array(h5["epsilon_min_grid"], dtype=float)
+            gamma_best = np.array(h5["gamma_best_grid"], dtype=float)
 
             raw_I = h5.attrs.get("I")
             if raw_I is None or not np.isclose(float(raw_I), float(run_meta["I"])):
@@ -236,23 +270,22 @@ def main():
                 raise ValueError(
                     f"Unexpected epsilon_min_grid shape {eps.shape}; expected (n_td, {theta.size}, {omega.size})"
                 )
-
-            slice_eps = eps[td_idx]
-            eps_slices.append(slice_eps)
+            eps_slices.append(eps[td_idx])
+            gamma_slices.append(gamma_best[td_idx])
             mcz_msun_vals.append(_infer_mcz_msun_numeric(h5))
 
-    # Sort by mcz
     mcz_msun_arr = np.array(mcz_msun_vals, dtype=float)
     order = np.argsort(mcz_msun_arr)
     mcz_msun_arr = mcz_msun_arr[order]
-    eps_stack = np.stack(
-        [eps_slices[i] for i in order], axis=0
-    )  # (n_mcz, n_theta, n_omega)
+    eps_stack = np.stack([eps_slices[i] for i in order], axis=0)
+    gamma_stack = np.stack([gamma_slices[i] for i in order], axis=0)
 
     assert theta_ref is not None and omega_ref is not None
     theta_ref = np.asarray(theta_ref)
     omega_ref = np.asarray(omega_ref)
     assert grid_params is not None
+
+    vmin, vmax, saturated = resolve_contour_vlim(eps_stack, vmax_cap=args.vmax)
 
     os.makedirs(args.output_dir, exist_ok=True)
     movie_ext = "mp4" if (args.mp4 and not args.gif) else "gif"
@@ -275,11 +308,11 @@ def main():
     )
     base, _ = os.path.splitext(movie_path)
 
-    # Movie over mcz
     save_contour_movie(
         omega=omega_ref,
         theta=theta_ref,
         eps_grid=eps_stack,
+        gamma_grid=gamma_stack,
         sweep_values=mcz_msun_arr,
         out_path=movie_path,
         sweep_label="mcz",
@@ -287,32 +320,37 @@ def main():
         cmap=args.cmap,
         levels=args.levels,
         fps=args.fps,
+        vmax_cap=args.vmax,
     )
 
-    # HTML slider over mcz
     if args.html:
         html_path = base + ".html"
         save_html_slider(
             omega=omega_ref,
             theta=theta_ref,
             eps_grid=eps_stack,
+            gamma_grid=gamma_stack,
             sweep_values=mcz_msun_arr,
             out_path=html_path,
             sweep_label="mcz",
             sweep_fmt="{:.2f} Msun",
             cmap="Jet",
             levels=args.levels,
+            vmax_cap=args.vmax,
         )
 
-    # Grid with individual colorbars
     if args.grid:
         grid_path = base + "_grid.png"
         save_grid_with_individual_colorbars(
             omega=omega_ref,
             theta=theta_ref,
             eps_grid_over_mcz=eps_stack,
+            gamma_grid_over_mcz=gamma_stack,
             mcz_msun_list=mcz_msun_arr,
             out_path=grid_path,
+            vmin=vmin,
+            vmax=vmax,
+            saturated=saturated,
             cmap=args.cmap,
             levels=args.levels,
             cols=args.grid_cols,

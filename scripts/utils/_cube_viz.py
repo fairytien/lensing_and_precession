@@ -8,7 +8,18 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 from modules.filenames import get_mismatch_cube_resolution
-from modules.plot_utils import LBL_EPS_LP, LBL_OMEGA, LBL_THETA
+from modules.plot_utils import (
+    LBL_EPS_LP,
+    LBL_OMEGA,
+    LBL_THETA,
+    add_colorbar_axes,
+    best_match_contour_legend_label,
+    compute_best_match_point,
+    draw_omega_theta_contour_panel,
+    format_colorbar_ticks,
+    mcz_contour_panel_text,
+    resolve_contour_vlim,
+)
 
 
 def infer_orientation_tag_from_filename(path: str) -> str:
@@ -47,10 +58,40 @@ def find_td_index(td_seconds: np.ndarray, target_td_ms: float) -> int:
     return int(np.argmin(np.abs(td_seconds - target_s)))
 
 
+def _plotly_frame_annotations(point: dict, mcz_msun: float) -> list:
+    return [
+        dict(
+            x=0.03,
+            y=0.96,
+            xref="paper",
+            yref="paper",
+            text=mcz_contour_panel_text(mcz_msun),
+            showarrow=False,
+            xanchor="left",
+            yanchor="top",
+            bgcolor="rgba(255,255,255,0.7)",
+            borderwidth=0,
+        ),
+        dict(
+            x=0.97,
+            y=0.03,
+            xref="paper",
+            yref="paper",
+            text=best_match_contour_legend_label(point, line_break="<br>"),
+            showarrow=False,
+            xanchor="right",
+            yanchor="bottom",
+            bgcolor="rgba(255,255,255,0.7)",
+            borderwidth=0,
+        ),
+    ]
+
+
 def save_contour_movie(
     omega: np.ndarray,
     theta: np.ndarray,
     eps_grid: np.ndarray,
+    gamma_grid: np.ndarray,
     sweep_values: np.ndarray,
     out_path: str,
     sweep_label: str,
@@ -58,39 +99,47 @@ def save_contour_movie(
     cmap: str = "jet",
     levels: int = 100,
     fps: int = 5,
+    vmax_cap: Optional[float] = None,
 ) -> str:
-    """Create a contour movie over a sweep parameter (td or mcz).
+    """Create a styled contour movie over a sweep parameter (td or mcz).
 
     Parameters
     ----------
     omega : (n_omega,) array
     theta : (n_theta,) array
     eps_grid : (n_frames, n_theta, n_omega)
-    sweep_values : (n_frames,) array of parameter values for title
+    gamma_grid : (n_frames, n_theta, n_omega) — best-fit gamma_P at each grid point
+    sweep_values : (n_frames,) array of mcz values (Msun) used for the chirp-mass box
     out_path : output movie path (.mp4 or .gif)
-    sweep_label : label prefix for title, e.g. "td" or "mcz"
-    sweep_fmt : format string for each value, e.g. "{:.1f} ms" or "{:.2f} Msun"
+    sweep_label : label prefix for the sweep parameter, e.g. "mcz" or "td"
+    sweep_fmt : format string for each value, e.g. "{:.2f} Msun" or "{:.1f} ms"
+    vmax_cap : optional upper color limit; data max used when None
     """
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-
-    fig, ax = plt.subplots(figsize=(6.8, 5.2))
-    zmin, zmax = global_min_max(eps_grid)
-
     X, Y = np.meshgrid(omega, theta)
-    cf = ax.contourf(X, Y, eps_grid[0], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax)
-    cbar = fig.colorbar(cf)
-    cbar.set_label(LBL_EPS_LP)
-    ax.set_xlabel(LBL_OMEGA)
-    ax.set_ylabel(LBL_THETA)
-    ttl = ax.set_title(f"{sweep_label} = {sweep_fmt.format(sweep_values[0])}")
+    vmin, vmax, saturated = resolve_contour_vlim(eps_grid, vmax_cap=vmax_cap)
+
+    fig, ax = plt.subplots(figsize=(7.0, 7.0))
+    cf0 = draw_omega_theta_contour_panel(
+        ax, X, Y, eps_grid[0], gamma_grid[0],
+        mcz_msun=float(sweep_values[0]),
+        vmin=vmin, vmax=vmax, saturated=saturated, levels=levels, cmap=cmap,
+    )
     fig.tight_layout()
+    fig.canvas.draw()
+    cax = add_colorbar_axes(fig, ax, pad=0.02, width=0.02)
+    cbar = fig.colorbar(cf0, cax=cax)
+    cbar.set_label(LBL_EPS_LP)
+    format_colorbar_ticks(cbar, vmin, vmax, decimals=2)
 
     def _update(i):
-        for coll in ax.collections:
-            coll.remove()
-        ax.contourf(X, Y, eps_grid[i], levels=levels, cmap=cmap, vmin=zmin, vmax=zmax)
-        ttl.set_text(f"{sweep_label} = {sweep_fmt.format(sweep_values[i])}")
-        return ax.collections + [ttl]
+        ax.clear()
+        draw_omega_theta_contour_panel(
+            ax, X, Y, eps_grid[i], gamma_grid[i],
+            mcz_msun=float(sweep_values[i]),
+            vmin=vmin, vmax=vmax, saturated=saturated, levels=levels, cmap=cmap,
+        )
+        return ax.collections
 
     ani = animation.FuncAnimation(
         fig, _update, frames=len(sweep_values), blit=False, interval=1000 / max(fps, 1)
@@ -124,19 +173,22 @@ def save_html_slider(
     omega: np.ndarray,
     theta: np.ndarray,
     eps_grid: np.ndarray,
+    gamma_grid: np.ndarray,
     sweep_values: np.ndarray,
     out_path: str,
     sweep_label: str,
     sweep_fmt: str,
     cmap: str = "Jet",
     levels: int = 100,
+    vmax_cap: Optional[float] = None,
 ) -> Optional[str]:
     """Write an interactive HTML slider using Plotly (if available).
 
     Parameters
     ----------
-    sweep_label : label prefix for slider, e.g. "td" or "mcz"
-    sweep_fmt : format string for each value, e.g. "{:.1f} ms" or "{:.2f} Msun"
+    gamma_grid : (n_frames, n_theta, n_omega) — best-fit gamma_P at each grid point
+    sweep_values : (n_frames,) array of mcz values (Msun) for the chirp-mass box
+    vmax_cap : optional upper color limit; data max used when None
 
     Returns output path on success, or None if Plotly is unavailable.
     """
@@ -148,46 +200,70 @@ def save_html_slider(
         return None
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    X, Y = np.meshgrid(omega, theta)
+    zmin, zmax, _ = resolve_contour_vlim(eps_grid, vmax_cap=vmax_cap)
 
-    zmin, zmax = global_min_max(eps_grid)
+    point0 = compute_best_match_point(X, Y, eps_grid[0], gamma_grid[0])
+    mcz0 = float(sweep_values[0])
 
     fig = go.Figure()
     fig.add_trace(
         go.Contour(
-            x=omega,
-            y=theta,
-            z=eps_grid[0],
+            x=omega, y=theta, z=eps_grid[0],
             colorscale=cmap,
             contours=dict(coloring="fill", showlabels=False),
             ncontours=levels,
-            colorbar=dict(title=r"$\epsilon$"),
-            zmin=zmin,
-            zmax=zmax,
+            colorbar=dict(title=LBL_EPS_LP),
+            zmin=zmin, zmax=zmax,
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=[point0["min_omega"]], y=[point0["min_theta"]],
+            mode="markers",
+            marker=dict(
+                symbol="star", size=16, color="white",
+                line=dict(color="rgba(80,80,80,0.8)", width=1),
+            ),
+            showlegend=False,
         )
     )
 
     frames = []
     for i in range(eps_grid.shape[0]):
-        label = sweep_fmt.format(sweep_values[i])
+        point = compute_best_match_point(X, Y, eps_grid[i], gamma_grid[i])
         frames.append(
             go.Frame(
                 data=[
                     go.Contour(
-                        x=omega,
-                        y=theta,
-                        z=eps_grid[i],
+                        x=omega, y=theta, z=eps_grid[i],
                         colorscale=cmap,
                         contours=dict(coloring="fill", showlabels=False),
                         ncontours=levels,
-                        zmin=zmin,
-                        zmax=zmax,
-                    )
+                        zmin=zmin, zmax=zmax,
+                    ),
+                    go.Scatter(
+                        x=[point["min_omega"]], y=[point["min_theta"]],
+                        mode="markers",
+                        marker=dict(
+                            symbol="star", size=16, color="white",
+                            line=dict(color="rgba(80,80,80,0.8)", width=1),
+                        ),
+                        showlegend=False,
+                    ),
                 ],
-                name=f"{sweep_label}={label}",
+                layout=dict(annotations=_plotly_frame_annotations(point, float(sweep_values[i]))),
+                name=f"{sweep_label}={sweep_fmt.format(sweep_values[i])}",
             )
         )
 
     fig.frames = frames
+    fig.update_layout(
+        annotations=_plotly_frame_annotations(point0, mcz0),
+        xaxis_title=LBL_OMEGA,
+        yaxis_title=LBL_THETA,
+        yaxis=dict(scaleanchor="x", scaleratio=1),
+    )
 
     steps = [
         dict(
@@ -201,61 +277,35 @@ def save_html_slider(
         for i in range(len(sweep_values))
     ]
 
-    # Extract unit suffix from sweep_fmt (e.g. "{:.1f} ms" -> " ms")
     unit_suffix = (
-        sweep_fmt.replace("{:.1f}", "")
-        .replace("{:.2f}", "")
-        .replace("{:g}", "")
-        .strip()
+        sweep_fmt.replace("{:.1f}", "").replace("{:.2f}", "").replace("{:g}", "").strip()
     )
 
-    sliders = [
-        dict(
-            active=0,
-            currentvalue={
-                "prefix": f"{sweep_label}: ",
-                "suffix": f" {unit_suffix}" if unit_suffix else "",
-            },
-            pad={"t": 50},
-            steps=steps,
-        )
-    ]
-
     fig.update_layout(
-        title="Epsilon contours over (theta, omega)",
-        xaxis_title=r"$\tilde{\Omega}$",
-        yaxis_title=r"$\tilde{\theta}$",
-        sliders=sliders,
+        sliders=[
+            dict(
+                active=0,
+                currentvalue={
+                    "prefix": f"{sweep_label}: ",
+                    "suffix": f" {unit_suffix}" if unit_suffix else "",
+                },
+                pad={"t": 50},
+                steps=steps,
+            )
+        ],
         updatemenus=[
             dict(
                 type="buttons",
                 showactive=False,
-                y=1.15,
-                x=1.05,
-                xanchor="right",
-                yanchor="top",
+                y=1.15, x=1.05, xanchor="right", yanchor="top",
                 buttons=[
                     dict(
-                        label="Play",
-                        method="animate",
-                        args=[
-                            None,
-                            {
-                                "frame": {"duration": 100, "redraw": True},
-                                "fromcurrent": True,
-                            },
-                        ],
+                        label="Play", method="animate",
+                        args=[None, {"frame": {"duration": 100, "redraw": True}, "fromcurrent": True}],
                     ),
                     dict(
-                        label="Pause",
-                        method="animate",
-                        args=[
-                            [None],
-                            {
-                                "frame": {"duration": 0, "redraw": False},
-                                "mode": "immediate",
-                            },
-                        ],
+                        label="Pause", method="animate",
+                        args=[[None], {"frame": {"duration": 0, "redraw": False}, "mode": "immediate"}],
                     ),
                 ],
             )

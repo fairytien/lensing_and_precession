@@ -1,7 +1,7 @@
 """Visualize epsilon contours over (theta, omega) from a mismatch cube.
 
 Loads a per-mcz or per-I mismatch cube HDF5 (same schema: td, theta, omega,
-epsilon_min_grid), then:
+epsilon_min_grid, gamma_best_grid), then:
 - Builds a movie (MP4 if ffmpeg available, else GIF) sweeping all available td values
 - Optionally writes an interactive HTML slider (Plotly) to scrub td
 - Reuses the input cube basename for output files to preserve canonical tokens
@@ -16,7 +16,7 @@ import numpy as np
 from modules.plot_utils import apply_physics_paper_style
 from scripts.utils._cube_viz import save_contour_movie, save_html_slider
 
-apply_physics_paper_style()
+apply_physics_paper_style(base_font=16, label_font=20, tick_font=16, legend_font=14)
 
 
 def main():
@@ -30,7 +30,7 @@ def main():
     p.add_argument(
         "--input_path",
         required=True,
-        help=("Path to mismatch cube HDF5."),
+        help="Path to mismatch cube HDF5.",
     )
     p.add_argument(
         "--output_dir",
@@ -40,6 +40,12 @@ def main():
     p.add_argument("--cmap", type=str, default="jet")
     p.add_argument("--levels", type=int, default=100)
     p.add_argument("--fps", type=int, default=5)
+    p.add_argument(
+        "--vmax",
+        type=float,
+        default=0.5,
+        help="Saturate the colorbar at this epsilon value (default: 0.5)",
+    )
     p.add_argument(
         "--mp4",
         action="store_true",
@@ -53,56 +59,57 @@ def main():
         raise FileNotFoundError(f"Input cube not found: {args.input_path}")
 
     with h5py.File(args.input_path, "r") as h5:
-        for ds in ("td", "theta", "omega", "epsilon_min_grid"):
+        for ds in ("td", "theta", "omega", "epsilon_min_grid", "gamma_best_grid", "mcz"):
             if ds not in h5:
                 raise KeyError(
                     f"Dataset '{ds}' missing in {args.input_path}; found keys: {list(h5.keys())}"
                 )
 
-        td = np.array(h5["td"], dtype=float)  # seconds
+        td = np.array(h5["td"], dtype=float)        # seconds
         theta = np.array(h5["theta"], dtype=float)
         omega = np.array(h5["omega"], dtype=float)
-        eps = np.array(h5["epsilon_min_grid"], dtype=float)  # (td, theta, omega)
+        eps = np.array(h5["epsilon_min_grid"], dtype=float)   # (td, theta, omega)
+        gamma = np.array(h5["gamma_best_grid"], dtype=float)  # (td, theta, omega)
+        mcz_msun = float(np.asarray(h5["mcz"]).flat[0])
 
-        if eps.ndim != 3 or eps.shape[1:] != (theta.size, omega.size):
-            raise ValueError(
-                f"Unexpected epsilon_min_grid shape {eps.shape}; expected (n_td, {theta.size}, {omega.size})"
-            )
+    td_ms = td * 1e3
+    # For the td sweep, mcz is fixed across all frames.
+    mcz_sweep = np.full(len(td_ms), mcz_msun)
 
     os.makedirs(args.output_dir, exist_ok=True)
     base = os.path.splitext(os.path.basename(args.input_path))[0]
     movie_ext = ".mp4" if (args.mp4 and not args.gif) else ".gif"
     movie_path = os.path.join(args.output_dir, base + movie_ext)
 
-    td_ms = td * 1e3
-
-    # Movie
     save_contour_movie(
         omega=omega,
         theta=theta,
         eps_grid=eps,
-        sweep_values=td_ms,
+        gamma_grid=gamma,
+        sweep_values=mcz_sweep,
         out_path=movie_path,
         sweep_label="td",
         sweep_fmt="{:.1f} ms",
         cmap=args.cmap,
         levels=args.levels,
         fps=args.fps,
+        vmax_cap=args.vmax,
     )
 
-    # HTML slider
     if args.html:
         html_path = os.path.join(args.output_dir, base + ".html")
         save_html_slider(
             omega=omega,
             theta=theta,
             eps_grid=eps,
-            sweep_values=td_ms,
+            gamma_grid=gamma,
+            sweep_values=mcz_sweep,
             out_path=html_path,
             sweep_label="td",
             sweep_fmt="{:.1f} ms",
-            cmap="Jet",  # Plotly colorscale name
+            cmap="Jet",
             levels=args.levels,
+            vmax_cap=args.vmax,
         )
 
 

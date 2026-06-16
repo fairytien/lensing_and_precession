@@ -30,12 +30,10 @@ from modules.plot_utils import (
     LBL_BRATIO_TS,
     LBL_EPS_LP,
     LBL_F,
-    LBL_OMEGA,
     LBL_PHASE_TS,
-    LBL_THETA,
     apply_physics_paper_style,
+    draw_omega_theta_contour_panel,
     save_figure,
-    set_square_axes,
     add_colorbar_axes,
     format_colorbar_ticks,
 )
@@ -118,90 +116,6 @@ def load_contour_slice(cube_path: str, td_ms: float) -> dict:
         "td_ms": actual_td_ms,
         "I": I_val,
     }
-
-
-# ============================================================================
-# Contour Panel
-# ============================================================================
-
-
-def plot_contour_panel(
-    ax,
-    contour_data: dict,
-    *,
-    vmin: float,
-    vmax: float,
-    saturated: bool = True,
-    levels: int = 100,
-    show_xlabel: bool = False,
-    show_ylabel: bool = True,
-) -> plt.contour:
-    X = contour_data["omega_matrix"]
-    Y = contour_data["theta_matrix"]
-    Z = contour_data["epsilon_matrix"]
-
-    cf = ax.contourf(
-        X,
-        Y,
-        Z,
-        levels=np.linspace(vmin, vmax, levels),
-        cmap="jet",
-        extend="max" if saturated else "neither",
-    )
-
-    min_idx = np.unravel_index(np.nanargmin(Z), Z.shape)
-    min_omega = float(X[min_idx])
-    min_theta = float(Y[min_idx])
-    min_epsilon = float(Z[min_idx])
-    gamma_P = float(contour_data["gammaP_min_matrix"][min_idx])
-    epsilon_NP = float(Z[0, 0])
-    ratio = epsilon_NP / min_epsilon if min_epsilon > 0 else float("nan")
-
-    ax.plot(
-        min_omega,
-        min_theta,
-        "*",
-        color="white",
-        markersize=16,
-        markeredgewidth=0.8,
-        markeredgecolor="0.3",
-        label=(
-            rf"$\epsilon_{{\mathrm{{RP}}}}={min_epsilon:.3g}$, "
-            rf"$\epsilon_{{\mathrm{{NP}}}}/\epsilon_{{\mathrm{{RP}}}}={ratio:.2f}$"
-            "\n"
-            rf"$\tilde{{\theta}}={min_theta:.2f}$, "
-            rf"$\tilde{{\Omega}}={min_omega:.2f}$, "
-            rf"$\gamma_{{\mathrm{{P}}}}={gamma_P:.2f}$"
-        ),
-    )
-    ax.legend(
-        loc="lower right",
-        framealpha=0.7,
-        edgecolor="none",
-        handletextpad=0.3,
-    )
-
-    if show_xlabel:
-        ax.set_xlabel(LBL_OMEGA)
-    else:
-        ax.tick_params(axis="x", labelbottom=False)
-    if show_ylabel:
-        ax.set_ylabel(LBL_THETA)
-
-    set_square_axes(ax)
-
-    mcz = contour_data["mcz_msun"]
-    ax.text(
-        0.03,
-        0.96,
-        rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz:.3g}\,M_{{\odot}}$",
-        transform=ax.transAxes,
-        va="top",
-        ha="left",
-        bbox=dict(boxstyle="round,pad=0.2", fc="white", alpha=0.7, ec="none"),
-    )
-
-    return cf
 
 
 # ============================================================================
@@ -322,9 +236,13 @@ def plot_combined(
 
         ax_contour = fig.add_subplot(outer_gs[row, 0])
         contour_axes.append(ax_contour)
-        cf_last = plot_contour_panel(
+        cf_last = draw_omega_theta_contour_panel(
             ax_contour,
-            data,
+            data["omega_matrix"],
+            data["theta_matrix"],
+            data["epsilon_matrix"],
+            data["gammaP_min_matrix"],
+            mcz_msun=float(data["mcz_msun"]),
             vmin=vmin,
             vmax=vmax,
             saturated=saturated,
