@@ -24,7 +24,7 @@ from scripts.utils.plot_cycles_and_extrema import FIXED_MCZ_CYCLE_STYLES
 
 # Extrema overlay style conventions mirror scripts/utils/plot_cycles_and_extrema.py.
 PEAK_COLOR = "magenta"
-TROUGH_COLOR = "cyan"
+TROUGH_COLOR = "#50C878"
 EXTREMA_LINESTYLE = ":"
 PRIMARY_LW = 2.2
 SECONDARY_LW = 1.6
@@ -214,7 +214,12 @@ def _plot(
         )
         if mcz_min_src <= x_val_src <= mcz_max_src:
             ax.axvline(
-                x=x_val_src, color="black", ls=ls_style, lw=PRIMARY_LW, alpha=0.9, zorder=2
+                x=x_val_src,
+                color="black",
+                ls=ls_style,
+                lw=PRIMARY_LW,
+                alpha=0.9,
+                zorder=2,
             )
 
     # Extrema-line convention: peaks=magenta dotted, troughs=cyan dotted.
@@ -233,12 +238,13 @@ def _plot(
             zorder=2,
         )
 
-    for x_val in (
+    trough_x_vals = (
         find_mcz_troughs(
             np.array([td_s]), eta=eta, mcz_min=mcz_min_det, mcz_max=mcz_max_det
         )[1]
         / z_scale
-    ):
+    )
+    for x_val in trough_x_vals:
         ax.axvline(
             x=float(x_val),
             color=TROUGH_COLOR,
@@ -264,8 +270,6 @@ def _plot(
 
     ax.set_xlabel(r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$")
     ax.set_ylabel(r"$\epsilon$")
-
-
 
     cycle_legend_handles = []
     for n_cycles, ls_style in FIXED_MCZ_CYCLE_STYLES.items():
@@ -377,12 +381,14 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    mcz_fixed, mcz_opt, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta = _build_curves(
-        l_np_path=args.l_np_contour,
-        l_np_opt_path=args.l_np_opt_contour,
-        td_ms=args.td_ms,
-        rp_best_match=args.rp_best_match,
-        z=args.z,
+    mcz_fixed, mcz_opt, mcz_rp, fixed_np_curve, opt_np_curve, blue_curve, meta = (
+        _build_curves(
+            l_np_path=args.l_np_contour,
+            l_np_opt_path=args.l_np_opt_contour,
+            td_ms=args.td_ms,
+            rp_best_match=args.rp_best_match,
+            z=args.z,
+        )
     )
 
     output_path = args.output
