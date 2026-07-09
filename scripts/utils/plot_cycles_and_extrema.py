@@ -12,6 +12,7 @@ from modules.plot_utils import (
     save_figure,
     LBL_MIN_EPS_LP,
     LBL_TD,
+    lbl_n_fringe_equals,
 )
 from modules.cli_utils import add_cycle_extrema_overlay_args
 from modules.lens_cycle_extrema import (
@@ -271,7 +272,7 @@ def make_fixed_mcz_overlay_legend_handles(
                         color="black",
                         lw=2,
                         ls=ls,
-                        label=rf"$N_{{\mathrm{{lensed}}}}={n}$",
+                        label=lbl_n_fringe_equals(n),
                     )
                 )
     if include_peaks:
@@ -312,7 +313,7 @@ def draw_nlens_isocontours(
     label_style: str = "inline",
     fontsize: int = 8,
 ) -> list:
-    """Overlay N_lensed=1/2/3 isocontours on *ax* from a precomputed nlens grid.
+    """Overlay N_fringe=1/2/3 isocontours on *ax* from a precomputed nlens grid.
 
     label_style="inline"  — ax.clabel() places labels directly on the contour lines.
     label_style="legend"  — no inline labels; returns Line2D handles for a legend.
@@ -331,7 +332,7 @@ def draw_nlens_isocontours(
             linewidths=2.0,
         )
         if label_style == "inline":
-            ax.clabel(cs, fmt=rf"$N_{{\mathrm{{lensed}}}}={n}$", fontsize=fontsize)
+            ax.clabel(cs, fmt=lbl_n_fringe_equals(n), fontsize=fontsize)
         else:
             handles.append(
                 Line2D(
@@ -340,7 +341,7 @@ def draw_nlens_isocontours(
                     color="black",
                     lw=2,
                     ls=ls,
-                    label=rf"$N_{{\mathrm{{lensed}}}}={n}$",
+                    label=lbl_n_fringe_equals(n),
                 )
             )
     return handles
@@ -492,7 +493,7 @@ def main():
         choices=["legend", "inline"],
         default="legend",
         help=(
-            "How to label N_lensed cycle overlays with --overlay-cycles: "
+            "How to label N_fringe cycle overlays with --overlay-cycles: "
             "'legend' (default) adds cycle handles to the legend box; "
             "'inline' places labels directly on the lines with ax.clabel."
         ),

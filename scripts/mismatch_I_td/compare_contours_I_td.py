@@ -14,7 +14,7 @@ source-frame chirp mass and labelled with the chirp mass value.
 
 Each panel overlays:
 
-- visible N_lensed = 1, 2, 3 lines
+- visible N_fringe = 1, 2, 3 lines
 - visible peak lines in mismatch
 - visible trough lines in mismatch
 """

@@ -4,7 +4,7 @@ This script reproduces the latest figure style used in this project:
 - 2x2 shared-axis layout
 - global/shared color scale across all panels
 - in-panel label boxes: Non-Precessing, System 1/2/3
-- N_lensed=1/2/3 overlays on all panels
+- N_fringe=1/2/3 overlays on all panels
 - peaks (magenta) and troughs (white) overlays on panel 1 only
 - overlay curves scaled from z_from to z_to (defaults: 1e-8 -> 1)
 - colorbar aligned to right-column axis bounds (excluding bottom xlabel height)
@@ -139,7 +139,7 @@ def create_figure(
         mcz_min = float(np.nanmin(ys[i]))
         mcz_max = float(np.nanmax(ys[i]))
 
-        # N_lensed=1/2/3 overlays on all panels.
+        # N_fringe=1/2/3 overlays on all panels.
         plot_cycle_lines(
             td_arr,
             td_arr_ms,

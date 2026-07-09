@@ -115,6 +115,17 @@ LBL_PHASE_RPNP = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
 LBL_PHASE_TS = r"$\Phi_{\mathrm{t}} - \Phi_{\mathrm{s}}\,[\mathrm{rad}]$"
 
 
+# -- Lensing fringe count -----------------------------------------------------
+
+
+def lbl_n_fringe_equals(n: int) -> str:
+    """Legend/clabel text for a fixed in-band fringe count, e.g. N_fringe=1."""
+    return rf"$N_{{\mathrm{{fringe}}}}={int(n)}$"
+
+
+# ------------------------------------------------------------------------------
+
+
 def add_colorbar_axes(fig, target_axes, *, pad=COLORBAR_PAD, width=COLORBAR_WIDTH):
     """Add and return a colorbar axes (cax) aligned to the right of target_axes.
 

@@ -20,7 +20,10 @@ from modules.plot_utils import (
     LBL_EPS_LRP,
 )
 from modules.waveform import mcz_for_n_lens_cycles
-from scripts.utils.plot_cycles_and_extrema import FIXED_MCZ_CYCLE_STYLES
+from scripts.utils.plot_cycles_and_extrema import (
+    FIXED_MCZ_CYCLE_STYLES,
+    make_fixed_mcz_overlay_legend_handles,
+)
 
 # Extrema overlay style conventions mirror scripts/utils/plot_cycles_and_extrema.py.
 PEAK_COLOR = "magenta"
@@ -206,7 +209,7 @@ def _plot(
     mcz_min_det = mcz_min_src * z_scale
     mcz_max_det = mcz_max_src * z_scale
 
-    # Cycle-line convention: black with -, --, : for N_lensed=1,2,3.
+    # Cycle-line convention: black with -, --, : for N_fringe=1,2,3.
     for n_cycles, ls_style in FIXED_MCZ_CYCLE_STYLES.items():
         x_val_src = (
             float(mcz_for_n_lens_cycles(float(n_cycles), td_s, f_min=20.0, eta=eta))
@@ -271,18 +274,9 @@ def _plot(
     ax.set_xlabel(r"$\mathcal{M}_{\mathrm{s}}\,[M_\odot]$")
     ax.set_ylabel(r"$\epsilon$")
 
-    cycle_legend_handles = []
-    for n_cycles, ls_style in FIXED_MCZ_CYCLE_STYLES.items():
-        cycle_legend_handles.append(
-            Line2D(
-                [0],
-                [0],
-                color="black",
-                ls=ls_style,
-                lw=PRIMARY_LW,
-                label=rf"$N_{{\mathrm{{lensed}}}}={n_cycles}$",
-            )
-        )
+    cycle_legend_handles = make_fixed_mcz_overlay_legend_handles(
+        cycle_n_list=list(FIXED_MCZ_CYCLE_STYLES),
+    )
 
     extrema_legend_handles = [
         Line2D(
