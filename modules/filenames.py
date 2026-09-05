@@ -428,6 +428,33 @@ def bank_filename(
     )
 
 
+def secular_phase_omega_theta_figure_filename(
+    fig_dir: str,
+    mcz_msun: float,
+    omega_min: float,
+    omega_max: float,
+    theta_min: float,
+    theta_max: float,
+    orientation_tag: str,
+    z: Optional[float] = None,
+    ext: str = "pdf",
+) -> str:
+    """Build the figure path for secular-phase outputs over the (omega, theta) plane."""
+    orientation_token = str(orientation_tag).strip() or "orientation"
+    z_token = _canonical_z_token(z)
+    stem = "_".join(
+        [
+            "secular_phase_RP",
+            f"z{z_token}",
+            f"mcz{_format_min_precision(float(mcz_msun))}",
+            f"omega{_range_token(omega_min, omega_max)}",
+            f"theta{_range_token(theta_min, theta_max)}",
+            orientation_token,
+        ]
+    )
+    return os.path.join(_ensure_dir(fig_dir), f"{stem}.{ext}")
+
+
 # ==============================================================================
 # Shared Inspection And Parsing Helpers
 # ==============================================================================
