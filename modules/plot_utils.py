@@ -115,10 +115,10 @@ LBL_PHASE_RPNP = r"$\Phi_{\mathrm{RP}} - \Phi_{\mathrm{NP}}\,[\mathrm{rad}]$"
 LBL_PHASE_TS = r"$\Phi_{\mathrm{t}} - \Phi_{\mathrm{s}}\,[\mathrm{rad}]$"
 
 # -- Secular precessional phase accumulation ----------------------------------
-LBL_SECULAR_PHASE = r"$\Delta(\phi_{\mathrm{p}} + 2\delta\Phi)\,[\mathrm{rad}]$"
+# The p in phi_p stays italic to match \phi_p as written in the paper text.
+LBL_SECULAR_PHASE = r"$\Delta(\phi_p + 2\delta\Phi)\,[\mathrm{rad}]$"
 LBL_SECULAR_PHASE_RESIDUAL = (
-    r"$\Delta(\phi_{\mathrm{p}} + 2\delta\Phi)/"
-    r"(C\tilde{\Omega}\tilde{\theta}^{2}) - 1$"
+    r"$\Delta(\phi_p + 2\delta\Phi)/(C\tilde{\Omega}\tilde{\theta}^{2}) - 1$"
 )
 
 

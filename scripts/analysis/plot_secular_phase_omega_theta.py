@@ -8,14 +8,17 @@ accumulated across the inspiral band,
 
 as a function of the dimensionless precession frequency omega_tilde and
 amplitude theta_tilde.  The right panel shows the fractional residual of the
-numerical fit Delta(phi_p + 2 delta_Phi) ~ C * omega_tilde * theta_tilde**2.
+quadratic-order approximation
+Delta(phi_p + 2 delta_Phi) ~ C * omega_tilde * theta_tilde**2, whose constant
+C is evaluated in the small-amplitude limit so that the residual map is an
+independent test of where the approximation holds.
 
 The orientation is fixed to System 1 (Taman_faceon), for which the oscillatory
 contributions are suppressed and the phase accumulation is almost entirely
 secular.
 
 Usage:
-    python -m scripts.analysis.plot_secular_phase_contour
+    python -m scripts.analysis.plot_secular_phase_omega_theta
 """
 
 from __future__ import annotations
@@ -59,6 +62,10 @@ GAMMA_P = 0.0
 ORIENTATION_TAG = "Taman_faceon"
 PHASE_TICK_STEP = 2.5  # colorbar tick spacing for the phase panel [rad]
 
+# Small-amplitude probe used to evaluate the leading-order constant C.
+THETA_PROBE = 0.5
+OMEGA_PROBE = 1.0
+
 
 # ============================================================================
 # Phase Grid
@@ -78,38 +85,46 @@ def _build_rp_params(mcz_src_msun, z, theta_tilde, omega_tilde):
     return apply_z(params, z)
 
 
+def accumulated_phase(mcz_src_msun, z, theta_tilde, omega_tilde):
+    """Return Delta(phi_p + 2 delta_Phi) [rad] accumulated over the band.
+
+    The endpoint difference is what cancels the arbitrary branch offset that
+    np.unwrap introduces inside phase_phi_P.
+    """
+    inst = Precessing(_build_rp_params(mcz_src_msun, z, theta_tilde, omega_tilde))
+    f_arr = np.arange(F_MIN, inst.f_cut(), DELTA_F)
+    phase = inst.phase_phi_P(f_arr) + 2.0 * inst.phase_delta_phi(f_arr)
+    return float(phase[-1] - phase[0])
+
+
 def compute_secular_phase_grid(mcz_src_msun, z, omega_arr, theta_arr):
     """Return Delta(phi_p + 2 delta_Phi) [rad] on the (omega, theta) grid.
 
     The returned array has shape (n_theta, n_omega) to match the meshgrid
     convention used by the contour panels.
     """
-    # f_cut depends only on mcz and eta, so the band is shared by all points.
-    reference = Precessing(_build_rp_params(mcz_src_msun, z, theta_arr[0], omega_arr[0]))
-    f_arr = np.arange(F_MIN, reference.f_cut(), DELTA_F)
-
     delta_phase = np.empty((theta_arr.size, omega_arr.size))
     for i, theta_tilde in enumerate(theta_arr):
         for j, omega_tilde in enumerate(omega_arr):
-            inst = Precessing(
-                _build_rp_params(mcz_src_msun, z, theta_tilde, omega_tilde)
+            delta_phase[i, j] = accumulated_phase(
+                mcz_src_msun, z, theta_tilde, omega_tilde
             )
-            phase = inst.phase_phi_P(f_arr) + 2.0 * inst.phase_delta_phi(f_arr)
-            delta_phase[i, j] = phase[-1] - phase[0]
 
     return delta_phase
 
 
-def fit_secular_phase_constant(predictor, delta_phase):
-    """Fit C in Delta(phi_p + 2 delta_Phi) = C * omega * theta**2.
+def leading_order_constant(mcz_src_msun, z):
+    """Return C in Delta(phi_p + 2 delta_Phi) = C * omega * theta**2.
 
-    Averages the pointwise ratio rather than least-squares fitting the phase
-    itself, so the fractional residual plotted in the right panel is centered
-    on zero instead of being dominated by the large-amplitude corner where the
-    quadratic approximation breaks down.
+    The relation is the leading term of an expansion in theta_LJ, so C is
+    defined by the small-amplitude limit rather than by an average over the
+    grid: averaging would let the large-theta region, where the expansion is
+    known to fail, set the constant used to judge where it holds.  The ratio
+    is independent of omega and flat in theta well below THETA_PROBE, while
+    much smaller amplitudes lose accuracy to the phase integration itself.
     """
-    mask = np.isfinite(delta_phase) & (predictor > 0)
-    return float(np.mean(delta_phase[mask] / predictor[mask]))
+    delta_phase = accumulated_phase(mcz_src_msun, z, THETA_PROBE, OMEGA_PROBE)
+    return delta_phase / (OMEGA_PROBE * THETA_PROBE**2)
 
 
 # ============================================================================
@@ -138,8 +153,10 @@ def create_figure(
     predictor = omega_grid * theta_grid**2
 
     if constant is None:
-        constant = fit_secular_phase_constant(predictor, delta_phase)
-    print(f"Fit constant C = {constant:.4g}")
+        constant = leading_order_constant(mcz_src_msun, z)
+        print(f"Leading-order constant C = {constant:.4g}")
+    else:
+        print(f"Supplied constant C = {constant:.4g}")
 
     with np.errstate(divide="ignore", invalid="ignore"):
         residual = np.ma.masked_invalid(delta_phase / (constant * predictor) - 1.0)
@@ -252,7 +269,7 @@ def main() -> None:
         "--constant",
         type=float,
         default=None,
-        help="Fix C instead of fitting it to the computed grid.",
+        help="Fix C instead of evaluating the small-amplitude limit.",
     )
     parser.add_argument("--levels", type=int, default=100)
     parser.add_argument("--cmap", type=str, default="jet")
