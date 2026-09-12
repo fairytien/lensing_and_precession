@@ -166,7 +166,7 @@ def _plot(
     meta: Dict[str, Any],
     output_path: str,
     z: float = 0.0,
-    one_col_legend: bool = False,
+    one_col_legend: bool = True,
 ) -> None:
     apply_physics_paper_style(base_font=16, label_font=20, tick_font=17, legend_font=14)
     fig, ax = plt.subplots(figsize=(8.8, 6.6))
@@ -365,9 +365,9 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--output", type=str, default=None)
     parser.add_argument(
-        "--one-col-legend",
+        "--two-col-legend",
         action="store_true",
-        help="Use a single-column layout for the legend instead of two columns.",
+        help="Use a two-column legend layout instead of the default single column.",
     )
     return parser.parse_args()
 
@@ -406,7 +406,7 @@ def main() -> None:
         meta=meta,
         output_path=output_path,
         z=args.z,
-        one_col_legend=args.one_col_legend,
+        one_col_legend=not args.two_col_legend,
     )
 
     print(f"RP source used: {meta['rp_source']}")
