@@ -22,7 +22,6 @@ See [AGENTS.md — Output Filename Order](../AGENTS.md#output-filename-order) fo
 | `data/contour_mcz_td/` | Final `(td, mcz)` contour HDF5/PDF artifacts and super-contour aggregates |
 | `data/contour_I_td/` | Final `(td, I)` contour HDF5 artifacts |
 | `data/contour_omega_theta/` | Individual omega-theta contour outputs |
-| `data/run_logs/` | Per-pipeline run-log CSVs (see [`data/run_logs/CSV_RULES.md`](../data/run_logs/CSV_RULES.md)) |
 
 `figures/` mirrors the same shape: top-level run-dirs (`figures/mismatch_*`) for per-run plots, plus pipeline-grouped subdirs (`contour_mcz_td/`, `contour_I_td/`, `contour_omega_theta/`, `lindblom/`, `modality_nlens/`, `waveforms/`, `utils/`).
 
@@ -36,6 +35,10 @@ Pre-canonical data outputs and figures retained for reference live under `legacy
 ### Common filename tokens
 
 `mcz20`, `mcz30`, `mcz40` · `L_NP`, `L_RP` · `td22ms`, `td10_100` · `I0.5`, `I0.6` · `res_omega101_theta401` · `v2_`, `v3_`, `v4_`
+
+### Run logs
+
+[`run_logs/`](../run_logs/) ([`CSV_RULES.md`](../run_logs/CSV_RULES.md)).
 
 ## 2. LFS Toolkit
 

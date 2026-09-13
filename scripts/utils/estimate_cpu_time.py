@@ -48,7 +48,7 @@ def estimate_template_bank_time():
 
     # Extract build times from CSV
     build_times = []
-    with open("data/run_logs/runlog_mcz_td.csv", "r") as f:
+    with open("run_logs/runlog_mcz_td.csv", "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
             if row.get("stage") == "build" and row["total_time"]:
@@ -125,7 +125,7 @@ def estimate_mismatch_time():
 
     # Extract mismatch computation times from CSV
     mismatch_times = []
-    with open("data/run_logs/runlog_mcz_td.csv", "r") as f:
+    with open("run_logs/runlog_mcz_td.csv", "r") as f:
         reader = csv.DictReader(f)
         for row in reader:
             if row.get("stage") == "mismatch" and row["total_time"]:

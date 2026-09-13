@@ -1,6 +1,6 @@
 # Run Log CSV Rules
 
-Source of truth for parsing/writing CSVs in `data/run_logs`.
+Source of truth for parsing/writing CSVs in `run_logs/`.
 
 ## File naming
 
