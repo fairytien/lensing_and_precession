@@ -30,6 +30,7 @@ if REPO_ROOT not in sys.path:
     sys.path.insert(0, REPO_ROOT)
 
 from modules.cli_utils import add_cycle_extrema_overlay_args
+from modules.default_params import ORIENTATION_TO_SYSTEM
 from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import (
     add_colorbar_axes,
@@ -53,8 +54,6 @@ DEFAULT_PATHS = [
     "best_match_z1_mcz15_I0p1-0p9x81_td20-70x51_omega0-6x61_theta0-15x151_"
     "gamma0-2pix51_Taman_edgeon.h5",
 ]
-
-DEFAULT_LABELS = ["System 2"]
 
 DEFAULT_OUTPUT = "figures/contour_mcz_td/bestfit_prec_params.pdf"
 
@@ -116,10 +115,10 @@ def _load_best_match(path: str) -> BestMatchData:
     }
 
 
-def _validate_inputs(paths: List[str], labels: List[str]) -> None:
+def _validate_inputs(paths: List[str], labels: List[str] | None = None) -> None:
     if len(paths) < 1:
         raise ValueError("Expected at least 1 --path")
-    if len(labels) != len(paths):
+    if labels is not None and len(labels) != len(paths):
         raise ValueError(
             f"Expected --labels to match --paths ({len(paths)}), got {len(labels)}"
         )
@@ -192,8 +191,33 @@ def _format_mcz_title(mcz_value: float) -> str:
     return rf"$\mathcal{{M}}_{{\mathrm{{s}}}} = {mcz_value:g}\,\mathrm{{M}}_\odot$"
 
 
-def _panel_title(label: str, dataset: BestMatchData, axis_kind: str) -> str:
-    return label
+def _resolve_labels(
+    datasets: List[BestMatchData],
+    labels: List[str] | None,
+) -> List[str]:
+    if labels is not None:
+        return list(labels)
+
+    axis_kind = str(datasets[0]["axis_kind"])
+    mcz_values = [float(d["mcz_value"]) for d in datasets]
+    if axis_kind == "I" and len({v for v in mcz_values if np.isfinite(v)}) > 1:
+        return [
+            _format_mcz_title(float(d["mcz_value"]))
+            if np.isfinite(float(d["mcz_value"]))
+            else f"Panel {i + 1}"
+            for i, d in enumerate(datasets)
+        ]
+
+    resolved: List[str] = []
+    for i, d in enumerate(datasets):
+        tag = str(d.get("orientation", ""))
+        if tag in ORIENTATION_TO_SYSTEM:
+            resolved.append(f"System {ORIENTATION_TO_SYSTEM[tag]}")
+        elif tag:
+            resolved.append(tag)
+        else:
+            resolved.append(f"Panel {i + 1}")
+    return resolved
 
 
 def _source_frame_overlay_scale(z: float) -> float:
@@ -428,16 +452,16 @@ def _with_output_suffix(output_path: str, suffix: str) -> str:
 
 def create_figure(
     paths: List[str],
-    labels: List[str],
-    output_path: str | None,
-    levels_count: int,
-    cmap: str,
-    overlay_cycles: bool,
-    overlay_peaks: bool,
-    overlay_troughs: bool,
-    show_legend: bool,
-    eta: float,
-    f_min: float,
+    labels: List[str] | None = None,
+    output_path: str | None = None,
+    levels_count: int = 60,
+    cmap: str = "jet",
+    overlay_cycles: bool = False,
+    overlay_peaks: bool = False,
+    overlay_troughs: bool = False,
+    show_legend: bool = False,
+    eta: float = 0.25,
+    f_min: float = 20.0,
     slice_mcz: float | None = None,
     slice_td_ms: float | None = None,
     omega_vmax: float | None = None,
@@ -446,6 +470,7 @@ def create_figure(
     _validate_inputs(paths, labels)
 
     datasets = [_load_best_match(p) for p in paths]
+    labels = _resolve_labels(datasets, labels)
     ncols = len(datasets)
     axis_kinds = {d["axis_kind"] for d in datasets}
     if len(axis_kinds) != 1:
@@ -536,7 +561,7 @@ def create_figure(
         for ax in (ax_top, ax_bottom):
             set_square_axes(ax)
 
-        ax_top.set_title(_panel_title(label, d, axis_kind))
+        ax_top.set_title(label)
 
     if show_legend:
         handles = make_fixed_mcz_overlay_legend_handles(
@@ -587,8 +612,8 @@ def main() -> None:
     parser.add_argument(
         "--labels",
         nargs="+",
-        default=DEFAULT_LABELS,
-        help="One panel label per input path",
+        default=None,
+        help="One panel label per input path (defaults to auto-generated titles)",
     )
     parser.add_argument(
         "--output",
