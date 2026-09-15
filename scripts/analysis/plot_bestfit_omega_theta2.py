@@ -5,9 +5,8 @@ from __future__ import annotations
 import argparse
 import os
 import sys
-from typing import Any, Dict, List
+from typing import List
 
-import h5py
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -20,82 +19,17 @@ from modules.filenames import bestfit_prec_params_I_td_figure_filename
 from modules.plot_utils import (
     add_colorbar_axes,
     apply_physics_paper_style,
+    configure_I_axis,
     format_colorbar_ticks,
     save_figure,
     set_square_axes,
 )
-
-BestMatchData = Dict[str, Any]
-
-
-def _decode_attr_text(value: object) -> str:
-    if isinstance(value, bytes):
-        return value.decode()
-    return str(value)
-
-
-def _load_best_match(path: str) -> BestMatchData:
-    with h5py.File(path, "r") as h5:
-        td = np.asarray(h5["td"], dtype=float)
-        omega_best = np.asarray(h5["omega_best"], dtype=float)
-        theta_best = np.asarray(h5["theta_best"], dtype=float)
-        z = float(h5.attrs.get("z", h5.attrs.get("source_param_z", 0.0)))
-        orientation = _decode_attr_text(h5.attrs.get("orientation_tag", ""))
-        axis_order = _decode_attr_text(h5["omega_best"].attrs.get("axis_order", ""))
-        axis_order = axis_order.replace(" ", "")
-
-        if axis_order == "mcz,td" or (
-            "mcz" in h5 and np.asarray(h5["mcz"]).size == omega_best.shape[0]
-        ):
-            axis_values = np.asarray(h5["mcz"], dtype=float).reshape(-1)
-            axis_kind = "mcz"
-            axis_label = r"$\mathcal{M}_{\mathrm{s}}\,[\mathrm{M}_\odot]$"
-            I_value = float(h5.attrs.get("I", h5.attrs.get("source_param_I", np.nan)))
-            mcz_value = np.nan
-        elif axis_order == "I,td" or (
-            "I" in h5 and np.asarray(h5["I"]).size == omega_best.shape[0]
-        ):
-            axis_values = np.asarray(h5["I"], dtype=float).reshape(-1)
-            axis_kind = "I"
-            axis_label = r"$I$"
-            mcz_value = float(np.asarray(h5["mcz"], dtype=float).reshape(-1)[0])
-            I_value = np.nan
-        else:
-            raise ValueError(
-                f"Could not infer vertical axis for {path}: omega_best axis_order='{axis_order}'"
-            )
-
-    return {
-        "axis_kind": axis_kind,
-        "axis_values": axis_values,
-        "axis_label": axis_label,
-        "td_ms": td * 1e3,
-        "omega_best": omega_best,
-        "theta_best": theta_best,
-        "z": z,
-        "orientation": orientation,
-        "I_value": I_value,
-        "mcz_value": mcz_value,
-    }
-
-
-def _resolve_labels(paths: List[str], labels: List[str] | None) -> List[str]:
-    if labels is None:
-        return [os.path.splitext(os.path.basename(path))[0] for path in paths]
-    if len(labels) != len(paths):
-        raise ValueError(
-            f"Expected --labels to match --paths ({len(paths)}), got {len(labels)}"
-        )
-    return labels
-
-
-def _validate_inputs(paths: List[str]) -> None:
-    if len(paths) < 1:
-        raise ValueError("Expected at least 1 --path")
-
-    missing = [path for path in paths if not os.path.exists(path)]
-    if missing:
-        raise FileNotFoundError("Missing input files: " + ", ".join(missing))
+from scripts.analysis.plot_bestfit_prec_params import (
+    BestMatchData,
+    _load_best_match,
+    _resolve_labels,
+    _validate_inputs,
+)
 
 
 def _derived_field(dataset: BestMatchData) -> np.ndarray:
@@ -113,7 +47,7 @@ def _levels_for_arrays(arrays: List[np.ndarray], n: int) -> np.ndarray:
 def _default_output_path(datasets: List[BestMatchData], axis_kind: str) -> str:
     if axis_kind == "I":
         base = bestfit_prec_params_I_td_figure_filename(
-            fig_dir="figures/contour_I_td",
+            fig_dir="figures/secular_phase",
             mcz_values=[float(dataset["mcz_value"]) for dataset in datasets],
             I_min=float(np.nanmin(datasets[0]["axis_values"])),
             I_max=float(np.nanmax(datasets[0]["axis_values"])),
@@ -124,7 +58,7 @@ def _default_output_path(datasets: List[BestMatchData], axis_kind: str) -> str:
         )
         stem, ext = os.path.splitext(base)
         return f"{stem}_omega_theta2{ext or '.pdf'}"
-    return "figures/contour_mcz_td/bestfit_prec_params_omega_theta2.pdf"
+    return "figures/secular_phase/bestfit_omega_theta2_mcz_td.pdf"
 
 
 def create_figure(
@@ -135,8 +69,8 @@ def create_figure(
     cmap: str,
 ) -> None:
     _validate_inputs(paths)
-    labels = _resolve_labels(paths, labels)
     datasets = [_load_best_match(path) for path in paths]
+    labels = _resolve_labels(datasets, labels)
 
     axis_kinds = {dataset["axis_kind"] for dataset in datasets}
     if len(axis_kinds) != 1:
@@ -152,7 +86,7 @@ def create_figure(
     levels = _levels_for_arrays(fields, levels_count)
     ncols = len(datasets)
 
-    apply_physics_paper_style(base_font=12, label_font=14, tick_font=11, legend_font=10)
+    apply_physics_paper_style()
 
     fig, axes = plt.subplots(
         1,
@@ -179,6 +113,9 @@ def create_figure(
         ax.set_xlabel(r"$\Delta t_{\mathrm{d}}\,[\mathrm{ms}]$")
 
     axes[0, 0].set_ylabel(axis_label)
+
+    if axis_kind == "I":
+        configure_I_axis(axes[0, 0])
 
     if contour is None:
         raise ValueError("No datasets were plotted")
